@@ -22,9 +22,11 @@ abstract class Player {
         throws InvalidMidiDataException;
     public abstract void bend(int degree)
         throws InvalidMidiDataException;
-//     public abstract void setInstrument(int instrument)
-//         throws InvalidMidiDataException;
+    public abstract void modulate(int degree)
+        throws InvalidMidiDataException;
     public abstract void programChange(int bank, int program)
+        throws InvalidMidiDataException;
+    public abstract void setChannel(int channel)
         throws InvalidMidiDataException;
 }
 
@@ -54,61 +56,68 @@ class ReceiverPlayer extends Player {
         throws InvalidMidiDataException{
         ShortMessage msg = new ShortMessage();
         msg.setMessage(ShortMessage.PITCH_BEND,  channel, degree, degree);
-//         msg.setMessage(ShortMessage.CONTROL_CHANGE,  1, degree, degree);
         receiver.send(msg, -1);
     }
 
-//     public void setInstrument(int instrument)
-//         throws InvalidMidiDataException{
-//         ShortMessage sm = new ShortMessage( );
-//         sm.setMessage(ShortMessage.PROGRAM_CHANGE, 0, instrument, 0);
-//         receiver.send(sm, -1);
-//     }
+    public void modulate(int degree)
+        throws InvalidMidiDataException{
+        ShortMessage msg = new ShortMessage();
+        msg.setMessage(ShortMessage.CONTROL_CHANGE,  channel, 1, degree);
+        receiver.send(msg, -1);
+    }
 
     public void programChange(int bank, int program)
         throws InvalidMidiDataException{
-//         ShortMessage sm = new ShortMessage( );
-//         sm.setMessage(ShortMessage.CONTROL_CHANGE, 0, program, bank);
-//         sm.setMessage(ShortMessage.PROGRAM_CHANGE, channel, program, bank);
-//         receiver.send(sm, -1);
+        ShortMessage sm = new ShortMessage( );
+        sm.setMessage(ShortMessage.PROGRAM_CHANGE, channel, bank, program);
+        receiver.send(sm, -1);
         channel = program;
+    }
+
+    public void setChannel(int channel)
+        throws InvalidMidiDataException{
+        this.channel = channel;
     }
 }
 
 class ChannelPlayer extends Player {
     private Synthesizer synth;
-    private MidiChannel channel;
+    private MidiChannel midi;
 
     public ChannelPlayer(Synthesizer synth){
         this.synth = synth;
-        channel = synth.getChannels()[0];
+        midi = synth.getChannels()[0];
     }
 
     public void noteon(int note)
         throws InvalidMidiDataException{
-        channel.noteOn(note, velocity);
+        midi.noteOn(note, velocity);
     }
 
     public void noteoff(int note)
         throws InvalidMidiDataException{
-        channel.noteOff(note);
+        midi.noteOff(note);
     }
 
     public void bend(int degree)
         throws InvalidMidiDataException{
-        channel.setPitchBend(degree);
-//         channel.controlChange(1, degree);
+        midi.setPitchBend(degree);
+    }
+
+    public void modulate(int degree)
+        throws InvalidMidiDataException{
+        midi.controlChange(1, degree);
     }
 
     public void programChange(int bank, int program)
         throws InvalidMidiDataException{
-        channel.programChange(bank, program);
+        midi.programChange(bank, program);
     }
 
-//     public void setInstrument(int instrument)
-//         throws InvalidMidiDataException{
-//         channel = synth.getChannels()[instrument];
-//     }
+    public void setChannel(int channel)
+        throws InvalidMidiDataException{
+        midi = synth.getChannels()[channel];
+    }
 }
 
 /**
@@ -233,19 +242,54 @@ public class Keyboard extends JFrame {
                 }
             });
         addMouseMotionListener(new MouseMotionAdapter( ) {
-                public void mouseMoved(MouseEvent e) {
-                    int velocity = e.getX()/2;
+                public void mouseMoved(MouseEvent event) {
+                    int velocity = event.getX()/2;
                     System.out.println("velocity "+velocity);
                     player.setVelocity(velocity);
-                    int bend = e.getY()/2;
+                    int bend = event.getY()/2;
                     System.out.println("bend "+bend);
                     try{
-                        player.bend(bend);
+                        if((event.getModifiersEx() & 
+                            MouseEvent.SHIFT_DOWN_MASK) != 0)
+                            player.modulate(bend);
+                        else
+                            player.bend(bend);
                     }catch(Exception exc){
                         exc.printStackTrace();
                     }
                 }
             });
+        JMenuBar menubar = new JMenuBar();
+        JMenu channelMenu = new JMenu("Channel");
+        JMenuItem item = new JMenuItem("Set Channel 1");
+        item.addActionListener(new ActionListener(  ) {
+                public void actionPerformed(ActionEvent event) {
+                    try{
+                        player.setChannel(0);
+                    }catch(Exception exc){exc.printStackTrace();}
+                }
+            });
+        channelMenu.add(item);
+        item = new JMenuItem("Set Channel 2");
+        item.addActionListener(new ActionListener(  ) {
+                public void actionPerformed(ActionEvent event) {
+                    try{
+                        player.setChannel(1);
+                    }catch(Exception exc){exc.printStackTrace();}
+                }
+            });
+        channelMenu.add(item);
+        item = new JMenuItem("Set Channel 3");
+        item.addActionListener(new ActionListener(  ) {
+                public void actionPerformed(ActionEvent event) {
+                    try{
+                        player.setChannel(2);
+                    }catch(Exception exc){exc.printStackTrace();}
+                }
+            });
+        channelMenu.add(item);
+        menubar.add(channelMenu);
+        setJMenuBar(menubar);
     }
 
 //     public Keyboard(Synthesizer synth) {
