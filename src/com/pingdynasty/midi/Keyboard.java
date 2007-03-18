@@ -1,3 +1,5 @@
+package com.pingdynasty.midi;
+
 import javax.sound.midi.*;
 import java.awt.Toolkit;
 import java.awt.event.*;
