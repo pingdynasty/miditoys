@@ -304,8 +304,8 @@ class ScaleActionListener implements ActionListener {
     /** map a keypress code to a MIDI note */
     public int getNote(int key){
         int note = scales[scaleindex][key % scales[scaleindex].length];
-        System.out.println("key "+key+" ("+key % scales[scaleindex].length+"): "+note);
-        System.out.println("key / scales[scaleindex].length = "+key / scales[scaleindex].length);
+//         System.out.println("key "+key+" ("+key % scales[scaleindex].length+"): "+note);
+//         System.out.println("key / scales[scaleindex].length = "+key / scales[scaleindex].length);
         note += (key / scales[scaleindex].length) * 12;
         System.out.println("note "+note);
         // 12 is the length of an octave in midi notes

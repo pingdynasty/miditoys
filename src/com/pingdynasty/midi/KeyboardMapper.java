@@ -5,28 +5,29 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.Enumeration;
 import java.awt.event.KeyEvent;
+import javax.swing.KeyStroke;
 
 public class KeyboardMapper {
-    private Map mappings = new HashMap();
+    private int[] mappings = new int[1024];
     private int octave = 4;
 
     public KeyboardMapper(){
+        for(int i=0; i<mappings.length; i++)
+            mappings[i] = -1;
     }
 
     public KeyboardMapper(Properties props){
+        this();
         map(props);
     }
 
     public void map(Properties props){
         for(Enumeration e = props.propertyNames(); e.hasMoreElements();){
             String key = (String)e.nextElement();
-            String note = props.getProperty(key);
-            map(key, Integer.parseInt(note));
+            int note = Integer.parseInt(props.getProperty(key));
+            int keycode = KeyStroke.getKeyStroke(key).getKeyCode();
+            mappings[keycode] = note;
         }
-    }
-
-    public void map(String keytext, int note){
-        mappings.put(keytext, new Integer(note));
     }
 
     public void changeOctaveUp(){
@@ -38,10 +39,9 @@ public class KeyboardMapper {
     }
 
     public int getNote(int key){
-        Integer i = (Integer)mappings.get(KeyEvent.getKeyText(key));
-        if(i == null)
+        if(mappings[key] == -1)
             return -1;
-        int note = i.intValue() + (octave * 12);
+        int note = mappings[key] + (octave * 12);
         System.out.println("key "+KeyEvent.getKeyText(key)+" ("+key+"): "+note);
         return note;
     }
