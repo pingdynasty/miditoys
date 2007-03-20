@@ -14,74 +14,6 @@ import java.util.Random;
 //       ShortMessage.CHANNEL_PRESSURE
 //       ShortMessage.PITCH_BEND
 
-// class Player  {
-//     private Receiver receiver;
-//     private int channel = 0;
-//     private int velocity;
-
-//     public Player(Receiver receiver){
-//         this.receiver = receiver;
-//     }
-
-//     public void setDevice(MidiDevice device)
-//         throws MidiUnavailableException{
-//         receiver.close();
-//         device.open();
-//         receiver = device.getReceiver();
-//     }
-
-//     public void setVelocity(int velocity){
-//         this.velocity = velocity;
-//     }
-
-//     public void noteon(int note)
-//         throws InvalidMidiDataException{
-//         ShortMessage msg = new ShortMessage();
-//         msg.setMessage(ShortMessage.NOTE_ON,  channel, note, velocity);
-//         receiver.send(msg, -1);
-//     }
-
-//     public void noteoff(int note)
-//         throws InvalidMidiDataException{
-//         ShortMessage msg = new ShortMessage();
-//         msg.setMessage(ShortMessage.NOTE_OFF,  channel, note, 0);
-//         receiver.send(msg, -1);
-//     }
-
-//     public void bend(int degree)
-//         throws InvalidMidiDataException{
-//         ShortMessage msg = new ShortMessage();
-//         msg.setMessage(ShortMessage.PITCH_BEND,  channel, degree, degree);
-//         receiver.send(msg, -1);
-//     }
-
-//     public void modulate(int degree)
-//         throws InvalidMidiDataException{
-//         ShortMessage msg = new ShortMessage();
-//         msg.setMessage(ShortMessage.CONTROL_CHANGE,  channel, 1, degree);
-//         receiver.send(msg, -1);
-//     }
-
-//     public void programChange(int bank, int program)
-//         throws InvalidMidiDataException{
-//         ShortMessage sm = new ShortMessage( );
-//         sm.setMessage(ShortMessage.PROGRAM_CHANGE, channel, bank, program);
-//         receiver.send(sm, -1);
-//     }
-
-//     public void setChannel(int channel)
-//         throws InvalidMidiDataException{
-//         this.channel = channel;
-//     }
-
-//     public void allNotesOff()
-//         throws InvalidMidiDataException{
-//         ShortMessage msg = new ShortMessage();
-//         msg.setMessage(ShortMessage.CONTROL_CHANGE,  channel, 123, 0);
-//         receiver.send(msg, -1);
-//     }
-// }
-
 public class WalkingBass extends JFrame {
     private Player player;
     private boolean noteOn[] = new boolean[512]; // keep track of notes that are on
@@ -91,6 +23,17 @@ public class WalkingBass extends JFrame {
     private int duration = 100; // note duration
     private int period = 500; // time between notes
     private static int channel = 0;
+    private String[] scalenames = new String[]{
+        "C minor blues scale",
+        "C major blues scale",
+        "Ionian mode",
+        "Dorian mode",
+        "Phrygian mode",
+        "Lydian mode",
+        "Mixolydian mode",
+        "Aeolian mode",
+        "Locrian mode"};
+
     private int[][] scales = new int[][]{
         // C minor blues scale: C Eb F F# G Bb C
         {0, 3, 5, 6, 7, 10},
@@ -132,6 +75,30 @@ class DeviceActionListener implements ActionListener {
             device.open();
             player = new ReceiverPlayer(device.getReceiver());
         }catch(Exception exc){exc.printStackTrace();}
+    }
+}
+
+class ChannelActionListener implements ActionListener {
+    private int channel;
+    public ChannelActionListener(int channel){
+        this.channel = channel;
+    }
+
+    public void actionPerformed(ActionEvent event){
+        try{
+            player.setChannel(channel);
+        }catch(Exception exc){exc.printStackTrace();}
+    }
+}
+
+class ScaleActionListener implements ActionListener {
+    private int scale;
+    public ScaleActionListener(int scale){
+        this.scale = scale;
+    }
+
+    public void actionPerformed(ActionEvent event) {
+        scaleindex = scale;
     }
 }
 
@@ -236,21 +203,6 @@ class DeviceActionListener implements ActionListener {
                 }
             });
         JMenuBar menubar = new JMenuBar();
-//         JMenu channelMenu = new JMenu("Channel");
-//         JMenuItem item;
-//         for(int i=0; i<6; ++i){
-//             item = new JMenuItem("Set Channel "+i);
-//             item.addActionListener(new ActionListener(  ) {
-//                     public void actionPerformed(ActionEvent event) {
-//                         try{
-//                             player.setChannel(i);
-//                         }catch(Exception exc){exc.printStackTrace();}
-//                     }
-//                 });
-//             channelMenu.add(item);
-//         }
-//         menubar.add(channelMenu);
-
         JMenu menu = new JMenu("Devices");
         MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
         MidiDevice[] devices = new MidiDevice[info.length];
@@ -265,71 +217,20 @@ class DeviceActionListener implements ActionListener {
         }
         menubar.add(menu);
 
+        menu = new JMenu("Channels");
+        for(int i=0; i<6; ++i){
+            JMenuItem item = new JMenuItem("channel "+i);
+            item.addActionListener(new ChannelActionListener(i));
+            menu.add(item);
+        }
+        menubar.add(menu);
+        
         menu = new JMenu("Scales");
-        JMenuItem item = new JMenuItem("C minor blues scale");
-        item.addActionListener(new ActionListener(  ) {
-                public void actionPerformed(ActionEvent event) {
-                    scaleindex = 0;
-                }
-            });
-        menu.add(item);
-        item = new JMenuItem("C major blues scale");
-        item.addActionListener(new ActionListener(  ) {
-                public void actionPerformed(ActionEvent event) {
-                    scaleindex = 1;
-                }
-            });
-        menu.add(item);
-        item = new JMenuItem("Ionian mode");
-        item.addActionListener(new ActionListener(  ) {
-                public void actionPerformed(ActionEvent event) {
-                    scaleindex = 2;
-                }
-            });
-        menu.add(item);
-        item = new JMenuItem("Dorian mode");
-        item.addActionListener(new ActionListener(  ) {
-                public void actionPerformed(ActionEvent event) {
-                    scaleindex = 3;
-                }
-            });
-        menu.add(item);
-        item = new JMenuItem("Phrygian mode");
-        item.addActionListener(new ActionListener(  ) {
-                public void actionPerformed(ActionEvent event) {
-                    scaleindex = 4;
-                }
-            });
-        menu.add(item);
-        item = new JMenuItem("Lydian mode");
-        item.addActionListener(new ActionListener(  ) {
-                public void actionPerformed(ActionEvent event) {
-                    scaleindex = 5;
-                }
-            });
-        menu.add(item);
-        item = new JMenuItem("Mixolydian mode");
-        item.addActionListener(new ActionListener(  ) {
-                public void actionPerformed(ActionEvent event) {
-                    scaleindex = 6;
-                }
-            });
-        menu.add(item);
-        item = new JMenuItem("Aeolian mode");
-        item.addActionListener(new ActionListener(  ) {
-                public void actionPerformed(ActionEvent event) {
-                    scaleindex = 7;
-                }
-            });
-        menu.add(item);
-        item = new JMenuItem("Locrian mode");
-        item.addActionListener(new ActionListener(  ) {
-                public void actionPerformed(ActionEvent event) {
-                    scaleindex = 8;
-                }
-            });
-        menu.add(item);
-
+        for(int i=0; i<scales.length; ++i){
+            JMenuItem item = new JMenuItem(scalenames[i]);
+            item.addActionListener(new ScaleActionListener(i));
+            menu.add(item);
+        }
         menubar.add(menu);
 
         setJMenuBar(menubar);
