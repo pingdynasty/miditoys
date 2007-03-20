@@ -80,20 +80,6 @@ public class Keyboard extends JFrame {
         throws Exception {
         super("Keyboard");
         player = play;
-        
-//         Properties props = new Properties();
-//         props.setProperty("A", "0");
-//         props.setProperty("W", "1");
-//         props.setProperty("S", "2");
-//         props.setProperty("E", "3");
-//         props.setProperty("D", "4");
-//         props.setProperty("F", "5");
-//         props.setProperty("T", "6");
-//         props.setProperty("G", "7");
-//         props.setProperty("Y", "8");
-//         props.setProperty("H", "9");
-//         props.setProperty("U", "10");
-//         props.setProperty("J", "11");
         mapper = new KeyboardMapper(Locale.getDefault());
 
         addKeyListener(new KeyAdapter( ) {

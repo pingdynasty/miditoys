@@ -8,14 +8,6 @@ import javax.swing.event.*;
 import java.util.Random;
 import java.util.Locale;
 
-//       ShortMessage.NOTE_OFF
-//       ShortMessage.NOTE_ON
-//       ShortMessage.POLY_PRESSURE
-//       ShortMessage.CONTROL_CHANGE
-//       ShortMessage.PROGRAM_CHANGE
-//       ShortMessage.CHANNEL_PRESSURE
-//       ShortMessage.PITCH_BEND
-
 public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
     private Player player;
     private ControlSurfacePanel surface;
@@ -118,14 +110,13 @@ class ScaleActionListener implements ActionListener {
             }else if(key == KeyEvent.VK_DOWN){
                 keyboard.changeOctaveDown();
                 status("octave "+keyboard.getOctave());
-                skew -= 0.2;
             }else if(key == KeyEvent.VK_SPACE){
                 doplay = !doplay;
                 status("play: "+doplay);
             }else if(key == KeyEvent.VK_ESCAPE){
                 status("escape: reset");
                 player.allNotesOff();
-                player.bend(0);
+                player.bend(64);
                 player.modulate(0);
             }else{
                 if(key < 0x30 || key > 0x5a)
@@ -221,7 +212,7 @@ class ScaleActionListener implements ActionListener {
         }
         menubar.add(menu);
         menu = new JMenu("Channels");
-        for(int i=0; i<6; ++i){
+        for(int i=0; i<16; ++i){
             JMenuItem item = new JMenuItem("channel "+i);
             item.addActionListener(new ChannelActionListener(i));
             menu.add(item);
@@ -257,11 +248,11 @@ class ScaleActionListener implements ActionListener {
         buttons = new JPanel();
         buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
         group = new ButtonGroup();
-        for(int i=0; i<8; ++i){
+        for(int i=0; i<16; ++i){
             JRadioButton button = new JRadioButton("channel "+i);
             button.addActionListener(new ChannelActionListener(i));
             button.addKeyListener(this);
-            if(i == 0)
+            if(i == scales.getScaleIndex())
                 button.setSelected(true);
             group.add(button);
             buttons.add(button);
@@ -274,8 +265,8 @@ class ScaleActionListener implements ActionListener {
         JSlider slider = new JSlider(JSlider.HORIZONTAL, 20, 300, 60000/period);
         slider.addChangeListener(this);
         //Turn on labels at major tick marks.
-        slider.setMajorTickSpacing(40);
-        slider.setMinorTickSpacing(10);
+        slider.setMajorTickSpacing(20);
+        slider.setMinorTickSpacing(5);
         slider.setPaintTicks(true);
         slider.setPaintLabels(true);
         slider.addKeyListener(this);
@@ -296,9 +287,6 @@ class ScaleActionListener implements ActionListener {
         double rand;
         int bucket;
         int key = scales.getKey(60); // approximate middle C equivalent key
-        int mid = key;
-        int max = scales.getKey(127); // approximate key for highest note
-        int min = scales.getKey(0); // approximate key for lowest note
         int note = 0;
         for(;;){
             while(!doplay){
@@ -319,7 +307,7 @@ class ScaleActionListener implements ActionListener {
                     bucket = 0;
                 key += steps[bucket];
             }
-            direction = key > mid ? -1 : 1;
+            direction = key > scales.getKey(60) ? -1 : 1; // higher or lower than middle C
             note = scales.getNote(key);
 //             System.out.println("note "+note+" \tskew "+(skew * direction)+" \trand "+rand);
             if(note > -1){

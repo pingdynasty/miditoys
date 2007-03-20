@@ -4,6 +4,7 @@ package com.pingdynasty.midi;
 public class ScaleMapper {
 
     private String[] scalenames = new String[]{
+        "C Major",
         "C minor blues scale",
         "C major blues scale",
         "Ionian mode",
@@ -12,9 +13,13 @@ public class ScaleMapper {
         "Lydian mode",
         "Mixolydian mode",
         "Aeolian mode",
-        "Locrian mode"};
+        "Locrian mode",
+        "Chromatic Scale"
+    };
 
     private int[][] scales = new int[][]{
+        // C Major
+        {0,2,4,5,7,9,11},
         // C minor blues scale: C Eb F F# G Bb C
         {0, 3, 5, 6, 7, 10},
         // C major blues scale: C D D# E G A C
@@ -23,17 +28,19 @@ public class ScaleMapper {
         // Ionian mode 	C D E F G A B C 	(associated with C Major 7 chord)
         {0,2,4,5,7,9,11},
         // Dorian mode 	C D Eb F G A Bb C 	(associated with C-7 chord)
-        {0,2,3, 5,7,9,12},
+        {0,2,3, 5,7,9,10},
         // Phrygian mode C Db Eb F G Ab Bb C 	(associated with C Phrygian chord)
-        {0,1, 3, 5,7,10,12},
+        {0,1, 3, 5,7,8,10},
         // Lydian mode 	C D E F# G A B C 	(associated with C Maj7 #4 chord)
         {0,2,4,6, 7,9,11},
         // Mixolydian mode C D E F G A Bb C 	(associated with C7 chord)
-        {0,2,4,5,7,9,12},
+        {0,2,4,5,7,9,10},
         // Aeolian mode D Eb F G Ab Bb C 	(associated with C-7 b6 chord)
-        {2,3, 5,7,8, 12},
+        {2,3, 5,7,8, 10},
         // Locrian mode	C Db Eb F Gb Ab Bb C 	(associated with C-7b5 chord)
-        {0,1, 3, 5,6, 8, 12}
+        {0,1, 3, 5,6, 8, 10},
+        // Chromatic Scale
+        {0,1,2,3,4,5,6,7,8,9,10,11}
     };
     int scaleindex = 0;
 
@@ -41,6 +48,10 @@ public class ScaleMapper {
 
     public String[] getScaleNames(){
         return scalenames;
+    }
+
+    public int getScaleIndex(){
+        return scaleindex;
     }
 
     public void setScale(int scaleindex){

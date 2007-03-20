@@ -2,6 +2,14 @@ package com.pingdynasty.midi;
 
 import javax.sound.midi.*;
 
+//       ShortMessage.NOTE_OFF
+//       ShortMessage.NOTE_ON
+//       ShortMessage.POLY_PRESSURE
+//       ShortMessage.CONTROL_CHANGE
+//       ShortMessage.PROGRAM_CHANGE
+//       ShortMessage.CHANNEL_PRESSURE
+//       ShortMessage.PITCH_BEND
+
 class ReceiverPlayer extends Player {
     private Receiver receiver;
     private int channel = 0;
@@ -27,6 +35,7 @@ class ReceiverPlayer extends Player {
     public void bend(int degree)
         throws InvalidMidiDataException{
         ShortMessage msg = new ShortMessage();
+//         msg.setMessage(ShortMessage.PITCH_BEND,  channel, 0xff00 & degree, 0x00ff & degree);
         msg.setMessage(ShortMessage.PITCH_BEND,  channel, degree, degree);
         receiver.send(msg, -1);
     }
