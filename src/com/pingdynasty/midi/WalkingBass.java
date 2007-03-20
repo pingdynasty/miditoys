@@ -1,7 +1,7 @@
 package com.pingdynasty.midi;
 
 import javax.sound.midi.*;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.util.Random;
@@ -14,7 +14,7 @@ import java.util.Random;
 //       ShortMessage.CHANNEL_PRESSURE
 //       ShortMessage.PITCH_BEND
 
-public class WalkingBass extends JFrame {
+public class WalkingBass extends JFrame implements KeyListener {
     private Player player;
     private boolean noteOn[] = new boolean[512]; // keep track of notes that are on
     private int[] steps = new int[]{-2, -2, -1, -1, 1, 1, 1, 1, 2, 2};
@@ -22,6 +22,7 @@ public class WalkingBass extends JFrame {
     private boolean normal = false; // use normal or uniform distribution
     private int duration = 100; // note duration
     private int period = 500; // time between notes
+    private boolean doplay = true;
     private static int channel = 0;
     private String[] scalenames = new String[]{
         "C minor blues scale",
@@ -121,7 +122,67 @@ class ScaleActionListener implements ActionListener {
         Player player = new ReceiverPlayer(device.getReceiver());
         player.setChannel(channel);
         WalkingBass bass = new WalkingBass(player);
-        bass.walk();
+//         bass.walk();
+    }
+
+    public void keyTyped(KeyEvent e){}
+
+    public void keyPressed(KeyEvent e) {
+        int key = e.getKeyCode();
+        System.out.println("key "+KeyEvent.getKeyText(key)+" ("+key+")");
+        try{
+            if(key == KeyEvent.VK_LEFT){
+                player.setChannel(--channel);
+                System.out.println("channel "+channel);
+            }else if(key == KeyEvent.VK_RIGHT){
+                player.setChannel(++channel);
+                System.out.println("channel "+channel);
+            }else if(key == KeyEvent.VK_SPACE){
+                doplay = !doplay;
+                System.out.println("play: "+doplay);
+            }else if(key == KeyEvent.VK_ESCAPE){
+                System.out.println("escape: "+doplay);
+                player.allNotesOff();
+                player.bend(0);
+                player.modulate(0);
+            }else{
+                if(key < 0x30 || key > 0x5a)
+                    return;
+                int note = getNote(key - 36);
+                if(note > 0 && !noteOn[note]){
+                    try{
+                        noteOn[note] = true;
+                        player.noteon(note);
+                    }catch(Exception exc){
+                        exc.printStackTrace();
+                    }
+                }
+            }
+        }catch(Exception exc){
+            exc.printStackTrace();
+        }
+    }
+
+    public void keyReleased(KeyEvent e) {
+        int key = e.getKeyCode();
+        if(key < 0x30 || key > 0x5a)
+            return;
+        KeyEvent nextPress = (KeyEvent)Toolkit.getDefaultToolkit().
+            getSystemEventQueue().
+            peekEvent(KeyEvent.KEY_PRESSED);
+        if((nextPress != null) &&
+           (nextPress.getWhen() == e.getWhen()) &&
+           (nextPress.getKeyCode() == key))
+            return;
+        int note = getNote(key - 36);
+        if(note > 0 && noteOn[note]){
+            try{
+                noteOn[note] = false;
+                player.noteoff(note);
+            }catch(Exception exc){
+                exc.printStackTrace();
+            }
+        }
     }
 
     public WalkingBass(Player play) 
@@ -129,74 +190,13 @@ class ScaleActionListener implements ActionListener {
         super("WalkingBass");
         player = play;
 
-        addKeyListener(new KeyAdapter( ) {
-                public void keyPressed(KeyEvent e) {
-                    int key = e.getKeyCode();
-//                     System.out.println("key "+KeyEvent.getKeyText(key)+" ("+key+")");
-                   if(key < 0x30 || key > 0x5a)
-                        return;
-                    try{
-                        if(key == KeyEvent.VK_LEFT){
-                            player.setChannel(--channel);
-                            System.out.println("channel "+channel);
-                        }else if(key == KeyEvent.VK_RIGHT){
-                            player.setChannel(++channel);
-                            System.out.println("channel "+channel);
-                        }else if(key == KeyEvent.VK_ESCAPE){
-                            player.allNotesOff();
-                            player.bend(0);
-                            player.modulate(0);
-                        }else{
-                            int note = getNote(key - 36);
-                            if(note > 0 && !noteOn[note]){
-                                try{
-                                    noteOn[note] = true;
-                                    player.noteon(note);
-                                }catch(Exception exc){
-                                    exc.printStackTrace();
-                                }
-                            }
-                        }
-                    }catch(Exception exc){
-                        exc.printStackTrace();
-                    }
-                }
-                public void keyReleased(KeyEvent e) {
-                    int key = e.getKeyCode();
-                    if(key < 0x30 || key > 0x5a)
-                        return;
-                    KeyEvent nextPress = (KeyEvent)Toolkit.getDefaultToolkit().
-                        getSystemEventQueue().
-                        peekEvent(KeyEvent.KEY_PRESSED);
-                    if((nextPress != null) &&
-                       (nextPress.getWhen() == e.getWhen()) &&
-                       (nextPress.getKeyCode() == key))
-                        return;
-                    int note = getNote(key - 36);
-                    if(note > 0 && noteOn[note]){
-                        try{
-                            noteOn[note] = false;
-                            player.noteoff(note);
-                        }catch(Exception exc){
-                            exc.printStackTrace();
-                        }
-                    }
-                }
-            });
-
         JFrame surface = new JFrame("control surface");
-        surface.addMouseMotionListener(new MouseMotionAdapter( ) {
-                public void mouseMoved(MouseEvent event) {
-                    int velocity = event.getX()/2;
-                    System.out.println("velocity "+velocity);
-                    player.setVelocity(velocity);
-                    duration = event.getY();
-                    System.out.println("duration "+duration);
-                }
-            });
+        surface.setContentPane(new ControlSurfacePanel(player));
+        surface.addKeyListener(this);
         surface.setSize(255, 255);
         surface.setVisible(true);
 
+        // menus
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("Devices");
         MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
@@ -211,7 +211,6 @@ class ScaleActionListener implements ActionListener {
            }
         }
         menubar.add(menu);
-
         menu = new JMenu("Channels");
         for(int i=0; i<6; ++i){
             JMenuItem item = new JMenuItem("channel "+i);
@@ -219,7 +218,6 @@ class ScaleActionListener implements ActionListener {
             menu.add(item);
         }
         menubar.add(menu);
-        
         menu = new JMenu("Scales");
         for(int i=0; i<scales.length; ++i){
             JMenuItem item = new JMenuItem(scalenames[i]);
@@ -227,10 +225,22 @@ class ScaleActionListener implements ActionListener {
             menu.add(item);
         }
         menubar.add(menu);
-
         setJMenuBar(menubar);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // buttons
+        JPanel buttons = new JPanel(new BorderLayout());
+        ButtonGroup group = new ButtonGroup();
+        for(int i=0; i<scales.length; ++i){
+            JRadioButton button = new JRadioButton(scalenames[i]);
+            button.addActionListener(new ScaleActionListener(i));
+            group.add(button);
+            buttons.add(button);
+        }
+        getContentPane().add(buttons);
+
+        addKeyListener(this);
         setSize(255, 255);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
     }
 
@@ -243,6 +253,9 @@ class ScaleActionListener implements ActionListener {
         int key = (60 / 12) * scales[scaleindex].length; // Middle C equivalent position
         int note = 0;
         for(;;){
+            while(!doplay){
+                Thread.currentThread().sleep(period);                
+            }
             if(normal)
                 rand = random.nextGaussian(); // Gaussian (normal) distribution
             else
