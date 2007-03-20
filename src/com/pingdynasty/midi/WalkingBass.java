@@ -183,25 +183,20 @@ class ScaleActionListener implements ActionListener {
                     }
                 }
             });
-        addMouseMotionListener(new MouseMotionAdapter( ) {
+
+        JFrame surface = new JFrame("control surface");
+        surface.addMouseMotionListener(new MouseMotionAdapter( ) {
                 public void mouseMoved(MouseEvent event) {
                     int velocity = event.getX()/2;
-//                     System.out.println("velocity "+velocity);
+                    System.out.println("velocity "+velocity);
                     player.setVelocity(velocity);
-                    duration = event.getY() * 2;
-//                     int bend = 128 - event.getY()/2;
-//                     System.out.println("bend "+bend);
-//                     try{
-//                         if((event.getModifiersEx() & 
-//                             MouseEvent.SHIFT_DOWN_MASK) != 0)
-//                             player.modulate(bend);
-//                         else
-//                             player.bend(bend);
-//                     }catch(Exception exc){
-//                         exc.printStackTrace();
-//                     }
+                    duration = event.getY();
+                    System.out.println("duration "+duration);
                 }
             });
+        surface.setSize(255, 255);
+        surface.setVisible(true);
+
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("Devices");
         MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
