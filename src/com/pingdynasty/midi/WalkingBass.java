@@ -16,13 +16,14 @@ import java.util.Random;
 
 public class WalkingBass extends JFrame implements KeyListener {
     private Player player;
+    private ControlSurfacePanel surface;;
     private boolean noteOn[] = new boolean[512]; // keep track of notes that are on
     private int[] steps = new int[]{-2, -2, -1, -1, 1, 1, 1, 1, 2, 2};
     private double skew = 0.20;
     private boolean normal = false; // use normal or uniform distribution
     private int duration = 100; // note duration
     private int period = 500; // time between notes
-    private boolean doplay = true;
+    private boolean doplay = false;
     private static int channel = 0;
     private String[] scalenames = new String[]{
         "C minor blues scale",
@@ -60,7 +61,7 @@ public class WalkingBass extends JFrame implements KeyListener {
 // Locrian mode	C Db Eb F Gb Ab Bb C 	(associated with C-7b5 chord)
                {0,1, 3, 5,6, 8, 12}
     };
-    int scaleindex = 0;
+    int scaleindex = 2;
 
 class DeviceActionListener implements ActionListener {
 
@@ -75,6 +76,7 @@ class DeviceActionListener implements ActionListener {
             player.close();
             device.open();
             player = new ReceiverPlayer(device.getReceiver());
+            surface.setPlayer(player);
         }catch(Exception exc){exc.printStackTrace();}
     }
 }
@@ -121,8 +123,14 @@ class ScaleActionListener implements ActionListener {
         device.open();
         Player player = new ReceiverPlayer(device.getReceiver());
         player.setChannel(channel);
+
         WalkingBass bass = new WalkingBass(player);
-//         bass.walk();
+        bass.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        bass.setSize(512, 255);
+        bass.pack();
+        bass.setVisible(true);
+
+        bass.walk();
     }
 
     public void keyTyped(KeyEvent e){}
@@ -187,14 +195,18 @@ class ScaleActionListener implements ActionListener {
 
     public WalkingBass(Player play) 
         throws Exception {
-        super("WalkingBass");
+        super("Walking Bass");
         player = play;
 
-        JFrame surface = new JFrame("control surface");
-        surface.setContentPane(new ControlSurfacePanel(player));
-        surface.addKeyListener(this);
-        surface.setSize(255, 255);
-        surface.setVisible(true);
+        JPanel content = new JPanel(new BorderLayout());
+        content.setBorder(BorderFactory.createLineBorder(Color.gray));
+        content.addKeyListener(this);
+        content.setFocusable(true);
+
+        surface = new ControlSurfacePanel(player);
+        surface.setOpaque(true);
+        surface.setFocusable(true);
+        content.add(surface, BorderLayout.WEST);
 
         // menus
         JMenuBar menubar = new JMenuBar();
@@ -234,15 +246,15 @@ class ScaleActionListener implements ActionListener {
         for(int i=0; i<scales.length; ++i){
             JRadioButton button = new JRadioButton(scalenames[i]);
             button.addActionListener(new ScaleActionListener(i));
+            if(i == scaleindex)
+                button.setSelected(true);
             group.add(button);
             buttons.add(button);
         }
-        getContentPane().add(buttons);
+        buttons.setBorder(BorderFactory.createLineBorder(Color.black));
+        content.add(buttons, BorderLayout.EAST);
 
-        addKeyListener(this);
-        setSize(255, 255);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setVisible(true);
+        setContentPane(content);
     }
 
     public void walk()
