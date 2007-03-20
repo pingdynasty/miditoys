@@ -228,7 +228,8 @@ class ScaleActionListener implements ActionListener {
         setJMenuBar(menubar);
 
         // buttons
-        JPanel buttons = new JPanel(new BorderLayout());
+        JPanel buttons = new JPanel();
+        buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
         ButtonGroup group = new ButtonGroup();
         for(int i=0; i<scales.length; ++i){
             JRadioButton button = new JRadioButton(scalenames[i]);
