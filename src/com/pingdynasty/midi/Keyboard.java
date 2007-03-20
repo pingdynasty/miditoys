@@ -4,6 +4,7 @@ import javax.sound.midi.*;
 import java.awt.Toolkit;
 import java.awt.event.*;
 import javax.swing.*;
+import java.util.Properties;
 
 //       ShortMessage.NOTE_OFF
 //       ShortMessage.NOTE_ON
@@ -12,115 +13,6 @@ import javax.swing.*;
 //       ShortMessage.PROGRAM_CHANGE
 //       ShortMessage.CHANNEL_PRESSURE
 //       ShortMessage.PITCH_BEND
-
-abstract class Player {
-    protected int velocity;
-    public void setVelocity(int velocity){
-        this.velocity = velocity;
-    }
-    public abstract void noteon(int note)
-        throws InvalidMidiDataException;
-    public abstract void noteoff(int note)
-        throws InvalidMidiDataException;
-    public abstract void bend(int degree)
-        throws InvalidMidiDataException;
-    public abstract void modulate(int degree)
-        throws InvalidMidiDataException;
-    public abstract void programChange(int bank, int program)
-        throws InvalidMidiDataException;
-    public abstract void setChannel(int channel)
-        throws InvalidMidiDataException;
-}
-
-class ReceiverPlayer extends Player {
-    private Receiver receiver;
-    private int channel = 0;
-
-    public ReceiverPlayer(Receiver receiver){
-        this.receiver = receiver;
-    }
-
-    public void noteon(int note)
-        throws InvalidMidiDataException{
-        ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.NOTE_ON,  channel, note, velocity);
-        receiver.send(msg, -1);
-    }
-
-    public void noteoff(int note)
-        throws InvalidMidiDataException{
-        ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.NOTE_OFF,  channel, note, 0);
-        receiver.send(msg, -1);
-    }
-
-    public void bend(int degree)
-        throws InvalidMidiDataException{
-        ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.PITCH_BEND,  channel, degree, degree);
-        receiver.send(msg, -1);
-    }
-
-    public void modulate(int degree)
-        throws InvalidMidiDataException{
-        ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.CONTROL_CHANGE,  channel, 1, degree);
-        receiver.send(msg, -1);
-    }
-
-    public void programChange(int bank, int program)
-        throws InvalidMidiDataException{
-        ShortMessage sm = new ShortMessage( );
-        sm.setMessage(ShortMessage.PROGRAM_CHANGE, channel, bank, program);
-        receiver.send(sm, -1);
-        channel = program;
-    }
-
-    public void setChannel(int channel)
-        throws InvalidMidiDataException{
-        this.channel = channel;
-    }
-}
-
-class ChannelPlayer extends Player {
-    private Synthesizer synth;
-    private MidiChannel midi;
-
-    public ChannelPlayer(Synthesizer synth){
-        this.synth = synth;
-        midi = synth.getChannels()[0];
-    }
-
-    public void noteon(int note)
-        throws InvalidMidiDataException{
-        midi.noteOn(note, velocity);
-    }
-
-    public void noteoff(int note)
-        throws InvalidMidiDataException{
-        midi.noteOff(note);
-    }
-
-    public void bend(int degree)
-        throws InvalidMidiDataException{
-        midi.setPitchBend(degree);
-    }
-
-    public void modulate(int degree)
-        throws InvalidMidiDataException{
-        midi.controlChange(1, degree);
-    }
-
-    public void programChange(int bank, int program)
-        throws InvalidMidiDataException{
-        midi.programChange(bank, program);
-    }
-
-    public void setChannel(int channel)
-        throws InvalidMidiDataException{
-        midi = synth.getChannels()[channel];
-    }
-}
 
 /**
  * this program the MIDI percussion channel with a Swing window.  It monitors
@@ -131,7 +23,8 @@ class ChannelPlayer extends Player {
  * to increase the volume.
  */
 public class Keyboard extends JFrame {
-    final Player player; // either play through a Receiver or a MidiChannel
+    private Player player; // either play through a Receiver or a MidiChannel
+    private KeyboardMapper mapper;
     private boolean noteOn[] = new boolean[1024]; // keep track of notes that are on
     private static int bank = 0;
     private static int channel = 0;
@@ -167,25 +60,10 @@ public class Keyboard extends JFrame {
         Player player;
         if(device instanceof Synthesizer){
             Synthesizer synthesizer = (Synthesizer)device;
-            player = new ChannelPlayer(synthesizer);
-//             frame = new Keyboard(player);
-            
-//             // select channel
-//             Receiver receiver = device.getReceiver();
-//             ShortMessage sm = new ShortMessage( );
-//             sm.setMessage(ShortMessage.PROGRAM_CHANGE, 0, instrument, 0);
-//             receiver.send(sm, -1);
-//             frame = new Keyboard(new ReceiverPlayer(receiver));
-
-//             MidiChannel channel = synthesizer.getChannels()[instrument];
-//             frame = new Keyboard(new ChannelPlayer(channel));
+            player = new SynthesizerPlayer(synthesizer);
         }else if(device instanceof Receiver){
             Receiver receiver = (Receiver)device;
             player = new ReceiverPlayer(receiver);
-//             ShortMessage sm = new ShortMessage( );
-//             sm.setMessage(ShortMessage.PROGRAM_CHANGE, 0, instrument, 0);
-//             receiver.send(sm, -1);
-//             frame = new Keyboard(new ReceiverPlayer(receiver));
         }else{
             throw new Exception("invalid MIDI device: "+devices[i].getName());
         }
@@ -197,10 +75,24 @@ public class Keyboard extends JFrame {
         frame.setVisible(true);
     }
 
-    public Keyboard(Player play) 
+    public Keyboard(Player play)
         throws Exception {
         super("Keyboard");
         player = play;
+        Properties props = new Properties();
+        props.setProperty("A", "0");
+        props.setProperty("W", "1");
+        props.setProperty("S", "2");
+        props.setProperty("E", "3");
+        props.setProperty("D", "4");
+        props.setProperty("F", "5");
+        props.setProperty("T", "6");
+        props.setProperty("G", "7");
+        props.setProperty("Y", "8");
+        props.setProperty("H", "9");
+        props.setProperty("U", "10");
+        props.setProperty("J", "11");
+        mapper = new KeyboardMapper(props);
 
         addKeyListener(new KeyAdapter( ) {
                 public void keyPressed(KeyEvent e) {
@@ -229,8 +121,8 @@ public class Keyboard extends JFrame {
                                 System.out.println("bank "+bank);
                             }
                         }else{
-                            int note = getNote(key);
-                            if(note > 0 && !noteOn[note]){
+                            int note = mapper.getNote(key);
+                            if(note >= 0 && !noteOn[note]){
                                 try{
                                     noteOn[note] = true;
                                     player.noteon(note);
@@ -250,8 +142,8 @@ public class Keyboard extends JFrame {
                     if ((nextPress == null) ||
                         (nextPress.getWhen() != e.getWhen()) ||
                         (nextPress.getKeyCode() != e.getKeyCode())) {
-                        int note = getNote(e.getKeyCode());
-                        if(note > 0 && noteOn[note]){
+                        int note = mapper.getNote(e.getKeyCode());
+                        if(note >= 0 && noteOn[note]){
                             try{
                                 noteOn[note] = false;
                                 player.noteoff(note);
@@ -311,13 +203,5 @@ public class Keyboard extends JFrame {
         channelMenu.add(item);
         menubar.add(channelMenu);
         setJMenuBar(menubar);
-    }
-
-    /** map a keypress code to a MIDI note */
-    public int getNote(int key){
-        System.out.println("key "+KeyEvent.getKeyText(key)+" ("+key+")");
-        if(key >= 0x30 && key <= 0x5a)
-            return key;
-        return 0;
     }
 }

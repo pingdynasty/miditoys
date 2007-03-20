@@ -14,93 +14,76 @@ import java.util.Random;
 //       ShortMessage.CHANNEL_PRESSURE
 //       ShortMessage.PITCH_BEND
 
-class DeviceActionListener implements ActionListener {
+// class Player  {
+//     private Receiver receiver;
+//     private int channel = 0;
+//     private int velocity;
 
-    private MidiDevice device;
-    private Player player;
+//     public Player(Receiver receiver){
+//         this.receiver = receiver;
+//     }
 
-    public DeviceActionListener(MidiDevice device, Player player){
-        this.device = device;
-        this.player = player;
-    }
+//     public void setDevice(MidiDevice device)
+//         throws MidiUnavailableException{
+//         receiver.close();
+//         device.open();
+//         receiver = device.getReceiver();
+//     }
 
-    public void actionPerformed(ActionEvent event) {
-        try{
-            player.setDevice(device);
-        }catch(Exception exc){exc.printStackTrace();}
-    }
-}
+//     public void setVelocity(int velocity){
+//         this.velocity = velocity;
+//     }
 
-class Player  {
-    private Receiver receiver;
-    private int channel = 0;
-    private int velocity;
+//     public void noteon(int note)
+//         throws InvalidMidiDataException{
+//         ShortMessage msg = new ShortMessage();
+//         msg.setMessage(ShortMessage.NOTE_ON,  channel, note, velocity);
+//         receiver.send(msg, -1);
+//     }
 
-    public Player(Receiver receiver){
-        this.receiver = receiver;
-    }
+//     public void noteoff(int note)
+//         throws InvalidMidiDataException{
+//         ShortMessage msg = new ShortMessage();
+//         msg.setMessage(ShortMessage.NOTE_OFF,  channel, note, 0);
+//         receiver.send(msg, -1);
+//     }
 
-    public void setDevice(MidiDevice device)
-        throws MidiUnavailableException{
-        receiver.close();
-        device.open();
-        receiver = device.getReceiver();
-    }
+//     public void bend(int degree)
+//         throws InvalidMidiDataException{
+//         ShortMessage msg = new ShortMessage();
+//         msg.setMessage(ShortMessage.PITCH_BEND,  channel, degree, degree);
+//         receiver.send(msg, -1);
+//     }
 
-    public void setVelocity(int velocity){
-        this.velocity = velocity;
-    }
+//     public void modulate(int degree)
+//         throws InvalidMidiDataException{
+//         ShortMessage msg = new ShortMessage();
+//         msg.setMessage(ShortMessage.CONTROL_CHANGE,  channel, 1, degree);
+//         receiver.send(msg, -1);
+//     }
 
-    public void noteon(int note)
-        throws InvalidMidiDataException{
-        ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.NOTE_ON,  channel, note, velocity);
-        receiver.send(msg, -1);
-    }
+//     public void programChange(int bank, int program)
+//         throws InvalidMidiDataException{
+//         ShortMessage sm = new ShortMessage( );
+//         sm.setMessage(ShortMessage.PROGRAM_CHANGE, channel, bank, program);
+//         receiver.send(sm, -1);
+//     }
 
-    public void noteoff(int note)
-        throws InvalidMidiDataException{
-        ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.NOTE_OFF,  channel, note, 0);
-        receiver.send(msg, -1);
-    }
+//     public void setChannel(int channel)
+//         throws InvalidMidiDataException{
+//         this.channel = channel;
+//     }
 
-    public void bend(int degree)
-        throws InvalidMidiDataException{
-        ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.PITCH_BEND,  channel, degree, degree);
-        receiver.send(msg, -1);
-    }
-
-    public void modulate(int degree)
-        throws InvalidMidiDataException{
-        ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.CONTROL_CHANGE,  channel, 1, degree);
-        receiver.send(msg, -1);
-    }
-
-    public void programChange(int bank, int program)
-        throws InvalidMidiDataException{
-        ShortMessage sm = new ShortMessage( );
-        sm.setMessage(ShortMessage.PROGRAM_CHANGE, channel, bank, program);
-        receiver.send(sm, -1);
-    }
-
-    public void setChannel(int channel)
-        throws InvalidMidiDataException{
-        this.channel = channel;
-    }
-
-    public void allNotesOff()
-        throws InvalidMidiDataException{
-        ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.CONTROL_CHANGE,  channel, 123, 0);
-        receiver.send(msg, -1);
-    }
-}
+//     public void allNotesOff()
+//         throws InvalidMidiDataException{
+//         ShortMessage msg = new ShortMessage();
+//         msg.setMessage(ShortMessage.CONTROL_CHANGE,  channel, 123, 0);
+//         receiver.send(msg, -1);
+//     }
+// }
 
 public class WalkingBass extends JFrame {
-    final Player player;
+    private Player player;
     private boolean noteOn[] = new boolean[512]; // keep track of notes that are on
     private int[] steps = new int[]{-2, -2, -1, -1, 1, 1, 1, 1, 2, 2};
     private double skew = 0.20;
@@ -135,12 +118,26 @@ public class WalkingBass extends JFrame {
     };
     int scaleindex = 0;
 
+class DeviceActionListener implements ActionListener {
+
+    private MidiDevice device;
+
+    public DeviceActionListener(MidiDevice device){
+        this.device = device;
+    }
+
+    public void actionPerformed(ActionEvent event) {
+        try{
+            player.close();
+            device.open();
+            player = new ReceiverPlayer(device.getReceiver());
+        }catch(Exception exc){exc.printStackTrace();}
+    }
+}
+
     public static void main(String[  ] args) 
         throws MidiUnavailableException, Exception {
-//         System.in.read();// eat the eol
-//         System.out.println("choose instrument: 0-9");
-//         instrument = System.in.read() - 48;
-
+        // choose first available Syntheziser or Receiver device
         MidiDevice device = null;
         MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
         MidiDevice[] devices = new MidiDevice[info.length];
@@ -154,7 +151,7 @@ public class WalkingBass extends JFrame {
             }
         }
         device.open();
-        Player player = new Player(device.getReceiver());
+        Player player = new ReceiverPlayer(device.getReceiver());
         player.setChannel(channel);
         WalkingBass bass = new WalkingBass(player);
         bass.walk();
@@ -262,7 +259,7 @@ public class WalkingBass extends JFrame {
             if(devices[i] instanceof Receiver ||
                devices[i] instanceof Synthesizer){
                 JMenuItem item = new JMenuItem(info[i].getName());
-                item.addActionListener(new DeviceActionListener(devices[i], player));
+                item.addActionListener(new DeviceActionListener(devices[i]));
                 menu.add(item); 
            }
         }
