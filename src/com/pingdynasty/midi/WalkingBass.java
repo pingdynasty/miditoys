@@ -16,7 +16,8 @@ import java.util.Random;
 
 public class WalkingBass extends JFrame implements KeyListener {
     private Player player;
-    private ControlSurfacePanel surface;;
+    private ControlSurfacePanel surface;
+    private JLabel statusbar;
     private boolean noteOn[] = new boolean[512]; // keep track of notes that are on
     private int[] steps = new int[]{-2, -2, -1, -1, 1, 1, 1, 1, 2, 2};
     private double skew = 0.20;
@@ -129,7 +130,7 @@ class ScaleActionListener implements ActionListener {
         bass.setSize(512, 255);
         bass.pack();
         bass.setVisible(true);
-
+        bass.status("all systems go");
         bass.walk();
     }
 
@@ -147,9 +148,9 @@ class ScaleActionListener implements ActionListener {
                 System.out.println("channel "+channel);
             }else if(key == KeyEvent.VK_SPACE){
                 doplay = !doplay;
-                System.out.println("play: "+doplay);
+                status("play: "+doplay);
             }else if(key == KeyEvent.VK_ESCAPE){
-                System.out.println("escape: "+doplay);
+                status("escape: reset");
                 player.allNotesOff();
                 player.bend(0);
                 player.modulate(0);
@@ -203,10 +204,16 @@ class ScaleActionListener implements ActionListener {
         content.addKeyListener(this);
         content.setFocusable(true);
 
+        statusbar = new JLabel("initializing");
+        content.add(statusbar, BorderLayout.SOUTH);
+
         surface = new ControlSurfacePanel(player);
         surface.setOpaque(true);
         surface.setFocusable(true);
+        surface.addKeyListener(this);
         content.add(surface, BorderLayout.WEST);
+
+//         getRootPane().registerKeyBoardAction(..)
 
         // menus
         JMenuBar menubar = new JMenuBar();
@@ -246,6 +253,7 @@ class ScaleActionListener implements ActionListener {
         for(int i=0; i<scales.length; ++i){
             JRadioButton button = new JRadioButton(scalenames[i]);
             button.addActionListener(new ScaleActionListener(i));
+            button.addKeyListener(this);
             if(i == scaleindex)
                 button.setSelected(true);
             group.add(button);
@@ -255,6 +263,11 @@ class ScaleActionListener implements ActionListener {
         content.add(buttons, BorderLayout.EAST);
 
         setContentPane(content);
+    }
+
+    public void status(String msg){
+        statusbar.setText(msg);
+//         statusbar.repaint();
     }
 
     public void walk()
