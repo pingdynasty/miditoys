@@ -57,12 +57,13 @@ public class ScaleMapper {
 
     /** map an arbitrary number to a MIDI note on the current scale */
     public int getNote(int key){
+        if(key < 0)
+            return -1;
         int note = scales[scaleindex][key % scales[scaleindex].length];
-//         System.out.println("key "+key+" ("+key % scales[scaleindex].length+"): "+note);
-//         System.out.println("key / scales[scaleindex].length = "+key / scales[scaleindex].length);
         note += (key / scales[scaleindex].length) * 12;
-        System.out.println("note "+note);
-        // 12 is the length of an octave in midi notes
+        // 12 is the length of an octave in midi (half) notes
+        if(note > 127)
+            return -1;
         return note;
     }
 

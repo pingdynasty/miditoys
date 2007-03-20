@@ -14,13 +14,11 @@ public class ControlSurfacePanel extends JPanel implements MouseMotionListener {
         x = event.getX();
         player.setVelocity(x/2);
         y = event.getY();
-        System.out.println("x/y "+x+"/"+y);
-//         duration = event.getY();
-//         System.out.println("duration "+duration);
+//         System.out.println("x/y "+x+"/"+y);
     }
 
     public ControlSurfacePanel(Player player){
-        super(new BorderLayout());
+//         super(new BorderLayout());
         this.player = player;
 
         Dimension dim = new Dimension(255, 255);

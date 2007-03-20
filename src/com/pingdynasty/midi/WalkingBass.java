@@ -4,7 +4,9 @@ import javax.sound.midi.*;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import javax.swing.event.*;
 import java.util.Random;
+import java.util.Locale;
 
 //       ShortMessage.NOTE_OFF
 //       ShortMessage.NOTE_ON
@@ -14,17 +16,18 @@ import java.util.Random;
 //       ShortMessage.CHANNEL_PRESSURE
 //       ShortMessage.PITCH_BEND
 
-public class WalkingBass extends JFrame implements KeyListener {
+public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
     private Player player;
     private ControlSurfacePanel surface;
     private ScaleMapper scales;
+    private KeyboardMapper keyboard;
     private JLabel statusbar;
     private boolean noteOn[] = new boolean[512]; // keep track of notes that are on
-    private int[] steps = new int[]{-2, -2, -1, -1, 1, 1, 1, 1, 2, 2};
-    private double skew = 0.20;
-    private boolean normal = false; // use normal or uniform distribution
+    private int[] steps = new int[]{-2, -2, -1, -1, -1, 1, 1, 1, 2, 2};
+    private double skew = 0.8; // tendency to stay near middle C
+    private boolean normal = false; // use normal (true) or uniform (false) distribution
     private int duration = 100; // note duration
-    private int period = 500; // time between notes
+    private int period = 500; // time between notes. 500ms == 120bpm.
     private boolean doplay = false;
     private static int channel = 0;
 
@@ -42,6 +45,7 @@ class DeviceActionListener implements ActionListener {
             device.open();
             player = new ReceiverPlayer(device.getReceiver());
             surface.setPlayer(player);
+            status("MIDI device: "+device.getDeviceInfo().getName());
         }catch(Exception exc){exc.printStackTrace();}
     }
 }
@@ -80,7 +84,6 @@ class ScaleActionListener implements ActionListener {
             devices[i] = MidiSystem.getMidiDevice(info[i]);
             if(devices[i] instanceof Receiver ||
                devices[i] instanceof Synthesizer){
-                System.out.println(info[i].getName());
                 device = devices[i];
                 break;
             }
@@ -91,10 +94,9 @@ class ScaleActionListener implements ActionListener {
 
         WalkingBass bass = new WalkingBass(player);
         bass.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        bass.setSize(512, 255);
         bass.pack();
         bass.setVisible(true);
-        bass.status("all systems go");
+        bass.status("MIDI device: "+device.getDeviceInfo().getName());
         bass.walk();
     }
 
@@ -102,14 +104,21 @@ class ScaleActionListener implements ActionListener {
 
     public void keyPressed(KeyEvent e) {
         int key = e.getKeyCode();
-        System.out.println("key "+KeyEvent.getKeyText(key)+" ("+key+")");
+//         System.out.println("key "+KeyEvent.getKeyText(key)+" ("+key+")");
         try{
             if(key == KeyEvent.VK_LEFT){
-                player.setChannel(--channel);
-                System.out.println("channel "+channel);
+                skew -= 0.2;
+                status("skew "+skew);
             }else if(key == KeyEvent.VK_RIGHT){
-                player.setChannel(++channel);
-                System.out.println("channel "+channel);
+                skew += 0.2;
+                status("skew "+skew);
+            }else if(key == KeyEvent.VK_UP){
+                keyboard.changeOctaveUp();
+                status("octave "+keyboard.getOctave());
+            }else if(key == KeyEvent.VK_DOWN){
+                keyboard.changeOctaveDown();
+                status("octave "+keyboard.getOctave());
+                skew -= 0.2;
             }else if(key == KeyEvent.VK_SPACE){
                 doplay = !doplay;
                 status("play: "+doplay);
@@ -121,14 +130,15 @@ class ScaleActionListener implements ActionListener {
             }else{
                 if(key < 0x30 || key > 0x5a)
                     return;
-                int note = getNote(key - 36);
-                if(note > 0 && !noteOn[note]){
+                int note = keyboard.getNote(key);
+                if(note >= 0 && !noteOn[note]){
                     try{
                         noteOn[note] = true;
                         player.noteon(note);
                     }catch(Exception exc){
                         exc.printStackTrace();
                     }
+                    status("note "+note);
                 }
             }
         }catch(Exception exc){
@@ -147,8 +157,8 @@ class ScaleActionListener implements ActionListener {
            (nextPress.getWhen() == e.getWhen()) &&
            (nextPress.getKeyCode() == key))
             return;
-        int note = getNote(key - 36);
-        if(note > 0 && noteOn[note]){
+        int note = keyboard.getNote(key);
+        if(note >= 0 && noteOn[note]){
             try{
                 noteOn[note] = false;
                 player.noteoff(note);
@@ -158,25 +168,40 @@ class ScaleActionListener implements ActionListener {
         }
     }
 
+    // bpm / period slider change handler
+    public void stateChanged(ChangeEvent event) {
+        JSlider source = (JSlider)event.getSource();
+        if (!source.getValueIsAdjusting()) {
+            int bpm = (int)source.getValue();
+            period = 60000 / bpm;
+        }
+    }
+
     public WalkingBass(Player play) 
         throws Exception {
         super("Walking Bass");
         player = play;
         scales = new ScaleMapper();
+        keyboard = new KeyboardMapper(Locale.getDefault());
 
         JPanel content = new JPanel(new BorderLayout());
-        content.setBorder(BorderFactory.createLineBorder(Color.gray));
+//         JPanel content = new JPanel();
+//         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.addKeyListener(this);
         content.setFocusable(true);
 
         statusbar = new JLabel("initializing");
         content.add(statusbar, BorderLayout.SOUTH);
 
+        JPanel midsection = new JPanel();
+        midsection.setLayout(new BoxLayout(midsection, BoxLayout.X_AXIS));
+        content.add(midsection, BorderLayout.CENTER);
+
         surface = new ControlSurfacePanel(player);
-        surface.setOpaque(true);
+//         surface.setOpaque(true);
         surface.setFocusable(true);
         surface.addKeyListener(this);
-        content.add(surface, BorderLayout.WEST);
+        midsection.add(surface, BorderLayout.WEST);
 
 //         getRootPane().registerKeyBoardAction(..)
 
@@ -212,7 +237,8 @@ class ScaleActionListener implements ActionListener {
         menubar.add(menu);
         setJMenuBar(menubar);
 
-        // buttons
+        JPanel cpanel = new JPanel();
+        // scale buttons
         JPanel buttons = new JPanel();
         buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
         ButtonGroup group = new ButtonGroup();
@@ -226,7 +252,34 @@ class ScaleActionListener implements ActionListener {
             buttons.add(button);
         }
         buttons.setBorder(BorderFactory.createLineBorder(Color.black));
-        content.add(buttons, BorderLayout.EAST);
+        cpanel.add(buttons);
+        // channel buttons
+        buttons = new JPanel();
+        buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
+        group = new ButtonGroup();
+        for(int i=0; i<8; ++i){
+            JRadioButton button = new JRadioButton("channel "+i);
+            button.addActionListener(new ChannelActionListener(i));
+            button.addKeyListener(this);
+            if(i == 0)
+                button.setSelected(true);
+            group.add(button);
+            buttons.add(button);
+        }
+        buttons.setBorder(BorderFactory.createLineBorder(Color.black));
+        cpanel.add(buttons);
+        midsection.add(cpanel);
+
+        // BPM Slider
+        JSlider slider = new JSlider(JSlider.HORIZONTAL, 20, 300, 60000/period);
+        slider.addChangeListener(this);
+        //Turn on labels at major tick marks.
+        slider.setMajorTickSpacing(40);
+        slider.setMinorTickSpacing(10);
+        slider.setPaintTicks(true);
+        slider.setPaintLabels(true);
+        slider.addKeyListener(this);
+        content.add(slider, BorderLayout.NORTH);
 
         setContentPane(content);
     }
@@ -242,34 +295,39 @@ class ScaleActionListener implements ActionListener {
         int direction = 1; // 1 or -1 depending on previous direction - up or down.
         double rand;
         int bucket;
-        int key = scales.getKey(60); // approximate middle C equivalent 
+        int key = scales.getKey(60); // approximate middle C equivalent key
+        int mid = key;
+        int max = scales.getKey(127); // approximate key for highest note
+        int min = scales.getKey(0); // approximate key for lowest note
         int note = 0;
         for(;;){
             while(!doplay){
                 Thread.currentThread().sleep(period);                
             }
-            if(normal)
-                rand = random.nextGaussian(); // Gaussian (normal) distribution
-            else
-                rand = random.nextDouble(); // uniform distribution
-            rand *= steps.length - 1;
-            rand += (skew * direction);
-            bucket = (int)Math.round(rand);
-            if(bucket >= steps.length)
-                bucket = steps.length - 1;
-            key += steps[bucket];
-            direction = bucket > (steps.length / 2) ? 1 : -1;
+            if(normal){
+                // Gaussian (normal) distribution with mean 0 and standard deviation 1.0
+//                 rand = random.nextGaussian() * (steps.length / 4);
+                rand = random.nextGaussian();
+                key += rand + skew * direction;
+            }else{
+                // uniform distribution using distribution buckets
+                rand = random.nextDouble() * steps.length + skew * direction;
+                bucket = (int)Math.round(rand);
+                if(bucket >= steps.length)
+                    bucket = steps.length - 1;
+                else if(bucket < 0)
+                    bucket = 0;
+                key += steps[bucket];
+            }
+            direction = key > mid ? -1 : 1;
             note = scales.getNote(key);
-            player.noteon(note);
-            Thread.currentThread().sleep(duration);
-            player.noteoff(note);
-            Thread.currentThread().sleep(period-duration);
+//             System.out.println("note "+note+" \tskew "+(skew * direction)+" \trand "+rand);
+            if(note > -1){
+                player.noteon(note);
+                Thread.currentThread().sleep(duration);
+                player.noteoff(note);
+                Thread.currentThread().sleep(period-duration);
+            }
         }
-    }
-
-    /** map a keypress code to a MIDI note */
-    public int getNote(int key){
-        int note = scales.getNote(key);
-        return note;
     }
 }
