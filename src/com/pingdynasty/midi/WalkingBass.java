@@ -42,19 +42,6 @@ class DeviceActionListener implements ActionListener {
     }
 }
 
-class ChannelActionListener implements ActionListener {
-    private int channel;
-    public ChannelActionListener(int channel){
-        this.channel = channel;
-    }
-
-    public void actionPerformed(ActionEvent event){
-        try{
-            player.setChannel(channel);
-        }catch(Exception exc){exc.printStackTrace();}
-    }
-}
-
 class ScaleActionListener implements ActionListener {
     private int scale;
     public ScaleActionListener(int scale){
@@ -83,7 +70,7 @@ class ScaleActionListener implements ActionListener {
         device.open();
         Player player = new ReceiverPlayer(device.getReceiver());
         player.setChannel(channel);
-        player.setVelocity(20);
+        player.setVelocity(60);
 
         WalkingBass bass = new WalkingBass(player);
         bass.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -197,6 +184,44 @@ class ScaleActionListener implements ActionListener {
 
 //         getRootPane().registerKeyBoardAction(..)
 
+        // configuration controls panel
+        JPanel cpanel = new JPanel();
+//         cpanel.setLayout(new BoxLayout(cpanel, BoxLayout.X_AXIS));
+
+        // scale buttons
+        String[] scalenames = scales.getScaleNames();
+        JPanel buttons = new JPanel();
+        buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
+        ButtonGroup group = new ButtonGroup();
+        for(int i=0; i<scalenames.length; ++i){
+            JRadioButton button = new JRadioButton(scalenames[i]);
+            button.addActionListener(new ScaleActionListener(i));
+            button.addKeyListener(this);
+            if(i == scales.getScaleIndex())
+                button.setSelected(true);
+            group.add(button);
+            buttons.add(button);
+        }
+        buttons.setBorder(BorderFactory.createLineBorder(Color.black));
+        cpanel.add(buttons);
+
+        // channel buttons
+        ChannelPanel channelpanel = new ChannelPanel(player);
+        channelpanel.addKeyListener(this);
+        cpanel.add(channelpanel);
+        midsection.add(cpanel);
+
+        // BPM Slider
+        JSlider slider = new JSlider(JSlider.HORIZONTAL, 20, 300, 60000/period);
+        slider.addChangeListener(this);
+        //Turn on labels at major tick marks.
+        slider.setMajorTickSpacing(20);
+        slider.setMinorTickSpacing(5);
+        slider.setPaintTicks(true);
+        slider.setPaintLabels(true);
+        slider.addKeyListener(this);
+        content.add(slider, BorderLayout.NORTH);
+
         // menus
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("Devices");
@@ -212,14 +237,9 @@ class ScaleActionListener implements ActionListener {
            }
         }
         menubar.add(menu);
-        menu = new JMenu("Channels");
-        for(int i=0; i<16; ++i){
-            JMenuItem item = new JMenuItem("channel "+(i+1));
-            item.addActionListener(new ChannelActionListener(i));
-            menu.add(item);
-        }
+
+        menu = channelpanel.getMenu();
         menubar.add(menu);
-        String[] scalenames = scales.getScaleNames();
         menu = new JMenu("Scales");
         for(int i=0; i<scalenames.length; ++i){
             JMenuItem item = new JMenuItem(scalenames[i]);
@@ -228,50 +248,6 @@ class ScaleActionListener implements ActionListener {
         }
         menubar.add(menu);
         setJMenuBar(menubar);
-
-        JPanel cpanel = new JPanel();
-        // scale buttons
-        JPanel buttons = new JPanel();
-        buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
-        ButtonGroup group = new ButtonGroup();
-        for(int i=0; i<scalenames.length; ++i){
-            JRadioButton button = new JRadioButton(scalenames[i]);
-            button.addActionListener(new ScaleActionListener(i));
-            button.addKeyListener(this);
-            if(i == 0)
-                button.setSelected(true);
-            group.add(button);
-            buttons.add(button);
-        }
-        buttons.setBorder(BorderFactory.createLineBorder(Color.black));
-        cpanel.add(buttons);
-        // channel buttons
-        buttons = new JPanel();
-        buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
-        group = new ButtonGroup();
-        for(int i=0; i<16; ++i){
-            JRadioButton button = new JRadioButton("channel "+i);
-            button.addActionListener(new ChannelActionListener(i));
-            button.addKeyListener(this);
-            if(i == scales.getScaleIndex())
-                button.setSelected(true);
-            group.add(button);
-            buttons.add(button);
-        }
-        buttons.setBorder(BorderFactory.createLineBorder(Color.black));
-        cpanel.add(buttons);
-        midsection.add(cpanel);
-
-        // BPM Slider
-        JSlider slider = new JSlider(JSlider.HORIZONTAL, 20, 300, 60000/period);
-        slider.addChangeListener(this);
-        //Turn on labels at major tick marks.
-        slider.setMajorTickSpacing(20);
-        slider.setMinorTickSpacing(5);
-        slider.setPaintTicks(true);
-        slider.setPaintLabels(true);
-        slider.addKeyListener(this);
-        content.add(slider, BorderLayout.NORTH);
 
         setContentPane(content);
     }
