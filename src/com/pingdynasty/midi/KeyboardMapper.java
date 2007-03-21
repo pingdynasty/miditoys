@@ -10,7 +10,7 @@ import java.awt.event.KeyEvent;
 import javax.swing.KeyStroke;
 
 public class KeyboardMapper {
-    private int[] mappings = new int[1024];
+    private int[] mappings = new int[1024]; // maps keycodes to MIDI notes
     private int octave = 4;
 
     public KeyboardMapper(){
@@ -21,7 +21,7 @@ public class KeyboardMapper {
     public KeyboardMapper(Locale locale){
         this();
         ResourceBundle bundle = 
-            ResourceBundle.getBundle("com.pingdynasty.midi.KeyboardMapper",locale);
+            ResourceBundle.getBundle("com.pingdynasty.midi.KeyboardMapper", locale);
         map(bundle);
     }
 
@@ -33,7 +33,7 @@ public class KeyboardMapper {
     public void map(ResourceBundle bundle){
         for(Enumeration e = bundle.getKeys(); e.hasMoreElements();){
             String key = (String)e.nextElement();
-            int note = Integer.parseInt(bundle.getString(key));
+            int note = NoteParser.getMidiNote(bundle.getString(key));
             int keycode = KeyStroke.getKeyStroke(key).getKeyCode();
             mappings[keycode] = note;
         }
@@ -42,7 +42,7 @@ public class KeyboardMapper {
     public void map(Properties props){
         for(Enumeration e = props.propertyNames(); e.hasMoreElements();){
             String key = (String)e.nextElement();
-            int note = Integer.parseInt(props.getProperty(key));
+            int note = NoteParser.getMidiNote(props.getProperty(key));
             int keycode = KeyStroke.getKeyStroke(key).getKeyCode();
             mappings[keycode] = note;
         }

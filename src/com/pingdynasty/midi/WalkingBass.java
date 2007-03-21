@@ -83,6 +83,7 @@ class ScaleActionListener implements ActionListener {
         device.open();
         Player player = new ReceiverPlayer(device.getReceiver());
         player.setChannel(channel);
+        player.setVelocity(20);
 
         WalkingBass bass = new WalkingBass(player);
         bass.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -114,10 +115,10 @@ class ScaleActionListener implements ActionListener {
                 doplay = !doplay;
                 status("play: "+doplay);
             }else if(key == KeyEvent.VK_ESCAPE){
-                status("escape: reset");
                 player.allNotesOff();
                 player.bend(64);
                 player.modulate(0);
+                status("escape: reset");
             }else{
                 if(key < 0x30 || key > 0x5a)
                     return;
@@ -129,7 +130,7 @@ class ScaleActionListener implements ActionListener {
                     }catch(Exception exc){
                         exc.printStackTrace();
                     }
-                    status("note "+note);
+                    status("note "+NoteParser.getStringNote(note)+" ("+note+")");
                 }
             }
         }catch(Exception exc){
@@ -213,7 +214,7 @@ class ScaleActionListener implements ActionListener {
         menubar.add(menu);
         menu = new JMenu("Channels");
         for(int i=0; i<16; ++i){
-            JMenuItem item = new JMenuItem("channel "+i);
+            JMenuItem item = new JMenuItem("channel "+(i+1));
             item.addActionListener(new ChannelActionListener(i));
             menu.add(item);
         }
