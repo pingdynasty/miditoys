@@ -15,7 +15,7 @@ import com.pingdynasty.midi.*;
 public class Pong extends JPanel implements Runnable, MouseListener, MouseMotionListener {
 
     public static final int GAME_END_SCORE = 11;	
-    public static final int SCREEN_WIDTH_HEIGHT = 500;	
+    public static final int SCREEN_WIDTH_HEIGHT = 300;
 
     public static final void main(String[] args)
         throws Exception {
@@ -25,6 +25,10 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
         Pong pong = new Pong();
         frame.setContentPane(pong);
         frame.setVisible(true);
+
+        // Create a general double-buffering strategy
+        frame.createBufferStrategy(2);
+
         pong.start();
     }
 
@@ -35,6 +39,7 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     private Enemy enemy;
     private boolean start, death;
     private int playerScore, enemyScore, adjustment;
+//     private BufferStrategy buffer;
 	
     public Pong(){
         death = false;
@@ -48,7 +53,6 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
         initSound();
         addMouseListener(this);
         addMouseMotionListener(this);
-        repaint();
     }
 	
 	public void run()
@@ -76,7 +80,8 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 	public void start()
 	{
 		animator = new Thread(this);
-		animator.start();			
+		animator.start();
+                repaint();
 	}
 	
 	public void stop()
@@ -234,6 +239,7 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     }
 	
 	public void miss(){
+            sound(Math.abs(ball.speed.y)*4+20);
 		if (ball.speed.x < 0)
 		{
 			playerScore = (playerScore + 1);
