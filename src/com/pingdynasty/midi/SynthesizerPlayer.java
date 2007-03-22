@@ -41,6 +41,14 @@ public class SynthesizerPlayer extends Player {
         midi = synth.getChannels()[channel];
     }
 
+    public int getChannel(){
+        MidiChannel[] channels = synth.getChannels();
+        for(int i=0; i<channels.length; ++i)
+            if(channels[i] == midi)
+                return i;
+        return -1;
+    }
+
     public void allNotesOff()
         throws InvalidMidiDataException{
         midi.controlChange(123, 0);

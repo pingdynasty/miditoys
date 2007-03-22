@@ -26,6 +26,23 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
         frame.setContentPane(pong);
         frame.setVisible(true);
 
+        // add menu bar
+        JMenuBar menubar = new JMenuBar();
+        JMenu menu = new JMenu("Devices");
+        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+        MidiDevice[] devices = new MidiDevice[info.length];
+        for(int i=0; i<info.length; ++i){
+            devices[i] = MidiSystem.getMidiDevice(info[i]); 
+            if(devices[i] instanceof Receiver ||
+               devices[i] instanceof Synthesizer){
+                JMenuItem item = new JMenuItem(info[i].getName());
+                item.addActionListener(pong.new DeviceActionListener(devices[i]));
+                menu.add(item); 
+           }
+        }
+        menubar.add(menu);
+        frame.setJMenuBar(menubar);
+
         // Create a general double-buffering strategy
         frame.createBufferStrategy(2);
 
@@ -40,6 +57,22 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     private boolean start, death;
     private int playerScore, enemyScore, adjustment;
 //     private BufferStrategy buffer;
+
+    class DeviceActionListener implements ActionListener {
+
+        private MidiDevice device;
+
+        public DeviceActionListener(MidiDevice device){
+            this.device = device;
+        }
+
+        public void actionPerformed(ActionEvent event) {
+            try{
+                midi.close();
+                initSound(device);
+            }catch(Exception exc){exc.printStackTrace();}
+        }
+    }
 	
     public Pong(){
         death = false;
@@ -110,8 +143,8 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 	}		
 
 	public void hit(Racket racket){
-            int racketHit = pos.y - racket.pos.y + 25;
-            sound(racketHit);
+            int racketHit = pos.y - (racket.pos.y + 25);
+            sound(Math.abs(racketHit)+50);
             speed.y += racketHit / 7;
             speed.x *= -1;
 //             // calculate time for ball to reach plane.width
@@ -251,17 +284,16 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 		ball.speed.x *= -1;
 		ball.pos.x += ball.speed.x;
 		
-		for (int i = 3; i > 0; i = (i - 1))
-		{
-			death = true;
-			repaint();
-			try
-			{
-				Thread.sleep(35);
-			}
-			catch (InterruptedException e) { };
-			death = false;
-			repaint();
+		for (int i = 3; i > 0; --i){
+                    death = true;
+                    repaint();
+// 			try
+// 			{
+// 				Thread.sleep(35);
+// 			}
+// 			catch (InterruptedException e) { };
+                    death = false;
+                    repaint();
 // 			try
 // 			{
 // 				Thread.sleep(300);
@@ -274,6 +306,8 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 //                 ball.pos.y = Pong.SCREEN_WIDTH_HEIGHT/2;
 // 		ball.speed.x = 0;
 // 		ball.speed.y = 0;
+		ball.pos.x = enemy.pos.x;
+                ball.pos.y = enemy.pos.y;
                 ball.speed.x = 14;
                 ball.speed.y = 5;
 		start = false;
@@ -285,9 +319,9 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 		g.fillRect(0, 0, Pong.SCREEN_WIDTH_HEIGHT, Pong.SCREEN_WIDTH_HEIGHT);
 		
 		if (death == false)
-			g.setColor(Color.white);
+                    g.setColor(Color.white);
 		else
-			g.setColor(Color.lightGray);
+                    g.setColor(Color.lightGray);
 		
 		Font defaultFont = new Font("Arial", Font.BOLD, 18);
 		g.setFont(defaultFont);
@@ -334,7 +368,7 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 
     public void mouseExited (MouseEvent e) {}
 
-    private ReceiverPlayer midi;
+    private com.pingdynasty.midi.Player midi;
 
     public void initSound(){
         try{
@@ -349,20 +383,30 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
                     break;
                 }
             }
-            device.open();
-            midi = new ReceiverPlayer(device.getReceiver());
-            midi.setVelocity(80);
+            initSound(device);
         }catch(Exception exc){
             exc.printStackTrace();
         }
     }
 
+    public void initSound(MidiDevice device)
+        throws Exception{
+            device.open();
+//             midi = new SynthesizerPlayer((Synthesizer)device);
+//             midi = new ReceiverPlayer(device);
+            midi = new SchedulingPlayer(device.getReceiver());
+            midi.setVelocity(80);
+            midi.setDuration(180); // duration in milliseconds
+
+    }
+
     public void sound(int value){
-        System.out.println(value);
+        System.out.println("note "+value);
         try{
-            midi.noteon(value);
-            Thread.sleep(35);
-            midi.noteoff(value);
+            midi.play(value);
+//             midi.noteon(value);
+//             Thread.sleep(35);
+//             midi.noteoff(value);
         }catch(Exception exc){
             exc.printStackTrace();
         }

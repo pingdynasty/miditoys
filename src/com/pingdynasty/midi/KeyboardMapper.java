@@ -1,7 +1,5 @@
 package com.pingdynasty.midi;
 
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Properties;
 import java.util.Enumeration;
 import java.util.ResourceBundle;

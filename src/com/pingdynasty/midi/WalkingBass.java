@@ -13,6 +13,7 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
     private ControlSurfacePanel surface;
     private ScaleMapper scales;
     private KeyboardMapper keyboard;
+    private ChannelPanel channelpanel;
     private JLabel statusbar;
     private boolean noteOn[] = new boolean[512]; // keep track of notes that are on
     private int[] steps = new int[]{-2, -2, -1, -1, -1, 1, 1, 1, 2, 2};
@@ -23,35 +24,40 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
     private boolean doplay = false;
     private static int channel = 0;
 
-class DeviceActionListener implements ActionListener {
+    class DeviceActionListener implements ActionListener {
 
-    private MidiDevice device;
+        private MidiDevice device;
 
-    public DeviceActionListener(MidiDevice device){
-        this.device = device;
+        public DeviceActionListener(MidiDevice device){
+            this.device = device;
+        }
+
+        public void actionPerformed(ActionEvent event) {
+            try{
+                int velocity = player.getVelocity();
+                int duration = player.getDuration();
+                player.close();
+                device.open();
+                player = new ReceiverPlayer(device.getReceiver());
+                player.setVelocity(velocity);
+                player.setDuration(duration);
+                surface.setPlayer(player);
+                channelpanel.setPlayer(player);
+                status("MIDI device: "+device.getDeviceInfo().getName());
+            }catch(Exception exc){exc.printStackTrace();}
+        }
     }
 
-    public void actionPerformed(ActionEvent event) {
-        try{
-            player.close();
-            device.open();
-            player = new ReceiverPlayer(device.getReceiver());
-            surface.setPlayer(player);
-            status("MIDI device: "+device.getDeviceInfo().getName());
-        }catch(Exception exc){exc.printStackTrace();}
-    }
-}
+    class ScaleActionListener implements ActionListener {
+        private int scale;
+        public ScaleActionListener(int scale){
+            this.scale = scale;
+        }
 
-class ScaleActionListener implements ActionListener {
-    private int scale;
-    public ScaleActionListener(int scale){
-        this.scale = scale;
+        public void actionPerformed(ActionEvent event) {
+            scales.setScale(scale);
+        }
     }
-
-    public void actionPerformed(ActionEvent event) {
-        scales.setScale(scale);
-    }
-}
 
     public static void main(String[  ] args) 
         throws MidiUnavailableException, Exception {
@@ -160,7 +166,7 @@ class ScaleActionListener implements ActionListener {
         throws Exception {
         super("Walking Bass");
         player = play;
-        scales = new ScaleMapper();
+        scales = new ScaleMapper(Locale.getDefault());
         keyboard = new KeyboardMapper(Locale.getDefault());
 
         JPanel content = new JPanel(new BorderLayout());
@@ -206,7 +212,7 @@ class ScaleActionListener implements ActionListener {
         cpanel.add(buttons);
 
         // channel buttons
-        ChannelPanel channelpanel = new ChannelPanel(player);
+        channelpanel = new ChannelPanel(player);
         channelpanel.addKeyListener(this);
         cpanel.add(channelpanel);
         midsection.add(cpanel);

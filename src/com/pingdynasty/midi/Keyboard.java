@@ -19,6 +19,7 @@ public class Keyboard extends JFrame implements KeyListener {
     private Player player; // either play through a Receiver or a MidiChannel
     private KeyboardMapper keyboard;
     private ControlSurfacePanel surface;
+    private ChannelPanel channelpanel;
     private boolean noteOn[] = new boolean[1024]; // keep track of notes that are on
     private static int bank = 0;
     private static int channel = 0;
@@ -35,10 +36,17 @@ public class Keyboard extends JFrame implements KeyListener {
 
         public void actionPerformed(ActionEvent event) {
             try{
+                int velocity = player.getVelocity();
+                int duration = player.getDuration();
+                int channel = player.getChannel();
                 player.close();
                 device.open();
                 player = new ReceiverPlayer(device.getReceiver());
+                player.setVelocity(velocity);
+                player.setDuration(duration);
+                player.setChannel(channel);
                 surface.setPlayer(player);
+                channelpanel.setPlayer(player);
                 status("MIDI device: "+device.getDeviceInfo().getName());
             }catch(Exception exc){exc.printStackTrace();}
         }
@@ -118,7 +126,7 @@ public class Keyboard extends JFrame implements KeyListener {
         JPanel cpanel = new JPanel();
 
         // channel buttons
-        ChannelPanel channelpanel = new ChannelPanel(player);
+        channelpanel = new ChannelPanel(player);
         channelpanel.addKeyListener(this);
         cpanel.add(channelpanel);
         content.add(cpanel, BorderLayout.EAST);

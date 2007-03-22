@@ -47,6 +47,10 @@ public class ChannelPanel extends JPanel {
         return menu;
     }
 
+    public void setPlayer(Player player){
+        this.player = player;
+    }
+
     public void addKeyListener(KeyListener listener){
         super.addKeyListener(listener);
         for(int i=0; i<buttons.length; ++i)

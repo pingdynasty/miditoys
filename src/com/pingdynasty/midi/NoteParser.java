@@ -32,7 +32,7 @@ public class NoteParser {
     public static int getMidiNote(String str){
         int octave = 0;
         StringBuffer buf = new StringBuffer();
-        for(int i=0; i<str.length() && str.charAt(i) > 64; ++i)
+        for(int i=0; i<str.length() && (str.charAt(i) > 57 || str.charAt(i) < 48); ++i)
             buf.append(str.charAt(i));
         String tone = buf.toString();
         if(tone.length() < str.length())

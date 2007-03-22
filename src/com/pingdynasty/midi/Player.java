@@ -10,11 +10,18 @@ public abstract class Player {
         this.velocity = velocity;
     }
 
+    public int getVelocity(){
+        return velocity;
+    }
     /**
      * Set note duration, in milliseconds.
      */
     public void setDuration(int duration){
         this.duration = duration;
+    }
+
+    public int getDuration(){
+        return duration;
     }
 
     /**
@@ -41,6 +48,8 @@ public abstract class Player {
     public abstract void programChange(int bank, int program)
         throws InvalidMidiDataException;
     public abstract void setChannel(int channel)
+        throws InvalidMidiDataException;
+    public abstract int getChannel()
         throws InvalidMidiDataException;
     public abstract void allNotesOff()
         throws InvalidMidiDataException;

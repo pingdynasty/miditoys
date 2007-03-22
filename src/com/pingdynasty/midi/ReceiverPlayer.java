@@ -34,10 +34,14 @@ public class ReceiverPlayer extends Player {
             super.play(note);
             return;
         }
+        long now = device.getMicrosecondPosition();
+        if(now < 0){
+            super.play(note);
+            return;
+        }
         // send note on
         ShortMessage msg = new ShortMessage();
         msg.setMessage(ShortMessage.NOTE_ON,  channel, note, velocity);
-        long now = device.getMicrosecondPosition();
         receiver.send(msg, now);
 
         // send note off with a delay
@@ -86,6 +90,10 @@ public class ReceiverPlayer extends Player {
     public void setChannel(int channel)
         throws InvalidMidiDataException{
         this.channel = channel;
+    }
+
+    public int getChannel(){
+        return channel;
     }
 
     public void allNotesOff()

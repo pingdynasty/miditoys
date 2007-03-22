@@ -1,5 +1,11 @@
 package com.pingdynasty.midi;
 
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Properties;
+import java.util.Enumeration;
+import java.util.ResourceBundle;
+import java.util.Locale;
 
 public class ScaleMapper {
 
@@ -46,6 +52,42 @@ public class ScaleMapper {
 
     public ScaleMapper(){}
 
+    public ScaleMapper(Locale locale){
+        ResourceBundle bundle = 
+            ResourceBundle.getBundle("com.pingdynasty.midi.ScaleMapper", locale);
+        map(bundle);
+    }
+
+    public void map(ResourceBundle bundle){
+        List scalesList = new ArrayList();
+        List namesList = new ArrayList();
+        for(Enumeration e = bundle.getKeys(); e.hasMoreElements();){
+            String name = (String)e.nextElement();
+            namesList.add(name);
+            System.out.println("scale ("+name+") ("+bundle.getString(name)+")");
+            String[] notes = bundle.getString(name).split(" ");
+            int scale[] = new int[notes.length];
+            for(int i=0; i<notes.length; ++i){
+                scale[i] = NoteParser.getMidiNote(notes[i]) % 12; // should be in lowest octave
+                System.out.println("note "+notes[i]+" "+scale[i]);
+            }
+            scalesList.add(scale);
+        }
+        scales = new int[scalesList.size()][];
+        scalesList.toArray(scales);
+        scalenames = new String[namesList.size()];
+        namesList.toArray(scalenames);
+    }
+
+//     public void map(Properties props){
+//         for(Enumeration e = props.propertyNames(); e.hasMoreElements();){
+//             String key = (String)e.nextElement();
+//             int note = NoteParser.getMidiNote(props.getProperty(key));
+//             int keycode = KeyStroke.getKeyStroke(key).getKeyCode();
+//             mappings[keycode] = note;
+//         }
+//     }
+
     public String[] getScaleNames(){
         return scalenames;
     }
@@ -83,5 +125,9 @@ public class ScaleMapper {
         int key  = note % 12;
         key += (note / 12) * scales[scaleindex].length;
         return key;
+    }
+
+    public static void main(String[] args){
+        ScaleMapper mapper = new ScaleMapper(Locale.getDefault());
     }
 }
