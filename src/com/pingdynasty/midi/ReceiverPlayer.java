@@ -10,7 +10,7 @@ import javax.sound.midi.*;
 //       ShortMessage.CHANNEL_PRESSURE
 //       ShortMessage.PITCH_BEND
 
-class ReceiverPlayer extends Player {
+public class ReceiverPlayer extends Player {
     private Receiver receiver;
     private int channel = 0;
 

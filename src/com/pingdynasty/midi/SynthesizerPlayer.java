@@ -2,7 +2,7 @@ package com.pingdynasty.midi;
 
 import javax.sound.midi.*;
 
-class SynthesizerPlayer extends Player {
+public class SynthesizerPlayer extends Player {
     private Synthesizer synth;
     private MidiChannel midi;
 

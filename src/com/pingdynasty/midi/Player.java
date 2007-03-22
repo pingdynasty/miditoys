@@ -2,7 +2,7 @@ package com.pingdynasty.midi;
 
 import javax.sound.midi.*;
 
-abstract class Player {
+public abstract class Player {
     protected int velocity;
     public void setVelocity(int velocity){
         this.velocity = velocity;
