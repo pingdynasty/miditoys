@@ -11,11 +11,39 @@ import javax.sound.midi.*;
 //       ShortMessage.PITCH_BEND
 
 public class ReceiverPlayer extends Player {
+    private MidiDevice device;
     private Receiver receiver;
     private int channel = 0;
 
+    public ReceiverPlayer(MidiDevice device)
+        throws MidiUnavailableException{
+        this.device = device;
+        this.receiver = device.getReceiver();
+    }
+
     public ReceiverPlayer(Receiver receiver){
         this.receiver = receiver;
+    }
+
+    /**
+     * blocking call to play note - waits for the duration of the note.
+     */
+    public void play(int note)
+        throws InvalidMidiDataException{
+        if(device == null){
+            super.play(note);
+            return;
+        }
+        // send note on
+        ShortMessage msg = new ShortMessage();
+        msg.setMessage(ShortMessage.NOTE_ON,  channel, note, velocity);
+        long now = device.getMicrosecondPosition();
+        receiver.send(msg, now);
+
+        // send note off with a delay
+        msg = new ShortMessage();
+        msg.setMessage(ShortMessage.NOTE_OFF,  channel, note, 0);
+        receiver.send(msg, now + duration*1000);
     }
 
     public void noteon(int note)

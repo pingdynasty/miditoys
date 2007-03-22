@@ -4,9 +4,32 @@ import javax.sound.midi.*;
 
 public abstract class Player {
     protected int velocity;
+    protected int duration;
+
     public void setVelocity(int velocity){
         this.velocity = velocity;
     }
+
+    /**
+     * Set note duration, in milliseconds.
+     */
+    public void setDuration(int duration){
+        this.duration = duration;
+    }
+
+    /**
+     * Play note with predetermined duration and velocity.
+     * This implements a blocking call to play note - waits for the duration of the note.
+     */
+    public void play(int note)
+        throws InvalidMidiDataException{
+        noteon(note);
+        try{
+            Thread.currentThread().sleep(duration);
+        }catch(InterruptedException exc){}
+        noteoff(note);
+    }
+
     public abstract void noteon(int note)
         throws InvalidMidiDataException;
     public abstract void noteoff(int note)
