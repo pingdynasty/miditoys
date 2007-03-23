@@ -64,13 +64,10 @@ public class ScaleMapper {
         for(Enumeration e = bundle.getKeys(); e.hasMoreElements();){
             String name = (String)e.nextElement();
             namesList.add(name);
-            System.out.println("scale ("+name+") ("+bundle.getString(name)+")");
             String[] notes = bundle.getString(name).split(" ");
             int scale[] = new int[notes.length];
-            for(int i=0; i<notes.length; ++i){
+            for(int i=0; i<notes.length; ++i)
                 scale[i] = NoteParser.getMidiNote(notes[i]) % 12; // should be in lowest octave
-                System.out.println("note "+notes[i]+" "+scale[i]);
-            }
             scalesList.add(scale);
         }
         scales = new int[scalesList.size()][];

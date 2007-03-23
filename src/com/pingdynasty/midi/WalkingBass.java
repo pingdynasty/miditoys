@@ -22,7 +22,6 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
     private int duration = 100; // note duration
     private int period = 500; // time between notes. 500ms == 120bpm.
     private boolean doplay = false;
-    private static int channel = 0;
 
     class DeviceActionListener implements ActionListener {
 
@@ -75,8 +74,6 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
         }
         device.open();
         Player player = new ReceiverPlayer(device.getReceiver());
-        player.setChannel(channel);
-        player.setVelocity(60);
 
         WalkingBass bass = new WalkingBass(player);
         bass.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -109,8 +106,7 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
                 status("play: "+doplay);
             }else if(key == KeyEvent.VK_ESCAPE){
                 player.allNotesOff();
-                player.bend(64);
-                player.modulate(0);
+                surface.reset();
                 status("escape: reset");
             }else{
                 if(key < 0x30 || key > 0x5a)

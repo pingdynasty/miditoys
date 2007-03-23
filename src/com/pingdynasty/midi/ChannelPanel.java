@@ -17,6 +17,7 @@ public class ChannelPanel extends JPanel {
         public void actionPerformed(ActionEvent event){
             try{
                 player.setChannel(channel);
+                buttons[channel].setSelected(true);
             }catch(Exception exc){exc.printStackTrace();}
         }
     }
