@@ -6,6 +6,7 @@ import javax.sound.midi.*;
  * some source pulled from http://www.eecs.tufts.edu/~mchow/excollege/s2006/examples.php
  */
 
+import java.util.Locale;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -39,6 +40,14 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
                 item.addActionListener(pong.new DeviceActionListener(devices[i]));
                 menu.add(item); 
            }
+        }
+        menubar.add(menu);
+        menu = new JMenu("Scales");
+        String[] scalenames = pong.scales.getScaleNames();
+        for(int i=0; i<scalenames.length; ++i){
+            JMenuItem item = new JMenuItem(scalenames[i]);
+            item.addActionListener(pong.new ScaleActionListener(i));
+            menu.add(item);
         }
         menubar.add(menu);
         frame.setJMenuBar(menubar);
@@ -132,7 +141,7 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 
 	public void hit(Racket racket){
             int racketHit = pos.y - (racket.pos.y + 25);
-            sound(Math.abs(racketHit)+50);
+            sound(Math.abs(racketHit) + 20);
             speed.y += racketHit / 7;
             speed.x *= -1;
         }
@@ -149,7 +158,7 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 
     class Player extends Racket {
         public Player(){
-            super(new Point(Pong.SCREEN_WIDTH_HEIGHT - 35, 
+            super(new Point(Pong.SCREEN_WIDTH_HEIGHT - 26, 
                             Pong.SCREEN_WIDTH_HEIGHT / 2 - 25));
         }
         public void check(Ball ball){
@@ -163,7 +172,7 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 
     class Enemy extends Racket {
         public Enemy(){
-            super(new Point(35, ((Pong.SCREEN_WIDTH_HEIGHT / 2) - 25)));
+            super(new Point(20, ((Pong.SCREEN_WIDTH_HEIGHT / 2) - 25)));
         }
         public void check(Ball ball){
             if(ball.pos.x + ball.speed.x <= pos.x + size.x 
@@ -214,30 +223,29 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     }
 	
 	public void miss(){
-            sound(Math.abs(ball.speed.y) * 4 + 20);
+            sound(Math.abs(ball.speed.y) * 2 + 10);
             if(ball.speed.x < 0){
                 ++player.score;
                 if(adjustment > 1)
                     --adjustment;
 
                 // start ball off right away
-                ball.pos.x = player.pos.x - 35; // compensate for extra distance behind player
+                ball.pos.x = player.pos.x - 26 - ball.speed.x; // compensate for extra distance behind player
                 ball.pos.y = player.pos.y + 25;
             }else{
                 ++enemy.score;
 
                 // start ball off right away
-                ball.pos.x = enemy.pos.x + 35; // compensate for extra distance behind player
+                ball.pos.x = enemy.pos.x + 20 + ball.speed.x; // compensate for extra distance behind player
                 ball.pos.y = enemy.pos.y + 25;
             }
 //             ball.speed.x *= -1;
-//             ball.pos.x += ball.speed.x;
+//             ball.pos.x += ball.speed.x; // bounce back out.
+
+            ball.pos.y = plane.height / 2;
 
             // flash screen and/or border?
-
 //             ball = new Ball();
-
-
             // start ball off right away
 //             ball.speed.x = 14;
             ball.speed.y = 4;
@@ -290,6 +298,18 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     public void mouseExited(MouseEvent e) {}
 
     private com.pingdynasty.midi.Player midi;
+    private ScaleMapper scales;
+
+    class ScaleActionListener implements ActionListener {
+        private int scale;
+        public ScaleActionListener(int scale){
+            this.scale = scale;
+        }
+
+        public void actionPerformed(ActionEvent event) {
+            scales.setScale(scale);
+        }
+    }
 
     public void initSound(){
         try{
@@ -316,13 +336,14 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
             midi = new SchedulingPlayer(device.getReceiver());
             midi.setVelocity(80);
             midi.setDuration(240); // duration in milliseconds
-
+            scales = new ScaleMapper(Locale.getDefault());
     }
 
     public void sound(int value){
-//         System.out.println("note "+value);
+        int note = scales.getNote(value);
+        System.out.println("note "+note+" "+value);
         try{
-            midi.play(value);
+            midi.play(note);
 //             midi.noteon(value);
 //             Thread.sleep(35);
 //             midi.noteoff(value);
