@@ -55,7 +55,7 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     private Ball ball;
     private Player player;
     private Enemy enemy;
-    private int adjustment = 4;
+    private int adjustment = 8;
     private boolean running;
     private boolean started;
 
@@ -182,9 +182,9 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
                 else if (enemyPos > (ball.pos.y + 3))
                     pos.y = (pos.y - dist/adjustment);
             }else{
-                if (enemyPos < (Pong.SCREEN_WIDTH_HEIGHT / 2 - 3))
+                if(enemyPos < (Pong.SCREEN_WIDTH_HEIGHT / 2 - 3))
                     pos.y = (pos.y + 2);
-                else if (enemyPos > (Pong.SCREEN_WIDTH_HEIGHT / 2 + 3))
+                else if(enemyPos > (Pong.SCREEN_WIDTH_HEIGHT / 2 + 3))
                     pos.y = (pos.y - 2);
             }
 	}
@@ -214,32 +214,39 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     }
 	
 	public void miss(){
-            sound(Math.abs(ball.speed.y)*4+20);
-		if(ball.speed.x < 0){
-                    ++player.score;
-                    if(adjustment > 1)
-                        --adjustment;
-		}else{
-                    ++enemy.score;
-                }
-		ball.speed.x *= -1;
-		ball.pos.x += ball.speed.x;
-                // flash screen and/or border?
-
-                ball = new Ball();
-		ball.pos.x = enemy.pos.x;
-                ball.pos.y = enemy.pos.y;
+            sound(Math.abs(ball.speed.y) * 4 + 20);
+            if(ball.speed.x < 0){
+                ++player.score;
+                if(adjustment > 1)
+                    --adjustment;
 
                 // start ball off right away
-                ball.speed.x = 14;
-                ball.speed.y = 5;
-// 		started = false;
+                ball.pos.x = player.pos.x - 35; // compensate for extra distance behind player
+                ball.pos.y = player.pos.y + 25;
+            }else{
+                ++enemy.score;
+
+                // start ball off right away
+                ball.pos.x = enemy.pos.x + 35; // compensate for extra distance behind player
+                ball.pos.y = enemy.pos.y + 25;
+            }
+//             ball.speed.x *= -1;
+//             ball.pos.x += ball.speed.x;
+
+            // flash screen and/or border?
+
+//             ball = new Ball();
+
+
+            // start ball off right away
+//             ball.speed.x = 14;
+            ball.speed.y = 4;
+//             started = false;
 	}
 
     public void paintComponent(Graphics g){
 		g.setColor(Color.black);
 		g.fillRect(0, 0, Pong.SCREEN_WIDTH_HEIGHT, Pong.SCREEN_WIDTH_HEIGHT);
-                g.setColor(Color.white);
 		Font defaultFont = new Font("Arial", Font.BOLD, 18);
 		g.setFont(defaultFont);
 // 		if (player.score == Pong.GAME_END_SCORE && player.score > enemy.score){
@@ -247,8 +254,10 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 //                 }else if (enemy.score == Pong.GAME_END_SCORE && enemy.score > player.score){
 //                     g.drawString("YOU LOSE!", 25, 35);
 // 		}else{
-                    g.drawString(Integer.toString(enemy.score), 100, 35);
-                    g.drawString(Integer.toString(player.score), plane.width - 100, 35);
+                    g.setColor(Color.gray);
+                    g.drawString(Integer.toString(enemy.score), 50, 35);
+                    g.drawString(Integer.toString(player.score), plane.width - 50, 35);
+                    g.setColor(Color.white);
                     g.clipRect(plane.x, plane.y, plane.width - 28, plane.height + 1);
                     g.drawRect(plane.x, plane.y, plane.width - 30, plane.height);
                     g.fillRect(player.pos.x, player.pos.y, 6,50);
@@ -266,8 +275,8 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 	
     public void mouseClicked(MouseEvent e){
         if(!started){
-            ball.speed.x = 14;
-            ball.speed.y = 5;
+            ball.speed.x = 10;
+            ball.speed.y = 4;
             started = true;
         }
     }
