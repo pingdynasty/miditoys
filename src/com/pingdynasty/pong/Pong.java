@@ -2,7 +2,7 @@ package com.pingdynasty.pong;
 
 import javax.sound.midi.*;
 /*
- * Notes: No double-buffering; some source pulled from http://www.xnet.se/javaTest/jPong/jPong.html
+ * Notes: some source pulled from http://www.xnet.se/javaTest/jPong/jPong.html
  * some source pulled from http://www.eecs.tufts.edu/~mchow/excollege/s2006/examples.php
  */
 
@@ -45,6 +45,7 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 
         // Create a general double-buffering strategy
         frame.createBufferStrategy(2);
+        // does this do anything?
 
         pong.start();
     }
@@ -54,9 +55,9 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     private Ball ball;
     private Player player;
     private Enemy enemy;
-    private boolean start, death;
-    private int playerScore, enemyScore, adjustment;
-//     private BufferStrategy buffer;
+    private int adjustment = 4;
+    private boolean running;
+    private boolean started;
 
     class DeviceActionListener implements ActionListener {
 
@@ -75,10 +76,6 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     }
 	
     public Pong(){
-        death = false;
-        playerScore = 0;
-        enemyScore = 0;
-        adjustment = 1;
         plane = new Rectangle(15, 15, Pong.SCREEN_WIDTH_HEIGHT, Pong.SCREEN_WIDTH_HEIGHT - 50);
         ball = new Ball();
         player = new Player();
@@ -88,39 +85,30 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
         addMouseMotionListener(this);
     }
 	
-	public void run()
-	{
-		while (Thread.currentThread() == animator)
-		{
-			checkPlayer();
-			checkEnemy();
-			checkWalls();
-			ball.move();
-                        enemy.move();
-			repaint();
-			try
-			{
-				Thread.sleep(35);
-			}
-			catch (InterruptedException e)
-			{ 
-				System.err.println("An error occurred: " + e.toString());
-				break;
-			}
-		}	
+    public void run(){
+        while(running){
+            checkPlayer();
+            checkEnemy();
+            checkWalls();
+            ball.move();
+            enemy.move();
+            repaint();
+            try{
+                Thread.sleep(35);
+            }catch(InterruptedException e){}
 	}
+    }
 	
-	public void start()
-	{
-		animator = new Thread(this);
-		animator.start();
-                repaint();
-	}
-	
-	public void stop()
-	{
-		animator = null;		
-	}
+    public void start(){
+        running = true;
+        animator = new Thread(this);
+        animator.start();
+        repaint();
+    }
+
+    public void stop(){
+        running = false;
+    }
 
     class Ball{
         Point pos = new Point(0, 0);
@@ -147,59 +135,13 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
             sound(Math.abs(racketHit)+50);
             speed.y += racketHit / 7;
             speed.x *= -1;
-//             // calculate time for ball to reach plane.width
-//             int time = plane.width / speed.x;
-//             // calculate y position when x = plane.width
-// //             int y = speed.y * time;
-//             Point delta = new Point(plane.width, speed.y * time);
-//             double distance = Math.sqrt(delta.x * delta.x + delta.y * delta.y);
-
-//                 double spd = distance / 80;
-//                 System.out.println("distance "+distance+" "+spd);
-//                 // calculate x/y speeds
-//                 double xratio = (double)speed.y / (double)speed.x;
-//                 double yratio = (double)speed.x / (double)speed.y;
-//                 speed.x = (int)(xratio * spd);
-//                 speed.y = (int)(yratio * spd);
-//                 System.out.println("ratio "+xratio+" "+yratio);
-//                 System.out.println("speed "+speed.x+" "+speed.y);
-
-//             if(speed.x > 0){
-//                 // determine total distance to other side (hypothenuse)
-// //                 double distance = Math.sqrt(pos.y * pos.y + plane.width * plane.width);
-//                 // determine x/y speed as distance divided by constant time
-//                 // speed = pixels / s (s = 1000ms)
-//                 double spd = distance / 80;
-//                 System.out.println("distance "+distance+" "+spd);
-//                 // calculate x/y speeds
-//                 double xratio = (double)speed.y / (double)speed.x;
-//                 double yratio = (double)speed.x / (double)speed.y;
-//                 speed.x = (int)(xratio * spd);
-//                 speed.y = (int)(yratio * spd);
-//                 System.out.println("ratio "+xratio+" "+yratio);
-//                 System.out.println("speed "+speed.x+" "+speed.y);
-//             }else{
-// //                 int distance = (int)Math.sqrt((plane.height - pos.y) * (plane.height - pos.y) + plane.width * plane.width);
-// //                 double distance = (int)Math.sqrt(pos.y * pos.y + plane.width * plane.width);
-//                 // determine x/y speed as distance divided by constant time
-//                 // speed = pixels / s (s = 1000ms)
-//                 double spd = distance / 80;
-//                 System.out.println("distance "+distance+" "+spd);
-//                 // calculate x/y speeds
-//                 double xratio = (double)speed.y / (double)speed.x;
-//                 double yratio = (double)speed.x / (double)speed.y;
-//                 speed.x = (int)(xratio * spd);
-//                 speed.y = (int)(yratio * spd);
-//                 System.out.println("ratio "+xratio+" "+yratio);
-//                 System.out.println("speed "+speed.x+" "+speed.y);
-//             }
-//             // calculate speed required to reach target in given time
         }
     }
 
     class Racket {
         Point pos;
         Point size = new Point(6, 50);
+        int score;
         Racket(Point pos){
             this.pos = pos;
         }
@@ -273,79 +215,49 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 	
 	public void miss(){
             sound(Math.abs(ball.speed.y)*4+20);
-		if (ball.speed.x < 0)
-		{
-			playerScore = (playerScore + 1);
-			if (adjustment > 2)
-				adjustment = (adjustment - 1);
-		}
-		else
-			enemyScore = (enemyScore + 1);
+		if(ball.speed.x < 0){
+                    ++player.score;
+                    if(adjustment > 1)
+                        --adjustment;
+		}else{
+                    ++enemy.score;
+                }
 		ball.speed.x *= -1;
 		ball.pos.x += ball.speed.x;
-		
-		for (int i = 3; i > 0; --i){
-                    death = true;
-                    repaint();
-// 			try
-// 			{
-// 				Thread.sleep(35);
-// 			}
-// 			catch (InterruptedException e) { };
-                    death = false;
-                    repaint();
-// 			try
-// 			{
-// 				Thread.sleep(300);
-// 			}
-// 			catch (InterruptedException e) { };
-		}
+                // flash screen and/or border?
 
                 ball = new Ball();
-// 		ball.pos.x = Pong.SCREEN_WIDTH_HEIGHT/2;
-//                 ball.pos.y = Pong.SCREEN_WIDTH_HEIGHT/2;
-// 		ball.speed.x = 0;
-// 		ball.speed.y = 0;
 		ball.pos.x = enemy.pos.x;
                 ball.pos.y = enemy.pos.y;
+
+                // start ball off right away
                 ball.speed.x = 14;
                 ball.speed.y = 5;
-		start = false;
+// 		started = false;
 	}
 
-	public void paintComponent (Graphics g)
-	{
+    public void paintComponent(Graphics g){
 		g.setColor(Color.black);
 		g.fillRect(0, 0, Pong.SCREEN_WIDTH_HEIGHT, Pong.SCREEN_WIDTH_HEIGHT);
-		
-		if (death == false)
-                    g.setColor(Color.white);
-		else
-                    g.setColor(Color.lightGray);
-		
+                g.setColor(Color.white);
 		Font defaultFont = new Font("Arial", Font.BOLD, 18);
 		g.setFont(defaultFont);
-		if (playerScore == Pong.GAME_END_SCORE && playerScore > enemyScore)
-		{
-			g.drawString("YOU WIN!", 25, 35);
-		}
-		else if (enemyScore == Pong.GAME_END_SCORE && enemyScore > playerScore)
-		{
-			g.drawString("YOU LOSE!", 25, 35);
-		}
-		else
-		{
-			g.drawString(Integer.toString(enemyScore), 100, 35);
-			g.drawString(Integer.toString(playerScore), 400, 35);
-			g.clipRect(plane.x, plane.y, plane.width - 28, plane.height + 1);
-			g.drawRect(plane.x, plane.y, plane.width - 30, plane.height);
-			g.fillRect(player.pos.x, player.pos.y, 6,50);
-			g.fillRect(enemy.pos.x, enemy.pos.y, 6, 50);
-			g.fillOval(ball.pos.x, ball.pos.y, 8, 8);
-		}
+// 		if (player.score == Pong.GAME_END_SCORE && player.score > enemy.score){
+//                     g.drawString("YOU WIN!", 25, 35);
+//                 }else if (enemy.score == Pong.GAME_END_SCORE && enemy.score > player.score){
+//                     g.drawString("YOU LOSE!", 25, 35);
+// 		}else{
+                    g.drawString(Integer.toString(enemy.score), 100, 35);
+                    g.drawString(Integer.toString(player.score), plane.width - 100, 35);
+                    g.clipRect(plane.x, plane.y, plane.width - 28, plane.height + 1);
+                    g.drawRect(plane.x, plane.y, plane.width - 30, plane.height);
+                    g.fillRect(player.pos.x, player.pos.y, 6,50);
+                    g.fillRect(enemy.pos.x, enemy.pos.y, 6, 50);
+                    g.fillOval(ball.pos.x, ball.pos.y, 8, 8);
+// 		}
 	}
 	
-    public void mouseMoved (MouseEvent e){
+    public void mouseMoved(MouseEvent e){
         player.pos.y = e.getY() - 25;
         repaint();
     }
@@ -353,20 +265,20 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     public void mouseDragged (MouseEvent e) {}
 	
     public void mouseClicked(MouseEvent e){
-        if (start == false){
+        if(!started){
             ball.speed.x = 14;
             ball.speed.y = 5;
-            start = true;
+            started = true;
         }
     }
 
-    public void mousePressed (MouseEvent e) {}
+    public void mousePressed(MouseEvent e) {}
     
-    public void mouseReleased (MouseEvent e) {}
+    public void mouseReleased(MouseEvent e) {}
     
-    public void mouseEntered (MouseEvent e) {}
+    public void mouseEntered(MouseEvent e) {}
 
-    public void mouseExited (MouseEvent e) {}
+    public void mouseExited(MouseEvent e) {}
 
     private com.pingdynasty.midi.Player midi;
 
@@ -392,16 +304,14 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     public void initSound(MidiDevice device)
         throws Exception{
             device.open();
-//             midi = new SynthesizerPlayer((Synthesizer)device);
-//             midi = new ReceiverPlayer(device);
             midi = new SchedulingPlayer(device.getReceiver());
             midi.setVelocity(80);
-            midi.setDuration(180); // duration in milliseconds
+            midi.setDuration(240); // duration in milliseconds
 
     }
 
     public void sound(int value){
-        System.out.println("note "+value);
+//         System.out.println("note "+value);
         try{
             midi.play(value);
 //             midi.noteon(value);
