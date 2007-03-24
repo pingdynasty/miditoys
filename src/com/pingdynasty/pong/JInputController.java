@@ -134,13 +134,13 @@ public class JInputController extends RacketController implements Runnable {
                     }catch(InterruptedException exc){}
                 }else{
                     try{
-                        Thread.sleep(35);
+                        Thread.sleep(20);
                     }catch(InterruptedException exc){}
                 }
 //             float y = controller.getAxisValue(1); // assuming second axis is the right control
             }else{
                 try{
-                    Thread.sleep(35);
+                    Thread.sleep(20);
                 }catch(InterruptedException exc){}
             }
         }
