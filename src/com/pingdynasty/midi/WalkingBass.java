@@ -268,9 +268,8 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
         int key = scales.getKey(60); // approximate middle C equivalent key
         int note = 0;
         for(;;){
-            while(!doplay){
-                Thread.currentThread().sleep(period);                
-            }
+            while(!doplay)
+                sleep(period);
             if(normal){
                 // Gaussian (normal) distribution with mean 0 and standard deviation 1.0
 //                 rand = random.nextGaussian() * (steps.length / 4);
@@ -291,10 +290,16 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
 //             System.out.println("note "+note+" \tskew "+(skew * direction)+" \trand "+rand);
             if(note > -1){
                 player.noteon(note);
-                Thread.currentThread().sleep(duration);
+                sleep(duration);
                 player.noteoff(note);
-                Thread.currentThread().sleep(period-duration);
+                sleep(period - duration);
             }
         }
+    }
+
+    protected void sleep(int millis){
+        try{
+            Thread.sleep(millis);
+        }catch(InterruptedException exc){}
     }
 }

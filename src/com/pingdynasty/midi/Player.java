@@ -32,7 +32,7 @@ public abstract class Player {
         throws InvalidMidiDataException{
         noteon(note);
         try{
-            Thread.currentThread().sleep(duration);
+            Thread.sleep(duration);
         }catch(InterruptedException exc){}
         noteoff(note);
     }

@@ -23,14 +23,14 @@ public class SchedulingPlayer extends ReceiverPlayer implements Runnable {
         while(running){
             if(schedule.isEmpty()){
                 try{
-                    Thread.currentThread().sleep(10);
+                    Thread.sleep(10);
                 }catch(InterruptedException exc){}
             }else{
                 try{
                     int note = ((Integer)schedule.remove(0)).intValue();
                     noteon(note);
                     try{
-                        Thread.currentThread().sleep(duration);
+                        Thread.sleep(duration);
                     }catch(InterruptedException exc){}
                     noteoff(note);
                 }catch(InvalidMidiDataException exc){
