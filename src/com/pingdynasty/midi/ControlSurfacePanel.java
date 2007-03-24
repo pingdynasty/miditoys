@@ -73,8 +73,15 @@ public class ControlSurfacePanel extends JPanel implements MouseMotionListener {
 
     public void paintComponent(Graphics g){
         g.setColor(Color.blue);
-        g.clearRect(0, 0, 300, 50);
-        g.drawString("velocity "+velocity+" \tbend "+bend+" \tmodulation "+modulation, 24, 16);
-        g.drawRect(20, 20, 255, 255);
+        g.clearRect(0, 0, 300, 300);
+        g.drawString("velocity "+velocity, 24, 16);
+        g.drawString("modulation "+modulation, 114, 16);
+        g.drawRect(19, 20, 262, 262);
+        // put a blue dot on velocity / modulation mark
+        g.fillOval(velocity * 2 + 20, 275 - modulation * 2, 6, 6);
+        // put a purple dot on velocity / bend mark
+        g.setColor(Color.magenta);
+        g.drawString("bend "+bend, 224, 16);
+        g.fillOval(velocity * 2 + 20, 275 - bend * 2, 6, 6);
     }
 }
