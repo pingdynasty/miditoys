@@ -13,16 +13,94 @@ import javax.swing.*;
 
 import com.pingdynasty.midi.*;
 
-public class Pong extends JPanel implements Runnable, MouseListener, MouseMotionListener {
+public class Pong extends JPanel implements Runnable, MouseListener  {
 
     public static final int GAME_END_SCORE = 11;	
-    public static final int SCREEN_WIDTH_HEIGHT = 300;
+    public static final int SCREEN_WIDTH = 300;
+    public static final int SCREEN_HEIGHT = 500;
+
+    private Thread animator;
+    private Court court;
+    private Ball ball;
+    private LeftRacket lefty;
+    private RightRacket righty;
+    private ComputerController computer;
+    private RacketController player;
+    private boolean running;
+    private boolean started;
+
+    class DeviceActionListener implements ActionListener {
+
+        private MidiDevice device;
+
+        public DeviceActionListener(MidiDevice device){
+            this.device = device;
+        }
+
+        public void actionPerformed(ActionEvent event) {
+            try{
+                midi.close();
+                initSound(device);
+            }catch(Exception exc){exc.printStackTrace();}
+        }
+    }
+
+    class Court extends Rectangle {
+
+        public Court() {
+            super(15, 15, Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT - 50);
+        }
+
+        public void check(Ball ball){
+            if(ball.pos.x + ball.speed.x <= court.x)
+                miss();
+            if(ball.pos.x + ball.speed.x >= court.width - 20)
+                miss();
+            if(ball.pos.y + ball.speed.y <= court.y)
+                ball.speed.y *= -1;
+            if(ball.pos.y + ball.speed.y >= court.height + 8)
+                ball.speed.y *= -1;
+        }
+    }
+
+    class LeftRacket extends Racket {
+        public LeftRacket(){
+            // position at left end plus 20 (margin)
+            super(new Point(20, Pong.SCREEN_WIDTH / 2 - 25));
+        }
+        public void check(Ball ball){
+            if(ball.pos.x + ball.speed.x <= pos.x + size.x // enemyPoint.x + 4
+               && ball.pos.x > pos.x
+               && ball.pos.y + ball.radius > pos.y 
+               && ball.pos.y < pos.y + size.y){
+                int offset = hit(ball);
+                sound(Math.abs(offset));
+            }
+        }
+    }
+
+    class RightRacket extends Racket {
+        public RightRacket(){
+            // position at right end minus 20 (margin) and width of pad (6)
+            super(new Point(Pong.SCREEN_WIDTH - 26, Pong.SCREEN_HEIGHT / 2 - 25));
+        }
+
+        public void check(Ball ball){
+            if(ball.pos.x + ball.speed.x >= pos.x - size.x // racketPoint.x - 6
+               && ball.pos.x < pos.x
+               && ball.pos.y + ball.radius > pos.y 
+               && ball.pos.y < pos.y + size.y){
+                int offset = hit(ball);
+                sound(Math.abs(offset) + 20);
+            }
+        }
+    }
 
     public static final void main(String[] args)
         throws Exception {
         JFrame frame = new JFrame("pong");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(Pong.SCREEN_WIDTH_HEIGHT, Pong.SCREEN_WIDTH_HEIGHT);
+        frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT);
         Pong pong = new Pong();
         frame.setContentPane(pong);
         frame.setVisible(true);
@@ -58,49 +136,32 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 
         pong.start();
     }
-
-    private Thread animator;
-    private Rectangle plane;
-    private Ball ball;
-    private Player player;
-    private Enemy enemy;
-    private int adjustment = 8;
-    private boolean running;
-    private boolean started;
-
-    class DeviceActionListener implements ActionListener {
-
-        private MidiDevice device;
-
-        public DeviceActionListener(MidiDevice device){
-            this.device = device;
-        }
-
-        public void actionPerformed(ActionEvent event) {
-            try{
-                midi.close();
-                initSound(device);
-            }catch(Exception exc){exc.printStackTrace();}
-        }
-    }
 	
     public Pong(){
-        plane = new Rectangle(15, 15, Pong.SCREEN_WIDTH_HEIGHT, Pong.SCREEN_WIDTH_HEIGHT - 50);
+        court = new Court();
         ball = new Ball();
-        player = new Player();
-        enemy = new Enemy();
+        righty = new RightRacket();
+        lefty = new LeftRacket();
+        computer = new ComputerController(lefty, ball);
+//         player = new MouseController(righty, this);
+        player = new JInputController(righty, this);
+
         initSound();
         addMouseListener(this);
-        addMouseMotionListener(this);
     }
 	
     public void run(){
         while(running){
-            checkPlayer();
-            checkEnemy();
-            checkWalls();
+            // collision detection
+            if(ball.speed.x < 0)
+                lefty.check(ball);
+            else
+                righty.check(ball);
+            court.check(ball);
+            // move
             ball.move();
-            enemy.move();
+            computer.move();
+            // update screen
             repaint();
             try{
                 Thread.sleep(35);
@@ -118,164 +179,61 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
     public void stop(){
         running = false;
     }
-
-    class Ball{
-        Point pos = new Point(0, 0);
-        Point speed = new Point(0, 0);
-        int radius = 8;
-
-        Ball(){
-            pos = new Point(Pong.SCREEN_WIDTH_HEIGHT / 2, Pong.SCREEN_WIDTH_HEIGHT / 2);
-            speed = new Point(0, 0);
-        }
-
-        Ball(Point pos, Point speed){
-            this.pos = pos;
-            this.speed = speed;
-        }
-
-	public void move(){
-            pos.x = pos.x + speed.x;
-            pos.y = pos.y + speed.y;
-	}		
-
-	public void hit(Racket racket){
-            int racketHit = pos.y - (racket.pos.y + 25);
-            sound(Math.abs(racketHit) + 20);
-            speed.y += racketHit / 7;
-            speed.x *= -1;
-        }
-    }
-
-    class Racket {
-        Point pos;
-        Point size = new Point(6, 50);
-        int score;
-        Racket(Point pos){
-            this.pos = pos;
-        }
-    }
-
-    class Player extends Racket {
-        public Player(){
-            super(new Point(Pong.SCREEN_WIDTH_HEIGHT - 26, 
-                            Pong.SCREEN_WIDTH_HEIGHT / 2 - 25));
-        }
-        public void check(Ball ball){
-            if(ball.pos.x + ball.speed.x >= pos.x - size.x 
-               && ball.pos.x < pos.x
-               && ball.pos.y + ball.radius > pos.y 
-               && ball.pos.y < pos.y + size.y)
-                    ball.hit(this);
-        }
-    }
-
-    class Enemy extends Racket {
-        public Enemy(){
-            super(new Point(20, ((Pong.SCREEN_WIDTH_HEIGHT / 2) - 25)));
-        }
-        public void check(Ball ball){
-            if(ball.pos.x + ball.speed.x <= pos.x + size.x 
-               && ball.pos.x > pos.x
-               && ball.pos.y + ball.radius > pos.y 
-               && ball.pos.y < pos.y + size.y)
-                ball.hit(this);
-        }
-
-	public void move(){
-            int enemyPos = pos.y + 25;
-            int dist = java.lang.Math.abs(ball.pos.y - enemyPos);
-            if (ball.speed.x < 0){
-                if (enemyPos < (ball.pos.y - 3))
-                    pos.y = (pos.y + dist/adjustment);
-                else if (enemyPos > (ball.pos.y + 3))
-                    pos.y = (pos.y - dist/adjustment);
-            }else{
-                if(enemyPos < (Pong.SCREEN_WIDTH_HEIGHT / 2 - 3))
-                    pos.y = (pos.y + 2);
-                else if(enemyPos > (Pong.SCREEN_WIDTH_HEIGHT / 2 + 3))
-                    pos.y = (pos.y - 2);
-            }
-	}
-    }
-
-    public void checkPlayer(){
-        if (ball.speed.x < 0)
-            return;
-        player.check(ball);
-    }
 	
-    public void checkEnemy(){
-        if (ball.speed.x > 0)
-            return;
-        enemy.check(ball);
-    }
-	
-    public void checkWalls(){
-        if((ball.pos.x + ball.speed.x) <= plane.x)
-            miss();
-        if((ball.pos.x + ball.speed.x) >= (plane.width - 20))
-            miss();	
-        if((ball.pos.y + ball.speed.y) <= plane.y)
-            ball.speed.y *= -1;
-        if((ball.pos.y + ball.speed.y) >= (plane.height + 8))
-            ball.speed.y *= -1;
-    }
-	
-	public void miss(){
-            sound(Math.abs(ball.speed.y) * 2 + 10);
-            if(ball.speed.x < 0){
-                ++player.score;
-                if(adjustment > 1)
-                    --adjustment;
+    public void miss(){
+        sound(Math.abs(ball.speed.y) * 2 + 10);
+        if(ball.speed.x < 0){
+            ++righty.score;
+            if(computer.adjustment > 1)
+                --computer.adjustment;
 
-                // start ball off right away
-                ball.pos.x = player.pos.x - 26 - ball.speed.x; // compensate for extra distance behind player
-                ball.pos.y = player.pos.y + 25;
-            }else{
-                ++enemy.score;
+            // start ball off right away
+            ball.pos.x = righty.pos.x - 26 - ball.speed.x; // compensate for extra distance behind player
+            ball.pos.y = righty.pos.y + 25;
+        }else{
+            ++lefty.score;
 
-                // start ball off right away
-                ball.pos.x = enemy.pos.x + 20 + ball.speed.x; // compensate for extra distance behind player
-                ball.pos.y = enemy.pos.y + 25;
-            }
+            // start ball off right away
+            ball.pos.x = lefty.pos.x + 20 + ball.speed.x; // compensate for extra distance behind player
+            ball.pos.y = lefty.pos.y + 25;
+        }
 //             ball.speed.x *= -1;
 //             ball.pos.x += ball.speed.x; // bounce back out.
 
-            ball.pos.y = plane.height / 2;
+        ball.pos.y = court.height / 2;
 
-            // flash screen and/or border?
+        // flash screen and/or border?
 //             ball = new Ball();
-            // start ball off right away
+        // start ball off right away
 //             ball.speed.x = 14;
-            ball.speed.y = 4;
+        ball.speed.y = 4;
 //             started = false;
-	}
+    }
 
     public void paintComponent(Graphics g){
 		g.setColor(Color.black);
-		g.fillRect(0, 0, Pong.SCREEN_WIDTH_HEIGHT, Pong.SCREEN_WIDTH_HEIGHT);
+		g.fillRect(0, 0, Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT);
 		Font defaultFont = new Font("Arial", Font.BOLD, 18);
 		g.setFont(defaultFont);
-// 		if (player.score == Pong.GAME_END_SCORE && player.score > enemy.score){
+// 		if (righty.score == Pong.GAME_END_SCORE && righty.score > lefty.score){
 //                     g.drawString("YOU WIN!", 25, 35);
-//                 }else if (enemy.score == Pong.GAME_END_SCORE && enemy.score > player.score){
+//                 }else if (lefty.score == Pong.GAME_END_SCORE && lefty.score > righty.score){
 //                     g.drawString("YOU LOSE!", 25, 35);
 // 		}else{
                     g.setColor(Color.gray);
-                    g.drawString(Integer.toString(enemy.score), 50, 35);
-                    g.drawString(Integer.toString(player.score), plane.width - 50, 35);
+                    g.drawString(Integer.toString(lefty.score), 50, 35);
+                    g.drawString(Integer.toString(righty.score), court.width - 50, 35);
                     g.setColor(Color.white);
-                    g.clipRect(plane.x, plane.y, plane.width - 28, plane.height + 1);
-                    g.drawRect(plane.x, plane.y, plane.width - 30, plane.height);
-                    g.fillRect(player.pos.x, player.pos.y, 6,50);
-                    g.fillRect(enemy.pos.x, enemy.pos.y, 6, 50);
-                    g.fillOval(ball.pos.x, ball.pos.y, 8, 8);
+                    g.clipRect(court.x, court.y, court.width - 28, court.height + 1);
+                    g.drawRect(court.x, court.y, court.width - 30, court.height);
+                    righty.paint(g);
+                    lefty.paint(g);
+                    ball.paint(g);
 // 		}
 	}
 	
     public void mouseMoved(MouseEvent e){
-        player.pos.y = e.getY() - 25;
+        righty.pos.y = e.getY() - 25;
         repaint();
     }
 	
@@ -283,7 +241,7 @@ public class Pong extends JPanel implements Runnable, MouseListener, MouseMotion
 	
     public void mouseClicked(MouseEvent e){
         if(!started){
-            ball.speed.x = 10;
+            ball.speed.x = 8;
             ball.speed.y = 4;
             started = true;
         }
