@@ -22,16 +22,12 @@ public class SchedulingPlayer extends ReceiverPlayer implements Runnable {
     public void run(){
         while(running){
             if(schedule.isEmpty()){
-                try{
-                    Thread.sleep(10);
-                }catch(InterruptedException exc){}
+                sleep(10);
             }else{
                 try{
                     int note = ((Integer)schedule.remove(0)).intValue();
                     noteon(note);
-                    try{
-                        Thread.sleep(duration);
-                    }catch(InterruptedException exc){}
+                    sleep(duration);
                     noteoff(note);
                 }catch(InvalidMidiDataException exc){
                     exc.printStackTrace();
@@ -45,6 +41,13 @@ public class SchedulingPlayer extends ReceiverPlayer implements Runnable {
      * Returns immediately and plays the note in a different thread.
      */
     public void play(int note){
+
         schedule.add(new Integer(note));
+    }
+
+    public void sleep(int millis){
+        try{
+            Thread.sleep(millis);
+        }catch(InterruptedException exc){}
     }
 }
