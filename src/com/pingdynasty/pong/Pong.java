@@ -80,7 +80,7 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
                && ball.pos.y + ball.radius > pos.y 
                && ball.pos.y < pos.y + size.y){
                 int offset = hit(ball);
-                sound(Math.abs(offset));
+                sound(Math.abs(offset) + 20, Math.abs(ball.speed.y) * 40);
             }
         }
 
@@ -106,7 +106,7 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
                && ball.pos.y + ball.radius > pos.y 
                && ball.pos.y < pos.y + size.y){
                 int offset = hit(ball);
-                sound(Math.abs(offset) + 20);
+                sound(Math.abs(offset) + 20, Math.abs(ball.speed.y) * 40);
             }
         }
 
@@ -191,7 +191,8 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
             }catch(InterruptedException e){}
 	}
     }
-	
+
+    // start thread
     public void start(){
         running = true;
         animator = new Thread(this);
@@ -204,7 +205,7 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
     }
 	
     public void miss(){
-        sound(Math.abs(ball.speed.y) * 2 + 10);
+        sound(Math.abs(ball.speed.y) * 2 + 10, 100);
         // flash screen and/or border?
 //             ball = new Ball();
 //             started = false;
@@ -231,6 +232,12 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
                     ball.paint(g);
 // 		}
 	}
+
+    public void startGame(){
+        ball.speed.x = 10;
+        ball.speed.y = 4;
+        started = true;
+    }
 	
     public void mouseMoved(MouseEvent e){
         righty.pos.y = e.getY() - 25;
@@ -240,11 +247,8 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
     public void mouseDragged (MouseEvent e) {}
 	
     public void mouseClicked(MouseEvent e){
-        if(!started){
-            ball.speed.x = 6;
-            ball.speed.y = 4;
-            started = true;
-        }
+        if(!started)
+            startGame();
     }
 
     public void mousePressed(MouseEvent e) {}
@@ -255,7 +259,6 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
 
     public void mouseExited(MouseEvent e) {}
 
-    private com.pingdynasty.midi.Player midi;
     private ScaleMapper scales;
 
     class ScaleActionListener implements ActionListener {
@@ -288,18 +291,23 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
         }
     }
 
+    private com.pingdynasty.midi.Player midi;
+    private int baseduration = 500;
+
     public void initSound(MidiDevice device)
         throws Exception{
-            device.open();
-            midi = new SchedulingPlayer(device.getReceiver());
-            midi.setVelocity(80);
-            midi.setDuration(1200); // duration in milliseconds
-            scales = new ScaleMapper(Locale.getDefault());
+        device.open();
+        midi = new SchedulingPlayer(device.getReceiver());
+        midi.setVelocity(80);
+        midi.setDuration(1200); // duration in milliseconds
+        scales = new ScaleMapper(Locale.getDefault());
     }
 
-    public void sound(int value){
+    public void sound(int value, int duration){
         int note = scales.getNote(value);
-        System.out.println("note "+note+" "+value);
+        duration += baseduration;
+        midi.setDuration(duration);
+        System.out.println("value "+value+" \tnote "+note+" \tduration "+duration);
         try{
             midi.play(note);
         }catch(Exception exc){
