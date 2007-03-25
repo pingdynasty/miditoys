@@ -142,8 +142,8 @@ public class Pong extends JPanel implements Runnable  {
         leftRacket = new LeftRacket();
         leftController = new ComputerController(leftRacket, ball);
         rightController = new MouseController(rightRacket, this);
-        rightController = new JInputController(rightRacket);
-//         rightController = new KeyboardController(rightRacket, this, KeyEvent.VK_UP, KeyEvent.VK_DOWN);
+//         rightController = new JInputController(rightRacket);
+        rightController = new KeyboardController(rightRacket, this, KeyEvent.VK_UP, KeyEvent.VK_DOWN);
 
         // set action handler for start/stop game (space bar)
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "start/stop game");
@@ -208,7 +208,7 @@ public class Pong extends JPanel implements Runnable  {
 // 		}
 	}
 
-    private ScaleMapper scales;
+     ScaleMapper scales;
 
     class ScaleActionListener implements ActionListener {
         private int scale;
@@ -265,6 +265,10 @@ public class Pong extends JPanel implements Runnable  {
     }
 
     public void destroy(){
+        stop();
+    }
+
+    public void stop(){
         running = false;
     }
 
