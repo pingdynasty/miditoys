@@ -13,7 +13,7 @@ import javax.swing.*;
 
 import com.pingdynasty.midi.*;
 
-public class Pong extends JPanel implements Runnable, MouseListener  {
+public class Pong extends JPanel implements Runnable  {
 
     public static final int GAME_END_SCORE = 11;	
     public static final int SCREEN_WIDTH = 300;
@@ -26,8 +26,20 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
     private RightRacket righty;
     private ComputerController computer;
     private RacketController player;
-    private boolean running;
-    private boolean started;
+    private boolean running = true;
+    private boolean started = false;
+
+    class KeyAction extends AbstractAction {
+        public void actionPerformed(ActionEvent event){
+//             System.out.println("action "+event.getActionCommand());
+//             if(event.getActionCommand().equals("start/stop game"))
+            started = !started;
+//                 if(!started)
+//                     startGame();
+//                 else
+//                     stopGame();
+        }
+    }
 
     class DeviceActionListener implements ActionListener {
 
@@ -53,16 +65,20 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
 
         public void check(Ball ball){
             if(ball.pos.x + ball.speed.x <= court.x){
+                // goal on left side
+                sound(Math.abs(ball.speed.y) * 2 + 10, 100);
                 righty.serve(ball);
                 if(computer.adjustment > 1)
                     --computer.adjustment;
-                miss();
             }else if(ball.pos.x + ball.speed.x >= court.width - 20){
+                // goal on right side
+                sound(Math.abs(ball.speed.y) * 2 + 10, 100);
                 lefty.serve(ball);
-                miss();
             }else if(ball.pos.y + ball.speed.y <= court.y){
+                // hit top wall
                 ball.speed.y *= -1;
             }else if(ball.pos.y + ball.speed.y >= court.height + ball.radius){
+                // hit bottom wall
                 ball.speed.y *= -1;
             }
         }
@@ -90,7 +106,10 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
             ball.pos.x = pos.x + 20 + ball.speed.x; // compensate for extra distance behind player
             ball.pos.y = pos.y + 25;
 //             ball.pos.y = court.height / 2;
-            ball.speed.y = 4;
+            if(pos.y < court.height / 2)
+                ball.speed.y = 4;
+            else
+                ball.speed.y = -4;
         }
     }
 
@@ -101,7 +120,7 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
         }
 
         public void check(Ball ball){
-            if(ball.pos.x + ball.speed.x >= pos.x - size.x // racketPoint.x - 6
+            if(ball.pos.x + ball.speed.x >= pos.x // - size.x // racketPoint.x - 6
                && ball.pos.x < pos.x
                && ball.pos.y + ball.radius > pos.y 
                && ball.pos.y < pos.y + size.y){
@@ -115,49 +134,11 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
             // start ball off right away
             ball.pos.x = pos.x - 26 - ball.speed.x; // compensate for extra distance behind player
             ball.pos.y = pos.y + 25;
-            ball.speed.y = 4;
+            if(pos.y < court.height / 2)
+                ball.speed.y = 4;
+            else
+                ball.speed.y = -4;
         }
-    }
-
-    public static final void main(String[] args)
-        throws Exception {
-        JFrame frame = new JFrame("pong");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT);
-        Pong pong = new Pong();
-        frame.setContentPane(pong);
-        frame.setVisible(true);
-
-        // add menu bar
-        JMenuBar menubar = new JMenuBar();
-        JMenu menu = new JMenu("Devices");
-        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
-        MidiDevice[] devices = new MidiDevice[info.length];
-        for(int i=0; i<info.length; ++i){
-            devices[i] = MidiSystem.getMidiDevice(info[i]); 
-            if(devices[i] instanceof Receiver ||
-               devices[i] instanceof Synthesizer){
-                JMenuItem item = new JMenuItem(info[i].getName());
-                item.addActionListener(pong.new DeviceActionListener(devices[i]));
-                menu.add(item); 
-           }
-        }
-        menubar.add(menu);
-        menu = new JMenu("Scales");
-        String[] scalenames = pong.scales.getScaleNames();
-        for(int i=0; i<scalenames.length; ++i){
-            JMenuItem item = new JMenuItem(scalenames[i]);
-            item.addActionListener(pong.new ScaleActionListener(i));
-            menu.add(item);
-        }
-        menubar.add(menu);
-        frame.setJMenuBar(menubar);
-
-        // Create a general double-buffering strategy
-        frame.createBufferStrategy(2);
-        // does this do anything?
-
-        pong.start();
     }
 	
     public Pong(){
@@ -167,48 +148,40 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
         lefty = new LeftRacket();
         computer = new ComputerController(lefty, ball);
 //         player = new MouseController(righty, this);
-        player = new JInputController(righty, this);
+//         player = new JInputController(righty, this);
+        player = new KeyboardController(righty, this, KeyEvent.VK_UP, KeyEvent.VK_DOWN);
+
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "start/stop game");
+        getActionMap().put("start/stop game", new KeyAction());
 
         initSound();
-        addMouseListener(this);
+
+        ball.speed.x = 8;
+        ball.speed.y = 4;
+
+        animator = new Thread(this);
+        animator.start();
     }
-	
+
     public void run(){
         while(running){
-            // collision detection
-            if(ball.speed.x < 0)
-                lefty.check(ball);
-            else
-                righty.check(ball);
-            court.check(ball);
-            // move
-            ball.move();
-            computer.move();
+            if(started){
+                // collision detection
+                if(ball.speed.x < 0)
+                    lefty.check(ball);
+                else
+                    righty.check(ball);
+                court.check(ball);
+                // move
+                ball.move();
+                computer.move();
+            }
             // update screen
             repaint();
             try{
                 Thread.sleep(20);
             }catch(InterruptedException e){}
 	}
-    }
-
-    // start thread
-    public void start(){
-        running = true;
-        animator = new Thread(this);
-        animator.start();
-        repaint();
-    }
-
-    public void stop(){
-        running = false;
-    }
-	
-    public void miss(){
-        sound(Math.abs(ball.speed.y) * 2 + 10, 100);
-        // flash screen and/or border?
-//             ball = new Ball();
-//             started = false;
     }
 
     public void paintComponent(Graphics g){
@@ -233,31 +206,37 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
 // 		}
 	}
 
-    public void startGame(){
-        ball.speed.x = 10;
-        ball.speed.y = 4;
-        started = true;
-    }
-	
-    public void mouseMoved(MouseEvent e){
-        righty.pos.y = e.getY() - 25;
-        repaint();
-    }
-	
-    public void mouseDragged (MouseEvent e) {}
-	
-    public void mouseClicked(MouseEvent e){
-        if(!started)
-            startGame();
-    }
+//     public void startGame(){
+//         ball.speed.x = 8;
+//         ball.speed.y = 4;
+//         started = true;
+//     }
 
-    public void mousePressed(MouseEvent e) {}
-    
-    public void mouseReleased(MouseEvent e) {}
-    
-    public void mouseEntered(MouseEvent e) {}
+//     public void stopGame(){
+//         ball.speed.x = 0;
+//         ball.speed.y = 0;
+//         started = false;
+//     }
+	
+//     public void mouseMoved(MouseEvent e){
+//         righty.pos.y = e.getY() - 25;
+//         repaint();
+//     }
+	
+//     public void mouseDragged (MouseEvent e) {}
+	
+//     public void mouseClicked(MouseEvent e){
+//         if(!started)
+//             startGame();
+//     }
 
-    public void mouseExited(MouseEvent e) {}
+//     public void mousePressed(MouseEvent e) {}
+    
+//     public void mouseReleased(MouseEvent e) {}
+    
+//     public void mouseEntered(MouseEvent e) {}
+
+//     public void mouseExited(MouseEvent e) {}
 
     private ScaleMapper scales;
 
@@ -313,5 +292,50 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
         }catch(Exception exc){
             exc.printStackTrace();
         }
+    }
+
+    public void destroy(){
+        running = false;
+    }
+
+    public static final void main(String[] args)
+        throws Exception {
+        // create pong
+        Pong pong = new Pong();
+
+        // create menu bar
+        JMenuBar menubar = new JMenuBar();
+        JMenu menu = new JMenu("Devices");
+        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+        MidiDevice[] devices = new MidiDevice[info.length];
+        for(int i=0; i<info.length; ++i){
+            devices[i] = MidiSystem.getMidiDevice(info[i]); 
+            if(devices[i] instanceof Receiver ||
+               devices[i] instanceof Synthesizer){
+                JMenuItem item = new JMenuItem(info[i].getName());
+                item.addActionListener(pong.new DeviceActionListener(devices[i]));
+                menu.add(item); 
+           }
+        }
+        menubar.add(menu);
+        menu = new JMenu("Scales");
+        String[] scalenames = pong.scales.getScaleNames();
+        for(int i=0; i<scalenames.length; ++i){
+            JMenuItem item = new JMenuItem(scalenames[i]);
+            item.addActionListener(pong.new ScaleActionListener(i));
+            menu.add(item);
+        }
+        menubar.add(menu);
+
+        // create frame
+        JFrame frame = new JFrame("pong");
+        frame.setJMenuBar(menubar);
+        frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        // does this do anything?
+        frame.setContentPane(pong);
+        frame.setVisible(true);
+        // Create a general double-buffering strategy
+        frame.createBufferStrategy(2);
     }
 }

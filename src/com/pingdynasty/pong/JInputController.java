@@ -9,14 +9,15 @@ import net.java.games.input.Component.Identifier;
 
 public class JInputController extends RacketController implements Runnable {
 
+    private static final float steplength = 4.0f;
+    private static final float max_threshold = 0.01f;
+    private static final float min_threshold = -0.01f;
     private java.awt.Component awt;
     private Thread poller;
     private Controller controller;
     private Component component;
 //     private Axis axis;
     private boolean running = true;
-    private static final float max_threshold = 0.01f;
-    private static final float min_threshold = -0.01f;
 
     public JInputController(Racket racket, java.awt.Component awt){
         super(racket);
@@ -124,7 +125,7 @@ public class JInputController extends RacketController implements Runnable {
             if(controller.poll()){ // update the controller from the hardware
                 float value = component.getPollData();
                 if(value < min_threshold || value > max_threshold){
-                    int delta = (int)(4.0f * value);
+                    int delta = (int)(steplength * value);
                     if(delta != 0){
                         System.out.println("move "+delta);
                         move(delta);
