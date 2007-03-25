@@ -11,9 +11,9 @@ import javax.sound.midi.*;
 //       ShortMessage.PITCH_BEND
 
 public class ReceiverPlayer extends Player {
-    private MidiDevice device;
-    private Receiver receiver;
-    private int channel = 0;
+    protected MidiDevice device;
+    protected Receiver receiver;
+    protected int channel = 0;
 
     public ReceiverPlayer(MidiDevice device)
         throws MidiUnavailableException{
