@@ -17,7 +17,6 @@ public class RacketController {
             racket.pos.y += delta;
     }
 
-
     public void moveTo(int pos){
         racket.pos.y = pos;
     }

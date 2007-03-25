@@ -54,15 +54,16 @@ public class JInputController extends RacketController implements Runnable {
         // retrieve the available controllers
         Controller[] controllers = ce.getControllers();
 
-        for(Controller c : controllers)
-            System.out.println("Controller: " + c.getName() + " type: " + c.getType());
+        for(int i=0; i<controllers.length; ++i)
+            System.out.println("Controller: " + controllers[i].getName() + 
+                               " type: " + controllers[i].getType());
 		
         //fetch gamepad controller
         Controller gamePadContr = null;
-        for(Controller c : controllers){
-            if(c.getType() == Controller.Type.GAMEPAD ||
-               c.getType() == Controller.Type.STICK) {
-                gamePadContr = c;
+        for(int i=0; i<controllers.length; ++i){
+            if(controllers[i].getType() == Controller.Type.GAMEPAD ||
+               controllers[i].getType() == Controller.Type.STICK) {
+                gamePadContr = controllers[i];
                 break;
             }
         }
@@ -73,8 +74,8 @@ public class JInputController extends RacketController implements Runnable {
         }
 
         Component[] components = gamePadContr.getComponents();
-        for(Component c : components){
-            System.out.println("Component: " + c.getName() + " id: " + c.getIdentifier().getName());
+        for(int i=0; i< components.length; ++i){
+            System.out.println("Component: " + components[i].getName() + " id: " + components[i].getIdentifier().getName());
         }
         
 

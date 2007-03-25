@@ -17,7 +17,7 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
 
     public static final int GAME_END_SCORE = 11;	
     public static final int SCREEN_WIDTH = 300;
-    public static final int SCREEN_HEIGHT = 500;
+    public static final int SCREEN_HEIGHT = 300;
 
     private Thread animator;
     private Court court;
@@ -52,14 +52,19 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
         }
 
         public void check(Ball ball){
-            if(ball.pos.x + ball.speed.x <= court.x)
+            if(ball.pos.x + ball.speed.x <= court.x){
+                righty.serve(ball);
+                if(computer.adjustment > 1)
+                    --computer.adjustment;
                 miss();
-            if(ball.pos.x + ball.speed.x >= court.width - 20)
+            }else if(ball.pos.x + ball.speed.x >= court.width - 20){
+                lefty.serve(ball);
                 miss();
-            if(ball.pos.y + ball.speed.y <= court.y)
+            }else if(ball.pos.y + ball.speed.y <= court.y){
                 ball.speed.y *= -1;
-            if(ball.pos.y + ball.speed.y >= court.height + 8)
+            }else if(ball.pos.y + ball.speed.y >= court.height + ball.radius){
                 ball.speed.y *= -1;
+            }
         }
     }
 
@@ -68,6 +73,7 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
             // position at left end plus 20 (margin)
             super(new Point(20, Pong.SCREEN_WIDTH / 2 - 25));
         }
+
         public void check(Ball ball){
             if(ball.pos.x + ball.speed.x <= pos.x + size.x // enemyPoint.x + 4
                && ball.pos.x > pos.x
@@ -76,6 +82,15 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
                 int offset = hit(ball);
                 sound(Math.abs(offset));
             }
+        }
+
+        public void serve(Ball ball){
+            ++score;
+            // start ball off right away
+            ball.pos.x = pos.x + 20 + ball.speed.x; // compensate for extra distance behind player
+            ball.pos.y = pos.y + 25;
+//             ball.pos.y = court.height / 2;
+            ball.speed.y = 4;
         }
     }
 
@@ -93,6 +108,14 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
                 int offset = hit(ball);
                 sound(Math.abs(offset) + 20);
             }
+        }
+
+        public void serve(Ball ball){
+            ++score;
+            // start ball off right away
+            ball.pos.x = pos.x - 26 - ball.speed.x; // compensate for extra distance behind player
+            ball.pos.y = pos.y + 25;
+            ball.speed.y = 4;
         }
     }
 
@@ -164,7 +187,7 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
             // update screen
             repaint();
             try{
-                Thread.sleep(35);
+                Thread.sleep(20);
             }catch(InterruptedException e){}
 	}
     }
@@ -182,31 +205,8 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
 	
     public void miss(){
         sound(Math.abs(ball.speed.y) * 2 + 10);
-        if(ball.speed.x < 0){
-            ++righty.score;
-            if(computer.adjustment > 1)
-                --computer.adjustment;
-
-            // start ball off right away
-            ball.pos.x = righty.pos.x - 26 - ball.speed.x; // compensate for extra distance behind player
-            ball.pos.y = righty.pos.y + 25;
-        }else{
-            ++lefty.score;
-
-            // start ball off right away
-            ball.pos.x = lefty.pos.x + 20 + ball.speed.x; // compensate for extra distance behind player
-            ball.pos.y = lefty.pos.y + 25;
-        }
-//             ball.speed.x *= -1;
-//             ball.pos.x += ball.speed.x; // bounce back out.
-
-        ball.pos.y = court.height / 2;
-
         // flash screen and/or border?
 //             ball = new Ball();
-        // start ball off right away
-//             ball.speed.x = 14;
-        ball.speed.y = 4;
 //             started = false;
     }
 
@@ -241,7 +241,7 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
 	
     public void mouseClicked(MouseEvent e){
         if(!started){
-            ball.speed.x = 8;
+            ball.speed.x = 6;
             ball.speed.y = 4;
             started = true;
         }
@@ -293,7 +293,7 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
             device.open();
             midi = new SchedulingPlayer(device.getReceiver());
             midi.setVelocity(80);
-            midi.setDuration(240); // duration in milliseconds
+            midi.setDuration(1200); // duration in milliseconds
             scales = new ScaleMapper(Locale.getDefault());
     }
 
@@ -302,9 +302,6 @@ public class Pong extends JPanel implements Runnable, MouseListener  {
         System.out.println("note "+note+" "+value);
         try{
             midi.play(note);
-//             midi.noteon(value);
-//             Thread.sleep(35);
-//             midi.noteoff(value);
         }catch(Exception exc){
             exc.printStackTrace();
         }
