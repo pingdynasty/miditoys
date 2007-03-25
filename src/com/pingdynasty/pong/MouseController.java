@@ -5,18 +5,20 @@ import java.awt.event.*;
 
 public class MouseController extends RacketController implements MouseMotionListener {
 
-    private Component component;
+//     private Component component;
 
     public MouseController(Racket racket, Component component){
         super(racket);
-        this.component = component;
+//         this.component = component;
         component.addMouseMotionListener(this);
     }
 
-    public void mouseMoved(MouseEvent e){
-        moveTo(e.getY() - 25);
-        component.repaint();
+    public void mouseMoved(MouseEvent event){
+        moveTo(event.getY() - 25);
+//         component.repaint();
     }
 	
-    public void mouseDragged(MouseEvent e) {}
+    public void mouseDragged(MouseEvent event){}
+
+    public void move(){}
 }

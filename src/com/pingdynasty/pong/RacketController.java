@@ -2,7 +2,7 @@ package com.pingdynasty.pong;
 
 import java.awt.Point;
 
-public class RacketController {
+public abstract class RacketController {
 
     Racket racket;
 
@@ -19,5 +19,11 @@ public class RacketController {
 
     public void moveTo(int pos){
         racket.pos.y = pos;
+    }
+
+    abstract public void move();
+
+    public void serve(Ball ball){
+        racket.serve(ball);
     }
 }

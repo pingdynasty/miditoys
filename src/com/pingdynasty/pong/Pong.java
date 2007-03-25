@@ -18,26 +18,22 @@ public class Pong extends JPanel implements Runnable  {
     public static final int GAME_END_SCORE = 11;	
     public static final int SCREEN_WIDTH = 300;
     public static final int SCREEN_HEIGHT = 300;
+    public static final long FRAME_DELAY = 20;
+    public static final int HORIZONTAL_SPEED = 6;
 
     private Thread animator;
     private Court court;
     private Ball ball;
-    private LeftRacket lefty;
-    private RightRacket righty;
-    private ComputerController computer;
-    private RacketController player;
+    private LeftRacket leftRacket;
+    private RightRacket rightRacket;
+    private RacketController leftController;
+    private RacketController rightController;
     private boolean running = true;
     private boolean started = false;
 
     class KeyAction extends AbstractAction {
         public void actionPerformed(ActionEvent event){
-//             System.out.println("action "+event.getActionCommand());
-//             if(event.getActionCommand().equals("start/stop game"))
             started = !started;
-//                 if(!started)
-//                     startGame();
-//                 else
-//                     stopGame();
         }
     }
 
@@ -67,13 +63,11 @@ public class Pong extends JPanel implements Runnable  {
             if(ball.pos.x + ball.speed.x <= court.x){
                 // goal on left side
                 sound(Math.abs(ball.speed.y) * 2 + 10, 100);
-                righty.serve(ball);
-                if(computer.adjustment > 1)
-                    --computer.adjustment;
+                rightController.serve(ball);
             }else if(ball.pos.x + ball.speed.x >= court.width - 20){
                 // goal on right side
                 sound(Math.abs(ball.speed.y) * 2 + 10, 100);
-                lefty.serve(ball);
+                leftController.serve(ball);
             }else if(ball.pos.y + ball.speed.y <= court.y){
                 // hit top wall
                 ball.speed.y *= -1;
@@ -103,7 +97,7 @@ public class Pong extends JPanel implements Runnable  {
         public void serve(Ball ball){
             ++score;
             // start ball off right away
-            ball.pos.x = pos.x + 20 + ball.speed.x; // compensate for extra distance behind player
+            ball.pos.x = pos.x + 20 + ball.speed.x; // compensate for extra distance behind racket
             ball.pos.y = pos.y + 25;
 //             ball.pos.y = court.height / 2;
             if(pos.y < court.height / 2)
@@ -132,7 +126,7 @@ public class Pong extends JPanel implements Runnable  {
         public void serve(Ball ball){
             ++score;
             // start ball off right away
-            ball.pos.x = pos.x - 26 - ball.speed.x; // compensate for extra distance behind player
+            ball.pos.x = pos.x - 26 - ball.speed.x; // compensate for extra distance behind racket
             ball.pos.y = pos.y + 25;
             if(pos.y < court.height / 2)
                 ball.speed.y = 4;
@@ -140,25 +134,29 @@ public class Pong extends JPanel implements Runnable  {
                 ball.speed.y = -4;
         }
     }
-	
+
     public Pong(){
         court = new Court();
         ball = new Ball();
-        righty = new RightRacket();
-        lefty = new LeftRacket();
-        computer = new ComputerController(lefty, ball);
-//         player = new MouseController(righty, this);
-//         player = new JInputController(righty, this);
-        player = new KeyboardController(righty, this, KeyEvent.VK_UP, KeyEvent.VK_DOWN);
+        rightRacket = new RightRacket();
+        leftRacket = new LeftRacket();
+        leftController = new ComputerController(leftRacket, ball);
+        rightController = new MouseController(rightRacket, this);
+        rightController = new JInputController(rightRacket);
+//         rightController = new KeyboardController(rightRacket, this, KeyEvent.VK_UP, KeyEvent.VK_DOWN);
 
+        // set action handler for start/stop game (space bar)
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "start/stop game");
-        getActionMap().put("start/stop game", new KeyAction());
+        getActionMap().put("start/stop game", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    started = !started;
+                }
+            });
 
         initSound();
 
-        ball.speed.x = 8;
-        ball.speed.y = 4;
-
+        ball.speed.x = HORIZONTAL_SPEED;
+        ball.speed.y = 2;
         animator = new Thread(this);
         animator.start();
     }
@@ -168,75 +166,47 @@ public class Pong extends JPanel implements Runnable  {
             if(started){
                 // collision detection
                 if(ball.speed.x < 0)
-                    lefty.check(ball);
+                    leftRacket.check(ball);
                 else
-                    righty.check(ball);
+                    rightRacket.check(ball);
                 court.check(ball);
-                // move
+                // allow ball to move
                 ball.move();
-                computer.move();
             }
+            // allow rackets to move
+            leftController.move();
+            rightController.move();
             // update screen
             repaint();
             try{
-                Thread.sleep(20);
+                Thread.sleep(FRAME_DELAY);
             }catch(InterruptedException e){}
 	}
     }
 
     public void paintComponent(Graphics g){
-		g.setColor(Color.black);
-		g.fillRect(0, 0, Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT);
-		Font defaultFont = new Font("Arial", Font.BOLD, 18);
-		g.setFont(defaultFont);
-// 		if (righty.score == Pong.GAME_END_SCORE && righty.score > lefty.score){
+        g.setColor(Color.black);
+        g.fillRect(0, 0, Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT);
+        Font defaultFont = new Font("Arial", Font.BOLD, 18);
+        g.setFont(defaultFont);
+// 		if(rightRacket.score == Pong.GAME_END_SCORE && rightRacket.score > leftRacket.score){
 //                     g.drawString("YOU WIN!", 25, 35);
-//                 }else if (lefty.score == Pong.GAME_END_SCORE && lefty.score > righty.score){
+//                 }else if(leftRacket.score == Pong.GAME_END_SCORE && leftRacket.score > rightRacket.score){
 //                     g.drawString("YOU LOSE!", 25, 35);
 // 		}else{
-                    g.setColor(Color.gray);
-                    g.drawString(Integer.toString(lefty.score), 50, 35);
-                    g.drawString(Integer.toString(righty.score), court.width - 50, 35);
-                    g.setColor(Color.white);
-                    g.clipRect(court.x, court.y, court.width - 28, court.height + 1);
-                    g.drawRect(court.x, court.y, court.width - 30, court.height);
-                    righty.paint(g);
-                    lefty.paint(g);
-                    ball.paint(g);
+        g.setColor(Color.gray);
+        if(!started)
+            g.drawString("space to start", court.width / 2 - 50, court.height / 2);
+        g.drawString(Integer.toString(leftRacket.score), 50, 35);
+        g.drawString(Integer.toString(rightRacket.score), court.width - 50, 35);
+        g.setColor(Color.white);
+        g.clipRect(court.x, court.y, court.width - 28, court.height + 1);
+        g.drawRect(court.x, court.y, court.width - 30, court.height);
+        rightRacket.paint(g);
+        leftRacket.paint(g);
+        ball.paint(g);
 // 		}
 	}
-
-//     public void startGame(){
-//         ball.speed.x = 8;
-//         ball.speed.y = 4;
-//         started = true;
-//     }
-
-//     public void stopGame(){
-//         ball.speed.x = 0;
-//         ball.speed.y = 0;
-//         started = false;
-//     }
-	
-//     public void mouseMoved(MouseEvent e){
-//         righty.pos.y = e.getY() - 25;
-//         repaint();
-//     }
-	
-//     public void mouseDragged (MouseEvent e) {}
-	
-//     public void mouseClicked(MouseEvent e){
-//         if(!started)
-//             startGame();
-//     }
-
-//     public void mousePressed(MouseEvent e) {}
-    
-//     public void mouseReleased(MouseEvent e) {}
-    
-//     public void mouseEntered(MouseEvent e) {}
-
-//     public void mouseExited(MouseEvent e) {}
 
     private ScaleMapper scales;
 
@@ -330,10 +300,11 @@ public class Pong extends JPanel implements Runnable  {
         // create frame
         JFrame frame = new JFrame("pong");
         frame.setJMenuBar(menubar);
-        frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT);
+        frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT + 40);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         // does this do anything?
         frame.setContentPane(pong);
+//         frame.pack();
         frame.setVisible(true);
         // Create a general double-buffering strategy
         frame.createBufferStrategy(2);

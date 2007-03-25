@@ -3,7 +3,7 @@ package com.pingdynasty.pong;
 import java.awt.Graphics;
 import java.awt.Point;
 
-public class Racket {
+public abstract class Racket {
     Point pos;
     Point size = new Point(6, 50);
     int score = 0;
@@ -18,6 +18,9 @@ public class Racket {
         ball.speed.x *= -1;
         return offset;
     }
+
+    public abstract void check(Ball ball);
+    public abstract void serve(Ball ball);
 
     public void paint(Graphics g){
         g.fillRect(pos.x, pos.y, size.x, size.y);
