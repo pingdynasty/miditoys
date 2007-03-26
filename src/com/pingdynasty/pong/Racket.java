@@ -19,6 +19,7 @@ public abstract class Racket {
         return offset;
     }
 
+    public abstract boolean isLeft();
     public abstract void check(Ball ball);
     public abstract void serve(Ball ball);
 

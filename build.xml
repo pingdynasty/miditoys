@@ -98,6 +98,9 @@
       <fileset dir="${build.classes.dir}" includes="**/*.class"/>
       <fileset dir="${src.properties.dir}" includes="**/*.properties"/>
       <fileset dir="${build.dir}" includes="readme.txt"/>
+      <manifest>
+        <attribute name="Main-Class" value="com.pingdynasty.pong.Pong"/>
+      </manifest>
     </jar>
   </target>
 

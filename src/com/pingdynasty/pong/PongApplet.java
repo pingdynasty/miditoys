@@ -14,13 +14,11 @@ public class PongApplet extends JApplet  {
     public void init() {
         pong = new Pong();
         pong.initSound();
-
-        // create frame
-        JFrame frame = new JFrame("pong");
-        frame.setJMenuBar(pong.getMenuBar());
-        frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT + 40);
-        frame.setContentPane(pong);
-        frame.setVisible(true);
+        setJMenuBar(pong.getMenuBar());
+        setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT + 40);
+        setContentPane(pong);
+//         getContentPane().add(pong);
+        setVisible(true);
 
     }
     public void start() {}

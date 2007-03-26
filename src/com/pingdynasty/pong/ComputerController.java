@@ -14,7 +14,8 @@ public class ComputerController extends RacketController {
 
     public void move(){
         int centerpos = racket.pos.y + racket.size.y / 2;
-        if(ball.speed.x < 0){
+        if((ball.speed.x < 0 && racket.isLeft()) ||
+           (ball.speed.x > 0 && !racket.isLeft())){
             int dist = java.lang.Math.abs(ball.pos.y - centerpos);
             if(centerpos < ball.pos.y - 3)
                 move(dist / adjustment);
@@ -28,9 +29,8 @@ public class ComputerController extends RacketController {
         }
     }
 
-    public void serve(Ball ball){
-        super.serve(ball);
-        if(adjustment > 1)
+    public void missed(){
+        if(adjustment > 2)
             --adjustment;
     }
 }

@@ -26,4 +26,9 @@ public abstract class RacketController {
     public void serve(Ball ball){
         racket.serve(ball);
     }
+
+    public void missed(){}
+
+    // close this controller
+    public void close(){}
 }

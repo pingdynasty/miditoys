@@ -63,10 +63,12 @@ public class Pong extends JPanel implements Runnable  {
             if(ball.pos.x + ball.speed.x <= court.x){
                 // goal on left side
                 sound(Math.abs(ball.speed.y) * 2 + 10, 100);
+                leftController.missed();
                 rightController.serve(ball);
             }else if(ball.pos.x + ball.speed.x >= court.width - 20){
                 // goal on right side
                 sound(Math.abs(ball.speed.y) * 2 + 10, 100);
+                rightController.missed();
                 leftController.serve(ball);
             }else if(ball.pos.y + ball.speed.y <= court.y){
                 // hit top wall
@@ -82,6 +84,10 @@ public class Pong extends JPanel implements Runnable  {
         public LeftRacket(){
             // position at left end plus 20 (margin)
             super(new Point(20, Pong.SCREEN_WIDTH / 2 - 25));
+        }
+
+        public boolean isLeft(){
+            return true;
         }
 
         public void check(Ball ball){
@@ -111,6 +117,10 @@ public class Pong extends JPanel implements Runnable  {
         public RightRacket(){
             // position at right end minus 20 (margin) and width of pad (6)
             super(new Point(Pong.SCREEN_WIDTH - 26, Pong.SCREEN_HEIGHT / 2 - 25));
+        }
+
+        public boolean isLeft(){
+            return false;
         }
 
         public void check(Ball ball){
@@ -143,7 +153,7 @@ public class Pong extends JPanel implements Runnable  {
         leftController = new ComputerController(leftRacket, ball);
         rightController = new MouseController(rightRacket, this);
 //         rightController = new JInputController(rightRacket);
-        rightController = new KeyboardController(rightRacket, this, KeyEvent.VK_UP, KeyEvent.VK_DOWN);
+//         rightController = new KeyboardController(rightRacket, this, KeyEvent.VK_UP, KeyEvent.VK_DOWN);
 
         // set action handler for start/stop game (space bar)
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "start/stop game");
@@ -152,8 +162,6 @@ public class Pong extends JPanel implements Runnable  {
                     started = !started;
                 }
             });
-
-//         initSound();
 
         ball.speed.x = HORIZONTAL_SPEED;
         ball.speed.y = 2;
@@ -264,7 +272,7 @@ public class Pong extends JPanel implements Runnable  {
         int note = scales.getNote(value);
         duration += baseduration;
         midi.setDuration(duration);
-        System.out.println("value "+value+" \tnote "+note+" \tduration "+duration);
+//         System.out.println("value "+value+" \tnote "+note+" \tduration "+duration);
         try{
             midi.play(note);
         }catch(Exception exc){
@@ -283,7 +291,75 @@ public class Pong extends JPanel implements Runnable  {
     public JMenuBar getMenuBar(){
         // create menu bar
         JMenuBar menubar = new JMenuBar();
-        JMenu menu = new JMenu("Devices");
+        JMenu menu;
+        // controller menu, left
+        menu = new JMenu("Left");
+        ButtonGroup group = new ButtonGroup();
+        JRadioButtonMenuItem button = new JRadioButtonMenuItem("keyboard");
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    leftController.close();
+                    leftController = new KeyboardController(leftRacket, getComponent(), KeyEvent.VK_UP, KeyEvent.VK_DOWN);
+                }
+            });
+        group.add(button);
+        menu.add(button);
+        button = new JRadioButtonMenuItem("mouse");
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    leftController.close();
+                    leftController = new MouseController(leftRacket, getComponent());
+                }
+            });
+        group.add(button);
+        menu.add(button);
+        button = new JRadioButtonMenuItem("computer");
+        button.setSelected(true);
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    leftController.close();
+                    leftController = new ComputerController(leftRacket, ball);
+                }
+            });
+        group.add(button);
+        menu.add(button);
+        menubar.add(menu);
+
+        // controller menu, right
+        menu = new JMenu("Right");
+        group = new ButtonGroup();
+        button = new JRadioButtonMenuItem("keyboard");
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    rightController.close();
+                    rightController = new KeyboardController(rightRacket, getComponent(), KeyEvent.VK_UP, KeyEvent.VK_DOWN);
+                }
+            });
+        group.add(button);
+        menu.add(button);
+        button = new JRadioButtonMenuItem("mouse");
+        button.setSelected(true);
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    rightController.close();
+                    rightController = new MouseController(rightRacket, getComponent());
+                }
+            });
+        group.add(button);
+        menu.add(button);
+        button = new JRadioButtonMenuItem("computer");
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    rightController.close();
+                    rightController = new ComputerController(rightRacket, ball);
+                }
+            });
+        group.add(button);
+        menu.add(button);
+        menubar.add(menu);
+
+        // devices menu
+        menu = new JMenu("Devices");
         MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
         MidiDevice[] devices = new MidiDevice[info.length];
         for(int i=0; i<info.length; ++i){
@@ -300,6 +376,7 @@ public class Pong extends JPanel implements Runnable  {
             }
         }
         menubar.add(menu);
+        // scales menu
         menu = new JMenu("Scales");
         String[] scalenames = scales.getScaleNames();
         for(int i=0; i<scalenames.length; ++i){
@@ -308,7 +385,12 @@ public class Pong extends JPanel implements Runnable  {
             menu.add(item);
         }
         menubar.add(menu);
+
         return menubar;
+    }
+
+    protected Component getComponent(){
+        return this;
     }
 
     public static final void main(String[] args)
@@ -324,7 +406,6 @@ public class Pong extends JPanel implements Runnable  {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         // does this do anything?
         frame.setContentPane(pong);
-//         frame.pack();
         frame.setVisible(true);
         // Create a general double-buffering strategy
         frame.createBufferStrategy(2);
