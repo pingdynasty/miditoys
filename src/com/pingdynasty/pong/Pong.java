@@ -153,13 +153,17 @@ public class Pong extends JPanel implements Runnable  {
                 }
             });
 
-        initSound();
+//         initSound();
 
         ball.speed.x = HORIZONTAL_SPEED;
         ball.speed.y = 2;
         animator = new Thread(this);
         animator.start();
     }
+
+//     public void startOrStop(boolean start){
+//         started = start;
+//     }
 
     public void run(){
         while(running){
@@ -208,9 +212,9 @@ public class Pong extends JPanel implements Runnable  {
 // 		}
 	}
 
-     ScaleMapper scales;
+    private ScaleMapper scales;
 
-    class ScaleActionListener implements ActionListener {
+    public class ScaleActionListener implements ActionListener {
         private int scale;
         public ScaleActionListener(int scale){
             this.scale = scale;
@@ -219,6 +223,10 @@ public class Pong extends JPanel implements Runnable  {
         public void actionPerformed(ActionEvent event) {
             scales.setScale(scale);
         }
+    }
+
+    public String[] getScales(){
+        return scales.getScaleNames();
     }
 
     public void initSound(){
@@ -272,38 +280,46 @@ public class Pong extends JPanel implements Runnable  {
         running = false;
     }
 
-    public static final void main(String[] args)
-        throws Exception {
-        // create pong
-        Pong pong = new Pong();
-
+    public JMenuBar getMenuBar(){
         // create menu bar
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("Devices");
         MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
         MidiDevice[] devices = new MidiDevice[info.length];
         for(int i=0; i<info.length; ++i){
-            devices[i] = MidiSystem.getMidiDevice(info[i]); 
-            if(devices[i] instanceof Receiver ||
-               devices[i] instanceof Synthesizer){
-                JMenuItem item = new JMenuItem(info[i].getName());
-                item.addActionListener(pong.new DeviceActionListener(devices[i]));
-                menu.add(item); 
-           }
+            try{
+                devices[i] = MidiSystem.getMidiDevice(info[i]); 
+                if(devices[i] instanceof Receiver ||
+                   devices[i] instanceof Synthesizer){
+                    JMenuItem item = new JMenuItem(info[i].getName());
+                    item.addActionListener(new DeviceActionListener(devices[i]));
+                    menu.add(item); 
+                }
+            }catch(MidiUnavailableException exc){
+                System.err.println(exc.getMessage());
+            }
         }
         menubar.add(menu);
         menu = new JMenu("Scales");
-        String[] scalenames = pong.scales.getScaleNames();
+        String[] scalenames = scales.getScaleNames();
         for(int i=0; i<scalenames.length; ++i){
             JMenuItem item = new JMenuItem(scalenames[i]);
-            item.addActionListener(pong.new ScaleActionListener(i));
+            item.addActionListener(new ScaleActionListener(i));
             menu.add(item);
         }
         menubar.add(menu);
+        return menubar;
+    }
+
+    public static final void main(String[] args)
+        throws Exception {
+        // create pong
+        Pong pong = new Pong();
+        pong.initSound();
 
         // create frame
         JFrame frame = new JFrame("pong");
-        frame.setJMenuBar(menubar);
+        frame.setJMenuBar(pong.getMenuBar());
         frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT + 40);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         // does this do anything?
