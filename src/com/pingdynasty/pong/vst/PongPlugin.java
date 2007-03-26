@@ -16,53 +16,45 @@ public class PongPlugin extends org.jvaptools.VstPluginImpl  {
 
     public PongPlugin(long wrapper){
         super(wrapper);
-
+        System.out.println("pong plugin ctor");
         this.setProgram(0);
-        this.setNumInputs(2);
+        this.setNumInputs(0);
         this.setNumOutputs(2);
         //this.hasVu(false); //deprecated as of vst2.4
         //this.hasClip(false); //deprecated as of vst2.4
         this.canProcessReplacing(true);
-//         this.canMono(true);
+        this.canMono(true);
         this.isSynth(true);
 
-        this.setUniqueID(7842315);
+        this.setUniqueID(0xfaffe);
         this.suspend();
-    }
 
-//     public void init(org.jvaptools.VstPluginImpl owner){
-//         System.out.println("pong plugin init");
-//         pong = new Pong();
-//         MidiDevice device = getMidiDevice();
-//         try{
-//             pong.initSound(device);
-//         }catch(Exception exc){
-//             exc.printStackTrace();
-//         }
-//         System.out.println("pong plugin finished init");
-//     }
-
-    public void open() {
-        super.open();
-        System.out.println("pong plugin open");
         pong = new Pong();
+
+        // initialise sound
         MidiDevice device = getMidiDevice();
-        System.out.println("pong midi device "+device);
         try{
-//             pong.initSound();
             pong.initSound(device);
         }catch(Exception exc){
             exc.printStackTrace();
         }
-        System.out.println("pong plugin open done");
+    }
+
+    public void open() {
+        super.open();
+        System.out.println("pong plugin open");
     }
 
     public String getEffectName() { return "pong"; }
     public String getVendorString() { return "http://mars.pingdynasty.com/pong/"; }
     public String getProductString() { return "pong"; }
-    public int getNumPrograms() { return 1; }
-    public int getNumParams() { return 0; }
-    public boolean setBypass(boolean value) { return false; }
+//     public int getNumPrograms() { return 1; }
+//     public int getNumParams() { return 0; }
+    public boolean setBypass(boolean value) {
+//         pong.startOrStop(value);
+        // todo: pause pong
+        return false; 
+    }
 
     public int getPlugCategory(){
 //         return PLUG_CATEG_UNKNOWN;
@@ -79,12 +71,12 @@ public class PongPlugin extends org.jvaptools.VstPluginImpl  {
 //             return CANDO_YES;
 //         if(CANDO_PLUG_RECEIVE_VST_TIME_INFO.equals(feature))
 //             return CANDO_YES;
-        if(CANDO_PLUG_SEND_VST_MIDI_EVENT.equals(feature))
-            return CANDO_YES;
 //         if(CANDO_PLUG_MIDI_PROGRAM_NAMES.equals(feature))
 //             return CANDO_YES;
 //         if(CANDO_PLUG_SEND_VST_EVENTS.equals(feature))
 //             return CANDO_YES;
+        if(CANDO_PLUG_SEND_VST_MIDI_EVENT.equals(feature))
+            return CANDO_YES;
         return CANDO_NO;
     }
 
@@ -93,57 +85,4 @@ public class PongPlugin extends org.jvaptools.VstPluginImpl  {
         System.out.println("pong plugin close");
         pong.stop();
     }
-
-//     public int getMidiProgramName(int channel, MidiProgramName mpn) {
-//         System.out.println("pong getMidiProgramName: "+mpn.getName()+" "+channel);
-//         int prg = mpn.getThisProgramIndex();
-//         mpn.setMidiProgram((byte)prg);
-//         mpn.setName("Pong"+prg);
-//         mpn.setParentCategoryIndex(-1);
-//         return 6;
-//     }
-
-//   public int getCurrentMidiProgram(int channel, MidiProgramName mpn) {    
-//       System.out.println("pong getCurrentMidiProgram: "+mpn.getName()+" "+channel);
-//       if(channel < 0 || channel >= 16 || mpn==null) return -1;
-//       mpn.setThisProgramIndex(1);
-//       mpn.setName("Standard");
-//       mpn.setMidiProgram((byte)0);
-//       mpn.setParentCategoryIndex(-1);
-//       return 1;
-//   }
-
-//   public int getMidiProgramCategory(int channel, MidiProgramCategory cat) {
-//       System.out.println("pong getMidiProgramCategory: "+cat.getName()+" "+channel);
-//       System.out.println("pong getMidiProgramCategory: "+cat.getThisCategoryIndex()+" "+channel);
-//       return 1;
-//   }
-
-//   public boolean hasMidiProgramsChanged(int channel) {
-//       System.out.println("pong hasMidiProgramsChanged: "+channel);
-//       return false;
-//   }
-
-//   public boolean getMidiKeyName(long channel, MidiKeyName key) {
-//       System.out.println("pong getMidiKeyName: "+key);
-//       return false;
-//   }
 }
-
-// enum VstPlugCategory
-// {
-//     kPlugCategUnknown = 0,              ///< Unknown, category not implemented
-//     kPlugCategEffect,                   ///< Simple Effect
-//     kPlugCategSynth,                    ///< VST Instrument (Synths, samplers,...)
-//     kPlugCategAnalysis,                 ///< Scope, Tuner, ...
-//     kPlugCategMastering,                ///< Dynamics, ...
-//         kPlugCategSpacializer,          ///< Panners, ...
-//         kPlugCategRoomFx,                       ///< Delays and Reverbs
-//         kPlugSurroundFx,                        ///< Dedicated surround processor
-//         kPlugCategRestoration,          ///< Denoiser, ...
-//         kPlugCategOfflineProcess,       ///< Offline Process
-//         kPlugCategShell,                        ///< Plug-in is container of other plug-ins  @see effShellGetNextPlugin
-//         kPlugCategGenerator,            ///< ToneGenerator, ...
-
-//         kPlugCategMaxCount                      ///< Marker to count the categor
-// ies
