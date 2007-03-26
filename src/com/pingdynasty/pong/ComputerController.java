@@ -6,6 +6,7 @@ public class ComputerController extends RacketController {
 
     Ball ball;
     int adjustment = 8;
+    private static final int MARGIN = 15;
 
     public ComputerController(Racket racket, Ball ball){
         super(racket);
@@ -17,14 +18,14 @@ public class ComputerController extends RacketController {
         if((ball.speed.x < 0 && racket.isLeft()) ||
            (ball.speed.x > 0 && !racket.isLeft())){
             int dist = java.lang.Math.abs(ball.pos.y - centerpos);
-            if(centerpos < ball.pos.y - 3)
+            if(centerpos < ball.pos.y - MARGIN)
                 move(dist / adjustment);
-            else if(centerpos > ball.pos.y + 3)
+            else if(centerpos > ball.pos.y + MARGIN)
                 move(-dist / adjustment);
         }else{
-            if(centerpos < Pong.SCREEN_HEIGHT / 2 - 3)
+            if(centerpos < Pong.SCREEN_HEIGHT / 2 - MARGIN)
                 move(3);
-            else if(centerpos > Pong.SCREEN_HEIGHT / 2 + 3)
+            else if(centerpos > Pong.SCREEN_HEIGHT / 2 + MARGIN)
                 move(-3);
         }
     }
