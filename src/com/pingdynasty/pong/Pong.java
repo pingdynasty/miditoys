@@ -37,14 +37,35 @@ public class Pong extends JPanel implements Runnable  {
         }
     }
 
+    class ChangeSpeedAction extends AbstractAction {
+        private int speed;
+        public ChangeSpeedAction(int speed){
+            this.speed = speed;
+        }
+        public void actionPerformed(ActionEvent event){
+            ball.speed.x = speed;
+        }
+    }
+
+    class ChangeChannelAction extends AbstractAction {
+        private int channel;
+        public ChangeChannelAction(int channel){
+            this.channel = channel;
+        }
+        public void actionPerformed(ActionEvent event){
+            try{
+                midi.setChannel(channel);
+            }catch(Exception exc){
+                exc.printStackTrace();
+            }
+        }
+    }
+
     class DeviceActionListener implements ActionListener {
-
         private MidiDevice device;
-
         public DeviceActionListener(MidiDevice device){
             this.device = device;
         }
-
         public void actionPerformed(ActionEvent event) {
             try{
                 midi.close();
@@ -359,7 +380,7 @@ public class Pong extends JPanel implements Runnable  {
         menubar.add(menu);
 
         // devices menu
-        menu = new JMenu("Devices");
+        menu = new JMenu("MIDI");
         MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
         MidiDevice[] devices = new MidiDevice[info.length];
         for(int i=0; i<info.length; ++i){
@@ -377,12 +398,38 @@ public class Pong extends JPanel implements Runnable  {
         }
         menubar.add(menu);
         // scales menu
-        menu = new JMenu("Scales");
+        menu = new JMenu("Scale");
         String[] scalenames = scales.getScaleNames();
         for(int i=0; i<scalenames.length; ++i){
             JMenuItem item = new JMenuItem(scalenames[i]);
             item.addActionListener(new ScaleActionListener(i));
             menu.add(item);
+        }
+        menubar.add(menu);
+
+        // speed menu
+        menu = new JMenu("Speed");
+        group = new ButtonGroup();
+        for(int i=4; i<18; i+=2){
+            button = new JRadioButtonMenuItem(""+i);
+            if(i == HORIZONTAL_SPEED)
+                button.setSelected(true);
+            button.addActionListener(new ChangeSpeedAction(i));
+            group.add(button);
+            menu.add(button);
+        }
+        menubar.add(menu);
+
+        // channel menu
+        menu = new JMenu("Channel");
+        group = new ButtonGroup();
+        for(int i=1; i<16; ++i){
+            button = new JRadioButtonMenuItem(""+i);
+            if(i == 1)
+                button.setSelected(true);
+            button.addActionListener(new ChangeChannelAction(i));
+            group.add(button);
+            menu.add(button);
         }
         menubar.add(menu);
 
