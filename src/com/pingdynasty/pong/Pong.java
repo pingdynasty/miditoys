@@ -334,6 +334,15 @@ public class Pong extends JPanel implements Runnable  {
             });
         group.add(button);
         menu.add(button);
+//         button = new JRadioButtonMenuItem("gamepad");
+//         button.addActionListener(new AbstractAction(){
+//                 public void actionPerformed(ActionEvent event){
+//                     leftController.close();
+//                     leftController = new JInputController(leftRacket);
+//                 }
+//             });
+//         group.add(button);
+//         menu.add(button);
         button = new JRadioButtonMenuItem("computer");
         button.setSelected(true);
         button.addActionListener(new AbstractAction(){
@@ -368,6 +377,15 @@ public class Pong extends JPanel implements Runnable  {
             });
         group.add(button);
         menu.add(button);
+//         button = new JRadioButtonMenuItem("gamepad");
+//         button.addActionListener(new AbstractAction(){
+//                 public void actionPerformed(ActionEvent event){
+//                     rightController.close();
+//                     rightController = new JInputController(rightRacket);
+//                 }
+//             });
+//         group.add(button);
+//         menu.add(button);
         button = new JRadioButtonMenuItem("computer");
         button.addActionListener(new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
@@ -451,10 +469,10 @@ public class Pong extends JPanel implements Runnable  {
         frame.setJMenuBar(pong.getMenuBar());
         frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT + 40);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        // does this do anything?
         frame.setContentPane(pong);
         frame.setVisible(true);
         // Create a general double-buffering strategy
         frame.createBufferStrategy(2);
+        // does this do anything?
     }
 }

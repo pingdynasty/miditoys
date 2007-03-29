@@ -22,7 +22,6 @@ public class Keyboard extends JFrame implements KeyListener {
     private ChannelPanel channelpanel;
     private boolean noteOn[] = new boolean[1024]; // keep track of notes that are on
     private static int bank = 0;
-    private static int channel = 0;
     private static int program = 0;
     private JLabel statusbar;
 
@@ -136,16 +135,12 @@ public class Keyboard extends JFrame implements KeyListener {
         // add menu bar
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("Devices");
-        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
-        MidiDevice[] devices = new MidiDevice[info.length];
-        for(int i=0; i<info.length; ++i){
-            devices[i] = MidiSystem.getMidiDevice(info[i]); 
-            if(devices[i] instanceof Receiver ||
-               devices[i] instanceof Synthesizer){
-                JMenuItem item = new JMenuItem(info[i].getName());
-                item.addActionListener(new DeviceActionListener(devices[i]));
-                menu.add(item); 
-           }
+        String[] devicenames = DeviceLocator.getDeviceNames(Receiver.class);
+        for(int i=0; i<devicenames.length; ++i){
+            JMenuItem item = new JMenuItem(devicenames[i]);
+            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
+            item.addActionListener(new DeviceActionListener(device));
+            menu.add(item); 
         }
         menubar.add(menu);
         menubar.add(channelpanel.getMenu());
@@ -163,21 +158,11 @@ public class Keyboard extends JFrame implements KeyListener {
         throws MidiUnavailableException, Exception {
 
         // choose first available Syntheziser or Receiver device
-        MidiDevice device = null;
-        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
-        MidiDevice[] devices = new MidiDevice[info.length];
-        for(int i=0; i<info.length; ++i){
-            devices[i] = MidiSystem.getMidiDevice(info[i]);
-            if(devices[i] instanceof Receiver ||
-               devices[i] instanceof Synthesizer){
-                device = devices[i];
-                break;
-            }
-        }
-        device.open();
-        Player player = new ReceiverPlayer(device.getReceiver());
-        player.setChannel(channel);
-        player.setVelocity(60);
+        // choose first available Receiver or Synthesizer device
+        MidiDevice device = DeviceLocator.getDevice(Receiver.class);
+        if(device == null)
+            device = DeviceLocator.getDevice(Synthesizer.class);
+        Player player = DeviceLocator.getPlayer(device);
 
         Keyboard keyboard = new Keyboard(player);
         keyboard.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

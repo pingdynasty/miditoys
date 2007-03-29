@@ -60,20 +60,11 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
 
     public static void main(String[  ] args) 
         throws MidiUnavailableException, Exception {
-        // choose first available Syntheziser or Receiver device
-        MidiDevice device = null;
-        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
-        MidiDevice[] devices = new MidiDevice[info.length];
-        for(int i=0; i<info.length; ++i){
-            devices[i] = MidiSystem.getMidiDevice(info[i]);
-            if(devices[i] instanceof Receiver ||
-               devices[i] instanceof Synthesizer){
-                device = devices[i];
-                break;
-            }
-        }
-        device.open();
-        Player player = new ReceiverPlayer(device.getReceiver());
+        // choose first available Receiver or Synthesizer device
+        MidiDevice device = DeviceLocator.getDevice(Receiver.class);
+        if(device == null)
+            device = DeviceLocator.getDevice(Synthesizer.class);
+        Player player = DeviceLocator.getPlayer(device);
 
         WalkingBass bass = new WalkingBass(player);
         bass.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -227,16 +218,12 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
         // menus
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("Devices");
-        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
-        MidiDevice[] devices = new MidiDevice[info.length];
-        for(int i=0; i<info.length; ++i){
-            devices[i] = MidiSystem.getMidiDevice(info[i]); 
-            if(devices[i] instanceof Receiver ||
-               devices[i] instanceof Synthesizer){
-                JMenuItem item = new JMenuItem(info[i].getName());
-                item.addActionListener(new DeviceActionListener(devices[i]));
-                menu.add(item); 
-           }
+        String[] devicenames = DeviceLocator.getDeviceNames(Receiver.class);
+        for(int i=0; i<devicenames.length; ++i){
+            JMenuItem item = new JMenuItem(devicenames[i]);
+            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
+            item.addActionListener(new DeviceActionListener(device));
+            menu.add(item); 
         }
         menubar.add(menu);
 

@@ -84,7 +84,6 @@ public class ReceiverPlayer extends Player {
         ShortMessage sm = new ShortMessage( );
         sm.setMessage(ShortMessage.PROGRAM_CHANGE, channel, bank, program);
         receiver.send(sm, -1);
-        channel = program;
     }
 
     public void setChannel(int channel)
