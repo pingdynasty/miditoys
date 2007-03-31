@@ -7,10 +7,13 @@ import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.table.*;
 
-public class StepSequencerPanel extends JPanel {
+public class StepSequencerPanel extends JPanel implements Receiver {
 
     private StepSequencer sequencer;
-    private Player player;
+    private ReceiverPlayer player;
+    private Transmitter transmitter;
+    private JLabel statusbar;
+    private StepsTableModel model;
 
     abstract class IntValueChangeListener implements ChangeListener {
         protected int value;
@@ -19,42 +22,67 @@ public class StepSequencerPanel extends JPanel {
         }
     }
 
-    class DeviceActionListener implements ActionListener {
-        private MidiDevice device;
-        public DeviceActionListener(MidiDevice device){
+    class ReceiverActionListener implements ActionListener {
+        MidiDevice device;
+        public ReceiverActionListener(MidiDevice device){
             this.device = device;
         }
         public void actionPerformed(ActionEvent event) {
             try{
-                int velocity = player.getVelocity();
-                int duration = player.getDuration();
                 player.close();
                 device.open();
-                player = new ReceiverPlayer(device.getReceiver());
-                sequencer.setPlayer(player);
-                player.setVelocity(velocity);
-                player.setDuration(duration);
-//                 status("MIDI device: "+device.getDeviceInfo().getName());
+                player.setReceiver(device.getReceiver());
+                status("MIDI OUT device: "+device.getDeviceInfo().getName());
+            }catch(Exception exc){exc.printStackTrace();}
+        }
+    }
+
+    class TransmitterActionListener implements ActionListener {
+        MidiDevice device;
+        public TransmitterActionListener(MidiDevice device){
+            this.device = device;
+        }
+        public void actionPerformed(ActionEvent event) {
+            try{
+                if(transmitter != null)
+                    transmitter.close();
+                device.open();
+                transmitter = device.getTransmitter();
+                transmitter.setReceiver(getReceiver());
+                status("MIDI IN device: "+device.getDeviceInfo().getName());
             }catch(Exception exc){exc.printStackTrace();}
         }
     }
 
     public StepSequencerPanel(){
+        JPanel content = new JPanel(new BorderLayout());
+
+        // statusbar
+        statusbar = new JLabel();
+        content.add(statusbar, BorderLayout.SOUTH);
+
         int width = 8;
         try{
-            player = DeviceLocator.getPlayer(Receiver.class);
+            MidiDevice device = DeviceLocator.getDevice(Receiver.class);
+            status("MIDI IN device: "+device.getDeviceInfo().getName());
+            player = new SchedulingPlayer(device.getReceiver());
             this.sequencer = new StepSequencer(player, width);
+            device = DeviceLocator.getDevice(Transmitter.class);
+            if(device != null){
+                status("MIDI OUT device: "+device.getDeviceInfo().getName());
+                transmitter = device.getTransmitter();
+                transmitter.setReceiver(this);
+            }
         }catch(MidiUnavailableException exc){
             exc.printStackTrace();
         }
-        JPanel content = new JPanel(new BorderLayout());
 
-        StepsTableModel model = new StepsTableModel(width);
+        model = new StepsTableModel(sequencer);
         JTable steps = new JTable(model);
 //         steps.getColumnModel().getColumn(0).setCellRenderer(model);
 //         steps.getColumnModel().getColumn(3).setCellRenderer(model);
-        steps.setDefaultRenderer(Object.class, model);
-        content.add(steps, BorderLayout.NORTH);
+//         steps.setDefaultRenderer(Object.class, model);
+        content.add(steps, BorderLayout.CENTER);
 
         JPanel buttons = new JPanel();
         buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
@@ -99,9 +127,50 @@ public class StepSequencerPanel extends JPanel {
                     }
                 }
             });
-        content.add(slider, BorderLayout.SOUTH);
+        content.add(slider, BorderLayout.NORTH);
 
         this.add(content);
+    }
+
+    public void close(){}
+
+    public void send(MidiMessage message, long time){
+        ShortMessage msg;
+        if(message instanceof ShortMessage){
+            msg = (ShortMessage)message;
+        }else{
+            return;
+        }
+        switch(msg.getStatus()){
+        case ShortMessage.CONTROL_CHANGE: {
+            status("midi cc <"+msg+"><"+time+"><"+
+                   msg.getCommand()+"><"+msg.getChannel()+"><"+
+                   msg.getData1()+"><"+msg.getData2()+">");
+            int cmd = msg.getData1();
+            if(cmd >= 1 && cmd <= 9){
+                sequencer.getStep(cmd-1).note = msg.getData2();
+            }else if(cmd >= 81 && cmd <= 88){
+                sequencer.getStep(cmd-81).velocity = msg.getData2();                
+            }else if(cmd >= 89 && cmd <= 96){
+                sequencer.getStep(cmd-89).duration = msg.getData2();                
+            }else if(cmd >= 97 && cmd <= 104){
+                sequencer.getStep(cmd-97).modulation = msg.getData2();                
+            }
+            repaint();
+            break;
+        }
+        default:
+            status("midi in <"+msg+"><"+time+">");
+        }
+    }
+
+    public Receiver getReceiver(){
+        return this;
+    }
+
+    public void status(String msg){
+        statusbar.setText(msg);
+//         statusbar.repaint();
     }
 
     public static void main(String[] args)
@@ -112,107 +181,86 @@ public class StepSequencerPanel extends JPanel {
         JFrame frame = new JFrame("step sequencer");
         // menu bar
         JMenuBar menubar = new JMenuBar();
-        JMenu menu = new JMenu("Devices");
+        JMenu menu = new JMenu("MIDI OUT");
         String[] devicenames = DeviceLocator.getDeviceNames(Receiver.class);
         for(int i=0; i<devicenames.length; ++i){
             JMenuItem item = new JMenuItem(devicenames[i]);
             MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
-            item.addActionListener(panel.new DeviceActionListener(device));
+            item.addActionListener(panel.new ReceiverActionListener(device));
             menu.add(item); 
         }
         devicenames = DeviceLocator.getDeviceNames(Synthesizer.class);
         for(int i=0; i<devicenames.length; ++i){
             JMenuItem item = new JMenuItem(devicenames[i]);
             MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
-            item.addActionListener(panel.new DeviceActionListener(device));
+            item.addActionListener(panel.new ReceiverActionListener(device));
+            menu.add(item); 
+        }
+        menubar.add(menu);
+        menu = new JMenu("MIDI IN");
+        devicenames = DeviceLocator.getDeviceNames(Transmitter.class);
+        for(int i=0; i<devicenames.length; ++i){
+            JMenuItem item = new JMenuItem(devicenames[i]);
+            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
+            item.addActionListener(panel.new TransmitterActionListener(device));
             menu.add(item); 
         }
         menubar.add(menu);
         frame.setJMenuBar(menubar);
         // configure frame
-        frame.setSize(600, 400);
+        frame.setSize(800, 400);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setContentPane(panel);
         frame.setVisible(true);
         // Create a general double-buffering strategy
         frame.createBufferStrategy(2);
-
     }
 
-    class StepsTableModel extends AbstractTableModel implements TableCellRenderer {
+    class StepsTableModel extends AbstractTableModel {
         int width;
-        int height = 3;
+        int height = 5;
         String[] labels = new String[]{"note", "velocity", "duration", "modulation", "bend"};
+        StepSequencer sequencer;
 
-        JComponent[][] cells;
-
-        StepsTableModel(int width){
-            this.width = ++width; // +1 for labels
-            cells = new JComponent[width][height];
-            for(int i=0; i<height; ++i){
-                cells[0][i] = new JLabel(labels[i], SwingConstants.RIGHT);
-            }
-            Dimension dimension = new Dimension(50, 20);
-            for(int i=1; i<width; ++i){
-                // note control
-                JSpinner spinner = new JSpinner();
-//                 spinner.setPreferredSize(dimension);
-                spinner.setValue(sequencer.getStep(i-1).note);
-                spinner.addChangeListener(new IntValueChangeListener(i-1){
-                        public void stateChanged(ChangeEvent event) {
-                            JSpinner source = (JSpinner)event.getSource();
-                            int value = ((Integer)source.getValue()).intValue();
-                            if(value > 0 && value < 128)
-                                sequencer.getStep(this.value).note = value;
-                        }
-                    });
-                cells[i][0] = spinner;
-                // velocity control
-                spinner = new JSpinner();
-                spinner.setValue(sequencer.getStep(i-1).velocity);
-//                 spinner.setPreferredSize(dimension);
-                spinner.addChangeListener(new IntValueChangeListener(i-1){
-                        public void stateChanged(ChangeEvent event) {
-                            JSpinner source = (JSpinner)event.getSource();
-                            int value = ((Integer)source.getValue()).intValue();
-                            if(value > 0 && value < 128)
-                                sequencer.getStep(this.value).note = value;
-                        }
-                    });
-                cells[i][1] = spinner;
-                // bend control
-                spinner = new JSpinner();
-                spinner.setValue(sequencer.getStep(i-1).bend);
-//                 spinner.setPreferredSize(dimension);
-                spinner.addChangeListener(new IntValueChangeListener(i-1){
-                        public void stateChanged(ChangeEvent event) {
-                            JSpinner source = (JSpinner)event.getSource();
-                            int value = ((Integer)source.getValue()).intValue();
-                            if(value > 0)
-                                sequencer.getStep(this.value).bend = value;
-                        }
-                    });
-                cells[i][2] = spinner;
-            }
+        StepsTableModel(StepSequencer sequencer){
+            this.sequencer = sequencer;
+            width = sequencer.getLength() + 1;
         }
         public int getColumnCount() { return width; }
         public int getRowCount() { return height;}
         public Object getValueAt(int row, int col) { 
-            return cells[col][row]; 
+            if(col == 0)
+                return labels[row];
+            switch(row){
+            case 0:
+                return sequencer.getStep(col-1).note;
+            case 1:
+                return sequencer.getStep(col-1).velocity;
+            case 2:
+                return sequencer.getStep(col-1).duration;
+            case 3:
+                return sequencer.getStep(col-1).modulation;
+            case 4:
+                return sequencer.getStep(col-1).bend;
+            }
+            return null;
         }
         public Class getColumnClass(int row, int col) { 
-//             return cells[col][row].getClass(); 
-            return JComponent.class;
+            if(col == 0)
+                return String.class;
+            return Integer.class;
         }
-        public boolean isCellEditable(int row, int col) { return false; }
+        public boolean isCellEditable(int row, int col) { 
+            return col != 0; 
+        }
 
-        public Component getTableCellRendererComponent(JTable table,
-                                                       Object value,
-                                                       boolean isSelected,
-                                                       boolean hasFocus,
-                                                       int row,
-                                                       int col){
-            return cells[col][row];
-        }
+//         public Component getTableCellRendererComponent(JTable table,
+//                                                        Object value,
+//                                                        boolean isSelected,
+//                                                        boolean hasFocus,
+//                                                        int row,
+//                                                        int col){
+//             return cells[col][row];
+//         }
     }
 }

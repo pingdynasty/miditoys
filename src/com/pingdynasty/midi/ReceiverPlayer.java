@@ -25,6 +25,10 @@ public class ReceiverPlayer extends Player {
         this.receiver = receiver;
     }
 
+    public void setReceiver(Receiver receiver){
+        this.receiver = receiver;
+    }
+
     /**
      * blocking call to play note - waits for the duration of the note.
      */
