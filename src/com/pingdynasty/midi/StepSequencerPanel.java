@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.table.*;
 
 public class StepSequencerPanel extends JPanel {
 
@@ -47,91 +48,14 @@ public class StepSequencerPanel extends JPanel {
             exc.printStackTrace();
         }
         JPanel content = new JPanel(new BorderLayout());
-        JPanel steps = new JPanel();
-        steps.setLayout(new BoxLayout(steps, BoxLayout.X_AXIS));
-        Dimension dimension = new Dimension(50, 20);
-        // labels
-        JPanel step = new JPanel();
-        // todo: change to gridbag layout
-        step.setLayout(new BoxLayout(step, BoxLayout.Y_AXIS));
-        step.add(new JLabel("note", SwingConstants.RIGHT));
-        step.add(new JLabel("velocity", SwingConstants.RIGHT));
-        step.add(new JLabel("duration", SwingConstants.RIGHT));
-        step.add(new JLabel("modulation", SwingConstants.RIGHT));
-        step.add(new JLabel("bend", SwingConstants.RIGHT));
-        steps.add(step);
-        for(int i=0; i<width; ++i){
-            step = new JPanel();
-            step.setLayout(new BoxLayout(step, BoxLayout.Y_AXIS));
-            // note control
-            JSpinner spinner = new JSpinner();
-            spinner.setPreferredSize(dimension);
-            spinner.setValue(60);
-            step.add(spinner);
-            spinner.addChangeListener(new IntValueChangeListener(i){
-                    public void stateChanged(ChangeEvent event) {
-                        JSpinner source = (JSpinner)event.getSource();
-                        int value = ((Integer)source.getValue()).intValue();
-                        if(value > 0 && value < 128)
-                            sequencer.getStep(this.value).note = value;
-                    }
-                });
-            // velocity control
-            spinner = new JSpinner();
-            spinner.setValue(80);
-            spinner.setPreferredSize(dimension);
-            step.add(spinner);
-            spinner.addChangeListener(new IntValueChangeListener(i){
-                    public void stateChanged(ChangeEvent event) {
-                        JSpinner source = (JSpinner)event.getSource();
-                        int value = ((Integer)source.getValue()).intValue();
-                        if(value > 0 && value < 128)
-                            sequencer.getStep(this.value).note = value;
-                    }
-                });
-            // duration control
-            spinner = new JSpinner();
-            spinner.setValue(80);
-            spinner.setPreferredSize(dimension);
-            step.add(spinner);
-            spinner.addChangeListener(new IntValueChangeListener(i){
-                    public void stateChanged(ChangeEvent event) {
-                        JSpinner source = (JSpinner)event.getSource();
-                        int value = ((Integer)source.getValue()).intValue();
-                        if(value > 0)
-                            sequencer.getStep(this.value).duration = value;
-                    }
-                });
-            // modulation control
-            spinner = new JSpinner();
-            spinner.setValue(80);
-            spinner.setPreferredSize(dimension);
-            step.add(spinner);
-            spinner.addChangeListener(new IntValueChangeListener(i){
-                    public void stateChanged(ChangeEvent event) {
-                        JSpinner source = (JSpinner)event.getSource();
-                        int value = ((Integer)source.getValue()).intValue();
-                        if(value > 0)
-                            sequencer.getStep(this.value).modulation = value;
-                    }
-                });
-            // bend control
-            spinner = new JSpinner();
-            spinner.setValue(80);
-            spinner.setPreferredSize(dimension);
-            step.add(spinner);
-            spinner.addChangeListener(new IntValueChangeListener(i){
-                    public void stateChanged(ChangeEvent event) {
-                        JSpinner source = (JSpinner)event.getSource();
-                        int value = ((Integer)source.getValue()).intValue();
-                        if(value > 0)
-                            sequencer.getStep(this.value).bend = value;
-                    }
-                });
 
-            steps.add(step);
-        }
+        StepsTableModel model = new StepsTableModel(width);
+        JTable steps = new JTable(model);
+//         steps.getColumnModel().getColumn(0).setCellRenderer(model);
+//         steps.getColumnModel().getColumn(3).setCellRenderer(model);
+        steps.setDefaultRenderer(Object.class, model);
         content.add(steps, BorderLayout.NORTH);
+
         JPanel buttons = new JPanel();
         buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
         // create play button
@@ -213,5 +137,82 @@ public class StepSequencerPanel extends JPanel {
         // Create a general double-buffering strategy
         frame.createBufferStrategy(2);
 
+    }
+
+    class StepsTableModel extends AbstractTableModel implements TableCellRenderer {
+        int width;
+        int height = 3;
+        String[] labels = new String[]{"note", "velocity", "duration", "modulation", "bend"};
+
+        JComponent[][] cells;
+
+        StepsTableModel(int width){
+            this.width = ++width; // +1 for labels
+            cells = new JComponent[width][height];
+            for(int i=0; i<height; ++i){
+                cells[0][i] = new JLabel(labels[i], SwingConstants.RIGHT);
+            }
+            Dimension dimension = new Dimension(50, 20);
+            for(int i=1; i<width; ++i){
+                // note control
+                JSpinner spinner = new JSpinner();
+//                 spinner.setPreferredSize(dimension);
+                spinner.setValue(sequencer.getStep(i-1).note);
+                spinner.addChangeListener(new IntValueChangeListener(i-1){
+                        public void stateChanged(ChangeEvent event) {
+                            JSpinner source = (JSpinner)event.getSource();
+                            int value = ((Integer)source.getValue()).intValue();
+                            if(value > 0 && value < 128)
+                                sequencer.getStep(this.value).note = value;
+                        }
+                    });
+                cells[i][0] = spinner;
+                // velocity control
+                spinner = new JSpinner();
+                spinner.setValue(sequencer.getStep(i-1).velocity);
+//                 spinner.setPreferredSize(dimension);
+                spinner.addChangeListener(new IntValueChangeListener(i-1){
+                        public void stateChanged(ChangeEvent event) {
+                            JSpinner source = (JSpinner)event.getSource();
+                            int value = ((Integer)source.getValue()).intValue();
+                            if(value > 0 && value < 128)
+                                sequencer.getStep(this.value).note = value;
+                        }
+                    });
+                cells[i][1] = spinner;
+                // bend control
+                spinner = new JSpinner();
+                spinner.setValue(sequencer.getStep(i-1).bend);
+//                 spinner.setPreferredSize(dimension);
+                spinner.addChangeListener(new IntValueChangeListener(i-1){
+                        public void stateChanged(ChangeEvent event) {
+                            JSpinner source = (JSpinner)event.getSource();
+                            int value = ((Integer)source.getValue()).intValue();
+                            if(value > 0)
+                                sequencer.getStep(this.value).bend = value;
+                        }
+                    });
+                cells[i][2] = spinner;
+            }
+        }
+        public int getColumnCount() { return width; }
+        public int getRowCount() { return height;}
+        public Object getValueAt(int row, int col) { 
+            return cells[col][row]; 
+        }
+        public Class getColumnClass(int row, int col) { 
+//             return cells[col][row].getClass(); 
+            return JComponent.class;
+        }
+        public boolean isCellEditable(int row, int col) { return false; }
+
+        public Component getTableCellRendererComponent(JTable table,
+                                                       Object value,
+                                                       boolean isSelected,
+                                                       boolean hasFocus,
+                                                       int row,
+                                                       int col){
+            return cells[col][row];
+        }
     }
 }
