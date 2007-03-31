@@ -73,7 +73,7 @@ public class StepSequencerPanel extends JPanel {
                         JSpinner source = (JSpinner)event.getSource();
                         int value = ((Integer)source.getValue()).intValue();
                         if(value > 0 && value < 128)
-                            sequencer.setStepNote(this.value, value);
+                            sequencer.getStep(this.value).note = value;
                     }
                 });
             // velocity control
@@ -86,7 +86,7 @@ public class StepSequencerPanel extends JPanel {
                         JSpinner source = (JSpinner)event.getSource();
                         int value = ((Integer)source.getValue()).intValue();
                         if(value > 0 && value < 128)
-                            sequencer.setStepVelocity(this.value, value);
+                            sequencer.getStep(this.value).note = value;
                     }
                 });
             // duration control
@@ -99,7 +99,7 @@ public class StepSequencerPanel extends JPanel {
                         JSpinner source = (JSpinner)event.getSource();
                         int value = ((Integer)source.getValue()).intValue();
                         if(value > 0)
-                            sequencer.setStepDuration(this.value, value);
+                            sequencer.getStep(this.value).duration = value;
                     }
                 });
             // modulation control
@@ -112,7 +112,7 @@ public class StepSequencerPanel extends JPanel {
                         JSpinner source = (JSpinner)event.getSource();
                         int value = ((Integer)source.getValue()).intValue();
                         if(value > 0)
-                            sequencer.setStepModulation(this.value, value);
+                            sequencer.getStep(this.value).modulation = value;
                     }
                 });
             // bend control
@@ -125,7 +125,7 @@ public class StepSequencerPanel extends JPanel {
                         JSpinner source = (JSpinner)event.getSource();
                         int value = ((Integer)source.getValue()).intValue();
                         if(value > 0)
-                            sequencer.setStepBend(this.value, value);
+                            sequencer.getStep(this.value).bend = value;
                     }
                 });
 
@@ -169,7 +169,7 @@ public class StepSequencerPanel extends JPanel {
         slider.addChangeListener(new ChangeListener(){
                 public void stateChanged(ChangeEvent event) {
                     JSlider source = (JSlider)event.getSource();
-                    if (!source.getValueIsAdjusting()) {
+                    if(!source.getValueIsAdjusting()){
                         int bpm = (int)source.getValue();
                         sequencer.setPeriod(60000 / bpm);
                     }

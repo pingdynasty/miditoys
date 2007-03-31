@@ -12,7 +12,7 @@ public class StepSequencer implements Runnable {
     private int acceleration;
     private boolean playing = false;
 
-    class Step {
+    public class Step {
         int note = 60;
         int velocity = 80;
         int duration = 80;
@@ -57,26 +57,6 @@ public class StepSequencer implements Runnable {
 
     public Step getStep(int index){
         return steps[index];
-    }
-
-    public void setStepNote(int index, int note){
-        steps[index].note = note;
-    }
-
-    public void setStepVelocity(int index, int velocity){
-        steps[index].velocity = velocity;
-    }
-
-    public void setStepDuration(int index, int duration){
-        steps[index].duration = duration;
-    }
-
-    public void setStepModulation(int index, int modulation){
-        steps[index].modulation = modulation;
-    }
-
-    public void setStepBend(int index, int bend){
-        steps[index].bend = bend;
     }
 
     /**
