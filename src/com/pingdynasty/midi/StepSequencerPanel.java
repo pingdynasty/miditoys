@@ -154,7 +154,9 @@ public class StepSequencerPanel extends JPanel implements Receiver {
             }else if(cmd >= 89 && cmd <= 96){
                 sequencer.getStep(cmd-89).duration = msg.getData2();                
             }else if(cmd >= 97 && cmd <= 104){
-                sequencer.getStep(cmd-97).modulation = msg.getData2();                
+                sequencer.getStep(cmd-97).modulation = msg.getData2();
+            }else if(cmd >= 33 && cmd <= 40){
+                sequencer.play(sequencer.getStep(cmd-33));
             }
             repaint();
             break;
@@ -228,12 +230,13 @@ public class StepSequencerPanel extends JPanel implements Receiver {
         }
         public int getColumnCount() { return width; }
         public int getRowCount() { return height;}
+//         public void setValueAt(Object value, int row, int col){}
         public Object getValueAt(int row, int col) { 
             if(col == 0)
                 return labels[row];
             switch(row){
             case 0:
-                return sequencer.getStep(col-1).note;
+                return NoteParser.getStringNote(sequencer.getStep(col-1).note);
             case 1:
                 return sequencer.getStep(col-1).velocity;
             case 2:
@@ -251,7 +254,8 @@ public class StepSequencerPanel extends JPanel implements Receiver {
             return Integer.class;
         }
         public boolean isCellEditable(int row, int col) { 
-            return col != 0; 
+            return false;
+//             return col != 0; 
         }
 
 //         public Component getTableCellRendererComponent(JTable table,
