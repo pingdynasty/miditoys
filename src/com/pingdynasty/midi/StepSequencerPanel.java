@@ -14,6 +14,25 @@ public class StepSequencerPanel extends JPanel implements Receiver {
     private Transmitter transmitter;
     private JLabel statusbar;
     private StepsTableModel model;
+    private Timer timer;
+
+    public class Timer {
+        boolean timing = false;
+        long tick;
+        public void update(){
+            if(timing){
+                long now = System.currentTimeMillis();
+                int period = (int)(now - tick);
+//                 period = period * 60; // ???
+                status("period: "+period);
+                sequencer.setPeriod(period);
+                tick = now;
+            }else{
+                tick = System.currentTimeMillis();
+                timing = true;
+            }
+        }
+    }
 
     abstract class IntValueChangeListener implements ChangeListener {
         protected int value;
@@ -142,6 +161,11 @@ public class StepSequencerPanel extends JPanel implements Receiver {
             return;
         }
         switch(msg.getStatus()){
+        case ShortMessage.MIDI_TIME_CODE: {
+            status("midi time code <"+msg+">");
+            timer.update();
+            break;
+        }
         case ShortMessage.CONTROL_CHANGE: {
             status("midi cc <"+msg+"><"+time+"><"+
                    msg.getCommand()+"><"+msg.getChannel()+"><"+
@@ -228,34 +252,67 @@ public class StepSequencerPanel extends JPanel implements Receiver {
             this.sequencer = sequencer;
             width = sequencer.getLength() + 1;
         }
+
         public int getColumnCount() { return width; }
+
         public int getRowCount() { return height;}
-//         public void setValueAt(Object value, int row, int col){}
+
+        public void setValueAt(Object value, int row, int col){
+            if(col == 0)
+                return;
+            try{
+                String str = (String)value;
+                switch(row){
+                case 0:
+                    int note = NoteParser.getMidiNote(str);
+                    if(note < 0)
+                        throw new IllegalArgumentException("invalid note: "+str);
+                    sequencer.getStep(col-1).note = note;
+                    break;
+                case 1:
+                    sequencer.getStep(col-1).velocity = Integer.parseInt(str);
+                    break;
+                case 2:
+                    sequencer.getStep(col-1).duration = Integer.parseInt(str);
+                    break;
+                case 3:
+                    sequencer.getStep(col-1).modulation = Integer.parseInt(str);
+                    break;
+                case 4:
+                    sequencer.getStep(col-1).bend = Integer.parseInt(str);
+                    break;
+                }
+            }catch(Throwable exc){
+                status(exc.getMessage());
+            }
+        }
+
         public Object getValueAt(int row, int col) { 
             if(col == 0)
                 return labels[row];
             switch(row){
             case 0:
-                return NoteParser.getStringNote(sequencer.getStep(col-1).note);
+                return NoteParser.getStringNote(sequencer.getStep(col - 1).note);
             case 1:
-                return sequencer.getStep(col-1).velocity;
+                return new Integer(sequencer.getStep(col-1).velocity);
             case 2:
-                return sequencer.getStep(col-1).duration;
+                return new Integer(sequencer.getStep(col-1).duration);
             case 3:
-                return sequencer.getStep(col-1).modulation;
+                return new Integer(sequencer.getStep(col-1).modulation);
             case 4:
-                return sequencer.getStep(col-1).bend;
+                return new Integer(sequencer.getStep(col-1).bend);
             }
             return null;
         }
+ 
         public Class getColumnClass(int row, int col) { 
-            if(col == 0)
+            if(col == 0 || row == 0)
                 return String.class;
             return Integer.class;
         }
         public boolean isCellEditable(int row, int col) { 
-            return false;
-//             return col != 0; 
+//             return false;
+            return col != 0; 
         }
 
 //         public Component getTableCellRendererComponent(JTable table,
