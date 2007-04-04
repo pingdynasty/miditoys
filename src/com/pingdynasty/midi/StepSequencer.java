@@ -32,6 +32,10 @@ public class StepSequencer implements Runnable {
         thread.start();
     }
 
+    public boolean isStarted(){
+        return playing;
+    }
+
     public int getLength(){
         return steps.length;
     }

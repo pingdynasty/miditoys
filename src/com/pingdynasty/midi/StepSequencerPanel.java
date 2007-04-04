@@ -103,6 +103,11 @@ public class StepSequencerPanel extends JPanel {
                     sequencer.getStep(cmd-97).modulation = msg.getData2();
                 }else if(cmd >= 33 && cmd <= 40){
                     sequencer.play(sequencer.getStep(cmd-33));
+                }else if(cmd == 105){
+                    if(sequencer.isStarted())
+                        sequencer.stop();
+                    else
+                        sequencer.start();
                 }
                 repaint(); // todo: check if necessary
                 break;
