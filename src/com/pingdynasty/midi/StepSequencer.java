@@ -67,16 +67,18 @@ public class StepSequencer implements Runnable {
      * Play one iteration (blocking call)
      */
     public void play(){
-        int delay = period;
+//         int delay = period;
         for(int i=0; i<steps.length; ++i){
             play(steps[i]);
             try{
-                Thread.sleep(delay);
+                for(int j=0; j<24; ++j)
+                    Thread.sleep(period / 24);
+                Thread.sleep(period % 24);
             }catch(InterruptedException exc){
                 return;
             }
-            if(acceleration != 0)
-                delay += acceleration;
+//             if(acceleration != 0)
+//                 delay += acceleration;
         }
     }
 
@@ -85,8 +87,13 @@ public class StepSequencer implements Runnable {
      */
     public void play(Step step){
         try{
-            player.setDuration(step.duration);
-            player.setVelocity(step.duration);
+            // duration : a value of 64 should be 1/2 note:
+            // (duration * period) / (64 * 4)
+//             player.setDuration((step.duration * period) / 256);
+            player.setDuration((step.duration * period) / 64);
+//             player.setDuration((step.duration * period) / 16);
+            System.out.println(NoteParser.getStringNote(step.note)+" duration: "+(step.duration * period) / 16);
+            player.setVelocity(step.velocity);
             player.modulate(step.modulation);
             player.bend(step.bend);
             player.play(step.note);
@@ -117,7 +124,7 @@ public class StepSequencer implements Runnable {
                 play();
             }else{
                 try{
-                    Thread.sleep(100);
+                    Thread.sleep(period / 48); // sleep half a frame
                 }catch(InterruptedException exc){}
             }
         }
