@@ -109,7 +109,7 @@ public class StepSequencerPanel extends JPanel {
                     else
                         sequencer.start();
                 }
-                repaint(); // todo: check if necessary
+                repaint();
                 break;
             }
             case ShortMessage.NOTE_ON:
@@ -136,6 +136,8 @@ public class StepSequencerPanel extends JPanel {
         }
 
         public void synchronize(){
+            if(receiver == null)
+                return;
             for(int i=0; i<8; ++i){
                 StepSequencer.Step step = sequencer.getStep(i); 
                 try{
@@ -412,6 +414,7 @@ public class StepSequencerPanel extends JPanel {
                     sequencer.getStep(col-1).bend = Integer.parseInt(str);
                     break;
                 }
+                control.synchronize();
             }catch(Throwable exc){
                 status(exc.getMessage());
             }
