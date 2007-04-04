@@ -47,6 +47,8 @@ public abstract class Player {
         throws InvalidMidiDataException;
     public abstract void programChange(int bank, int program)
         throws InvalidMidiDataException;
+    public abstract void controlChange(int code, int value)
+        throws InvalidMidiDataException;
     public abstract void setChannel(int channel)
         throws InvalidMidiDataException;
     public abstract int getChannel()

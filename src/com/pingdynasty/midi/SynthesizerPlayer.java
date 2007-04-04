@@ -36,6 +36,11 @@ public class SynthesizerPlayer extends Player {
         midi.programChange(bank, program);
     }
 
+    public void controlChange(int code, int value)
+        throws InvalidMidiDataException{
+        midi.controlChange(code, value);
+    }
+
     public void setChannel(int channel)
         throws InvalidMidiDataException{
         midi = synth.getChannels()[channel];

@@ -39,7 +39,7 @@ public class SchedulingPlayer extends ReceiverPlayer implements Runnable, Compar
     public void run(){
         while(running){
             if(schedule.isEmpty()){
-                sleep(10);
+                sleep(24);
             }else{
                 MidiEvent event = (MidiEvent)schedule.first();
                 MidiMessage msg = event.getMessage();

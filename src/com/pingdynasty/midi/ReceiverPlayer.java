@@ -57,29 +57,36 @@ public class ReceiverPlayer extends Player {
     public void noteon(int note)
         throws InvalidMidiDataException{
         ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.NOTE_ON,  channel, note, velocity);
+        msg.setMessage(ShortMessage.NOTE_ON, channel, note, velocity);
         receiver.send(msg, -1);
     }
 
     public void noteoff(int note)
         throws InvalidMidiDataException{
         ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.NOTE_OFF,  channel, note, 0);
+        msg.setMessage(ShortMessage.NOTE_OFF, channel, note, 0);
         receiver.send(msg, -1);
     }
 
     public void bend(int degree)
         throws InvalidMidiDataException{
         ShortMessage msg = new ShortMessage();
-//         msg.setMessage(ShortMessage.PITCH_BEND,  channel, 0xff00 & degree, 0x00ff & degree);
-        msg.setMessage(ShortMessage.PITCH_BEND,  channel, degree, degree);
+//         msg.setMessage(ShortMessage.PITCH_BEND, channel, 0xff00 & degree, 0x00ff & degree);
+        msg.setMessage(ShortMessage.PITCH_BEND, channel, degree, degree);
         receiver.send(msg, -1);
     }
 
     public void modulate(int degree)
         throws InvalidMidiDataException{
         ShortMessage msg = new ShortMessage();
-        msg.setMessage(ShortMessage.CONTROL_CHANGE,  channel, 1, degree);
+        msg.setMessage(ShortMessage.CONTROL_CHANGE, channel, 1, degree);
+        receiver.send(msg, -1);
+    }
+
+    public void controlChange(int code, int value)
+        throws InvalidMidiDataException{
+        ShortMessage msg = new ShortMessage();
+        msg.setMessage(ShortMessage.CONTROL_CHANGE, channel, code, value);
         receiver.send(msg, -1);
     }
 
