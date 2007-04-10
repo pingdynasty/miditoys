@@ -22,11 +22,74 @@ public class StepSequencerPanel extends JPanel {
     private JSlider slider;
     private ControlSurfaceHandler control;
     private boolean midiSync = false;
+    private MidiInputHandler midiInput;
+
+    public class MidiInputHandler implements Receiver {
+        private Transmitter transmitter;
+        private StepSequencerArpeggio[] arps;
+        private final int voices = 4;
+        private int[] notes = new int[128];
+        private int index;
+
+        public MidiInputHandler(StepSequencer sequencer){
+            // create Arpeggio players
+            arps = new StepSequencerArpeggio[voices]; // max polyphonic arps
+            for(int i=0; i<arps.length; ++i)
+                arps[i] = new StepSequencerArpeggio(sequencer);
+        }
+
+        public void setTransmitter(Transmitter transmitter){
+            if(this.transmitter != null)
+                this.transmitter.close();
+            this.transmitter = transmitter;
+            transmitter.setReceiver(this);
+        }
+
+        public void send(MidiMessage msg, long time){
+            if(msg instanceof ShortMessage){
+                try{
+                    send((ShortMessage)msg, time);
+                }catch(Exception exc){
+                    exc.printStackTrace();
+                }
+            }else{
+                System.out.println("midi message "+msg);
+                return;
+            }
+        }
+
+        public void send(ShortMessage msg, long time)
+            throws InvalidMidiDataException {
+            status("midi in <"+msg.getStatus()+"><"+msg.getCommand()+"><"+
+                   msg.getData1()+"><"+msg.getData2()+">");
+            switch(msg.getStatus()){
+            case ShortMessage.NOTE_ON:{
+                if(index < voices){
+                    int note = msg.getData1();
+                    notes[note] = index++;
+                    arps[notes[note]].start(note);
+                }
+                break;
+            }
+            case ShortMessage.NOTE_OFF:{
+                int note = msg.getData1();
+                arps[notes[note]].stop();
+                --index;
+                break;
+            }
+            default:
+            }
+        }
+
+        public void close(){
+            if(transmitter != null)
+                transmitter.close();
+        }
+    }
 
     public class ControlSurfaceHandler implements Receiver {
         private Transmitter transmitter;
         private Receiver receiver;
-        MidiDevice device;
 
         ControlSurfaceHandler(){}
 
@@ -117,7 +180,7 @@ public class StepSequencerPanel extends JPanel {
             case ShortMessage.PITCH_BEND:
                 break;
             default:
-                status("midi in <"+msg+"><"+msg.getStatus()+">");
+                status("midi control <"+msg+"><"+msg.getStatus()+">");
             }
         }
 
@@ -190,6 +253,20 @@ public class StepSequencerPanel extends JPanel {
         }
     }
 
+    class MidiInputActionListener implements ActionListener {
+        MidiDevice device;
+        public MidiInputActionListener(MidiDevice device){
+            this.device = device;
+        }
+        public void actionPerformed(ActionEvent event) {
+            try{
+                device.open();
+                midiInput.setTransmitter(device.getTransmitter());
+                status("MIDI IN device: "+device.getDeviceInfo().getName());
+            }catch(Exception exc){exc.printStackTrace();}
+        }
+    }
+
     class TransmitterActionListener implements ActionListener {
         MidiDevice device;
         public TransmitterActionListener(MidiDevice device){
@@ -233,7 +310,11 @@ public class StepSequencerPanel extends JPanel {
         device.open();
         status("MIDI OUT device: "+device.getDeviceInfo().getName());
         player = new SchedulingPlayer(device.getReceiver());
+
+        // create StepSequencer
         this.sequencer = new StepSequencer(player, width);
+        // create Arpeggio player
+        midiInput = new MidiInputHandler(sequencer);
 
         model = new StepsTableModel(sequencer);
         JTable steps = new JTable(model);
@@ -346,6 +427,17 @@ public class StepSequencerPanel extends JPanel {
             menu.add(item); 
         }
         menubar.add(menu);
+
+        menu = new JMenu("MIDI IN");
+        devicenames = DeviceLocator.getDeviceNames(Transmitter.class);
+        for(int i=0; i<devicenames.length; ++i){
+            JMenuItem item = new JMenuItem(devicenames[i]);
+            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
+            item.addActionListener(panel.new MidiInputActionListener(device));
+            menu.add(item); 
+        }
+        menubar.add(menu);
+
         menu = new JMenu("Control Surface");
         menu.add(new JLabel("input"));
         devicenames = DeviceLocator.getDeviceNames(Transmitter.class);

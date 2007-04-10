@@ -142,6 +142,13 @@ public class Keyboard extends JFrame implements KeyListener {
             item.addActionListener(new DeviceActionListener(device));
             menu.add(item); 
         }
+        devicenames = DeviceLocator.getDeviceNames(Synthesizer.class);
+        for(int i=0; i<devicenames.length; ++i){
+            JMenuItem item = new JMenuItem(devicenames[i]);
+            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
+            item.addActionListener(new DeviceActionListener(device));
+            menu.add(item); 
+        }
         menubar.add(menu);
         menubar.add(channelpanel.getMenu());
         setJMenuBar(menubar);

@@ -5,11 +5,11 @@ import javax.sound.midi.*;
 // todo: check if pong applet on Firefox delays without using Scheduling Player.
 public class StepSequencer implements Runnable {
 
-    private Player player;
-    private Step[] steps;
+    protected Player player;
+    protected Step[] steps;
     private Thread thread;
-    private int period = 500; // time between notes. 500ms == 120bpm.
-    private int acceleration;
+    protected int period = 500; // time between notes. 500ms == 120bpm.
+//     private int acceleration;
     private boolean playing = false;
 
     public class Step {
@@ -20,14 +20,17 @@ public class StepSequencer implements Runnable {
         int bend = 64;
     }
 
-    public StepSequencer(Player player){
-        this(player, 8);
-    }
-
     public StepSequencer(Player player, int length){
         this.player = player;
         steps = new Step[0];
         setLength(length);
+        thread = new Thread(this);
+        thread.start();
+    }
+
+    protected StepSequencer(Player player, Step[] steps){
+        this.player = player;
+        this.steps = steps;
         thread = new Thread(this);
         thread.start();
     }
