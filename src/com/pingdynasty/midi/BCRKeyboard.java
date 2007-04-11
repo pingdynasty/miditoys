@@ -106,9 +106,10 @@ public class BCRKeyboard extends Panel {
         }
         public void actionPerformed(ActionEvent event) {
             try{
+                control.close();
                 device.open();
                 control.setTransmitter(device.getTransmitter());
-                status("Control Surface output device: "+device.getDeviceInfo().getName());
+                status("MIDI IN device: "+device.getDeviceInfo().getName());
             }catch(Exception exc){exc.printStackTrace();}
         }
     }
