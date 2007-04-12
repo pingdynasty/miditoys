@@ -14,7 +14,8 @@ public abstract class Racket {
 
     public int hit(Ball ball){
         int offset = ball.pos.y - (pos.y + (size.y / 2)); // distance from center of racket
-        ball.speed.y += offset / 7;
+        if(Math.abs(ball.speed.y) < ball.MAX_VERTICAL_SPEED)
+            ball.speed.y += offset / 7;
         ball.speed.x *= -1;
         return offset;
     }

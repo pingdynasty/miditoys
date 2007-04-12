@@ -1,18 +1,20 @@
 package com.pingdynasty.pong;
 
-import javax.sound.midi.*;
 /*
  * Notes: some source pulled from http://www.xnet.se/javaTest/jPong/jPong.html
  * some source pulled from http://www.eecs.tufts.edu/~mchow/excollege/s2006/examples.php
  */
-
 import java.util.Locale;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-
+import javax.sound.midi.*;
 import com.pingdynasty.midi.*;
 
+// todo:
+// control bpm
+// ball bounces off middle of rhs pad and outside lhs pad
+// control velocity and note duration
 public class Pong extends JPanel implements Runnable  {
 
     public static final int GAME_END_SCORE = 11;	
@@ -112,7 +114,7 @@ public class Pong extends JPanel implements Runnable  {
         }
 
         public void check(Ball ball){
-            if(ball.pos.x + ball.speed.x <= pos.x + size.x // enemyPoint.x + 4
+            if(ball.pos.x + ball.speed.x <= pos.x // + (size.x / 2) // enemyPoint.x + 4
                && ball.pos.x > pos.x
                && ball.pos.y + ball.radius > pos.y 
                && ball.pos.y < pos.y + size.y){
@@ -145,7 +147,7 @@ public class Pong extends JPanel implements Runnable  {
         }
 
         public void check(Ball ball){
-            if(ball.pos.x + ball.speed.x >= pos.x // - size.x // racketPoint.x - 6
+            if(ball.pos.x + ball.speed.x >= pos.x - size.x // racketPoint.x - 6
                && ball.pos.x < pos.x
                && ball.pos.y + ball.radius > pos.y 
                && ball.pos.y < pos.y + size.y){
@@ -181,6 +183,7 @@ public class Pong extends JPanel implements Runnable  {
         getActionMap().put("start/stop game", new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     started = !started;
+                    System.err.println("started: "+started);
                 }
             });
 
@@ -188,6 +191,7 @@ public class Pong extends JPanel implements Runnable  {
         ball.speed.y = 2;
         animator = new Thread(this);
         animator.start();
+        setFocusable(true);
     }
 
 //     public void startOrStop(boolean start){
@@ -260,13 +264,14 @@ public class Pong extends JPanel implements Runnable  {
 
     public void initSound(){
         try{
-            // choose first available Syntheziser
+            // choose first available Receiver or Syntheziser
             MidiDevice device = null;
             MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
             MidiDevice[] devices = new MidiDevice[info.length];
             for(int i=0; i<info.length; ++i){
                 devices[i] = MidiSystem.getMidiDevice(info[i]);
-                if(devices[i] instanceof Synthesizer){
+                if(devices[i] instanceof Receiver ||
+                   devices[i] instanceof Synthesizer){
                     device = devices[i];
                     break;
                 }
@@ -277,7 +282,7 @@ public class Pong extends JPanel implements Runnable  {
         }
     }
 
-    private com.pingdynasty.midi.Player midi;
+    private Player midi;
     private int baseduration = 500;
 
     public void initSound(MidiDevice device)
@@ -285,7 +290,7 @@ public class Pong extends JPanel implements Runnable  {
         device.open();
         midi = new SchedulingPlayer(device.getReceiver());
         midi.setVelocity(80);
-        midi.setDuration(1200); // duration in milliseconds
+        midi.setDuration(600); // duration in milliseconds
         scales = new ScaleMapper(Locale.getDefault());
     }
 
@@ -309,7 +314,7 @@ public class Pong extends JPanel implements Runnable  {
         running = false;
     }
 
-    public JMenuBar getMenuBar(){
+    public JMenuBar getMenuBar(boolean includeDeviceMenu){
         // create menu bar
         JMenuBar menubar = new JMenuBar();
         JMenu menu;
@@ -397,31 +402,42 @@ public class Pong extends JPanel implements Runnable  {
         menu.add(button);
         menubar.add(menu);
 
-        // devices menu
-        menu = new JMenu("MIDI");
-        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
-        MidiDevice[] devices = new MidiDevice[info.length];
-        for(int i=0; i<info.length; ++i){
-            try{
-                devices[i] = MidiSystem.getMidiDevice(info[i]); 
-                if(devices[i] instanceof Receiver ||
-                   devices[i] instanceof Synthesizer){
-                    JMenuItem item = new JMenuItem(info[i].getName());
-                    item.addActionListener(new DeviceActionListener(devices[i]));
-                    menu.add(item); 
+        if(includeDeviceMenu){
+            // devices menu
+            menu = new JMenu("MIDI");
+            group = new ButtonGroup();
+            MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+            MidiDevice[] devices = new MidiDevice[info.length];
+            for(int i=0; i<info.length; ++i){
+                try{
+                    devices[i] = MidiSystem.getMidiDevice(info[i]); 
+                    if(devices[i] instanceof Receiver ||
+                       devices[i] instanceof Synthesizer){
+                        button = new JRadioButtonMenuItem(info[i].getName());
+                        if(menu.getItemCount() == 0)
+                            button.setSelected(true);
+                        button.addActionListener(new DeviceActionListener(devices[i]));
+                        group.add(button);
+                        menu.add(button); 
+                    }
+                }catch(MidiUnavailableException exc){
+                    System.err.println(exc.getMessage());
                 }
-            }catch(MidiUnavailableException exc){
-                System.err.println(exc.getMessage());
             }
+            menubar.add(menu);
         }
-        menubar.add(menu);
+
         // scales menu
         menu = new JMenu("Scale");
+        group = new ButtonGroup();
         String[] scalenames = scales.getScaleNames();
         for(int i=0; i<scalenames.length; ++i){
-            JMenuItem item = new JMenuItem(scalenames[i]);
-            item.addActionListener(new ScaleActionListener(i));
-            menu.add(item);
+            button = new JRadioButtonMenuItem(scalenames[i]);
+            if(i == scales.getScaleIndex())
+                button.setSelected(true);
+            button.addActionListener(new ScaleActionListener(i));
+            group.add(button);
+            menu.add(button);
         }
         menubar.add(menu);
 
@@ -441,9 +457,9 @@ public class Pong extends JPanel implements Runnable  {
         // channel menu
         menu = new JMenu("Channel");
         group = new ButtonGroup();
-        for(int i=1; i<16; ++i){
-            button = new JRadioButtonMenuItem(""+i);
-            if(i == 1)
+        for(int i=0; i<16; ++i){
+            button = new JRadioButtonMenuItem(Integer.toString(i+1));
+            if(i == 0)
                 button.setSelected(true);
             button.addActionListener(new ChangeChannelAction(i));
             group.add(button);
@@ -466,7 +482,7 @@ public class Pong extends JPanel implements Runnable  {
 
         // create frame
         JFrame frame = new JFrame("pong");
-        frame.setJMenuBar(pong.getMenuBar());
+        frame.setJMenuBar(pong.getMenuBar(true));
         frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT + 40);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setContentPane(pong);

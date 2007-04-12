@@ -30,19 +30,7 @@ public class PongGUI extends jvst.wrapper.VSTPluginGUIAdapter {
         System.out.println("pong gui init");
         plugin = (PongPlugin)adapter;
         pong = plugin.pong;
-
-        // create menu bar
-        JMenuBar menubar = new JMenuBar();
-        JMenu menu = new JMenu("Scales");
-        String[] scalenames = pong.getScales();
-        for(int i=0; i<scalenames.length; ++i){
-            JMenuItem item = new JMenuItem(scalenames[i]);
-            item.addActionListener(pong.new ScaleActionListener(i));
-            menu.add(item);
-        }
-        menubar.add(menu);
-
-        setJMenuBar(menubar);
+        setJMenuBar(pong.getMenuBar(false));
         getContentPane().add(pong);
         setVisible(true);
     }

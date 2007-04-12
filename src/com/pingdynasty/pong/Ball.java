@@ -4,6 +4,8 @@ import java.awt.Graphics;
 import java.awt.Point;
 
 public class Ball {
+    public static final int MAX_VERTICAL_SPEED = 18;
+
     Point pos = new Point(0, 0);
     Point speed = new Point(0, 0);
     int radius = 8;
