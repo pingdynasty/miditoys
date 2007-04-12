@@ -7,11 +7,13 @@ import javax.swing.*;
 public class ChannelPanel extends JPanel {
 
     private Player player;
-    private JRadioButton[] buttons;
+    private Action[] actions;
+    private AbstractButton[] buttons;
 
-    class ChannelActionListener implements ActionListener {
+    class ChannelActionListener extends AbstractAction {
         private int channel;
         public ChannelActionListener(int channel){
+            super("channel "+(channel+1));
             this.channel = channel;
         }
         public void actionPerformed(ActionEvent event){
@@ -25,11 +27,12 @@ public class ChannelPanel extends JPanel {
     public ChannelPanel(Player player){
         this.player = player;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        buttons = new JRadioButton[16];
+        actions = new Action[16];
+        buttons = new JRadioButton[actions.length];
         ButtonGroup group = new ButtonGroup();
         for(int i=0; i<buttons.length; ++i){
-            buttons[i] = new JRadioButton("channel "+(i+1));
-            buttons[i].addActionListener(new ChannelActionListener(i));
+            actions[i] = new ChannelActionListener(i);
+            buttons[i] = new JRadioButton(actions[i]);
             if(i == 0)
                 buttons[i].setSelected(true);
             group.add(buttons[i]);
@@ -40,9 +43,8 @@ public class ChannelPanel extends JPanel {
 
     public JMenu getMenu(){
         JMenu menu = new JMenu("Channels");
-        for(int i=0; i<16; ++i){
-            JMenuItem item = new JMenuItem("channel "+(i+1));
-            item.addActionListener(new ChannelActionListener(i));
+        for(int i=0; i<actions.length; ++i){
+            JMenuItem item = new JMenuItem(actions[i]);
             menu.add(item);
         }
         return menu;
