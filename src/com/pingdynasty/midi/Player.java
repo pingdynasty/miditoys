@@ -37,6 +37,8 @@ public abstract class Player {
         noteoff(note);
     }
 
+    public abstract void setChannel(int channel);
+    public abstract int getChannel();
     public abstract void noteon(int note)
         throws InvalidMidiDataException;
     public abstract void noteoff(int note)
@@ -48,10 +50,6 @@ public abstract class Player {
     public abstract void programChange(int bank, int program)
         throws InvalidMidiDataException;
     public abstract void controlChange(int code, int value)
-        throws InvalidMidiDataException;
-    public abstract void setChannel(int channel)
-        throws InvalidMidiDataException;
-    public abstract int getChannel()
         throws InvalidMidiDataException;
     public abstract void allNotesOff()
         throws InvalidMidiDataException;

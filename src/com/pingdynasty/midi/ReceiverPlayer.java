@@ -97,8 +97,7 @@ public class ReceiverPlayer extends Player {
         receiver.send(sm, -1);
     }
 
-    public void setChannel(int channel)
-        throws InvalidMidiDataException{
+    public void setChannel(int channel){
         this.channel = channel;
     }
 

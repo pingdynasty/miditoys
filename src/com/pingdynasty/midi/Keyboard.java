@@ -64,8 +64,7 @@ public class Keyboard extends JFrame implements KeyListener {
                 status("octave "+keyboard.getOctave());
             }else if(key == KeyEvent.VK_ESCAPE){
                 player.allNotesOff();
-                player.bend(64);
-                player.modulate(0);
+                surface.reset();
                 status("escape: reset");
             }else{
                 int note = keyboard.getNote(key);

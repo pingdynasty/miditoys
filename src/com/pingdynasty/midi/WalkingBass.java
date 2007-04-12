@@ -61,11 +61,10 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
     public static void main(String[  ] args) 
         throws MidiUnavailableException, Exception {
         // choose first available Receiver or Synthesizer device
-        MidiDevice device = DeviceLocator.getDevice(Receiver.class);
+        MidiDevice device = DeviceLocator.getDevice(Synthesizer.class);
         if(device == null)
-            device = DeviceLocator.getDevice(Synthesizer.class);
+            device = DeviceLocator.getDevice(Receiver.class);
         Player player = DeviceLocator.getPlayer(device);
-
         WalkingBass bass = new WalkingBass(player);
         bass.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         bass.pack();
@@ -219,6 +218,13 @@ public class WalkingBass extends JFrame implements KeyListener, ChangeListener {
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("Devices");
         String[] devicenames = DeviceLocator.getDeviceNames(Receiver.class);
+        for(int i=0; i<devicenames.length; ++i){
+            JMenuItem item = new JMenuItem(devicenames[i]);
+            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
+            item.addActionListener(new DeviceActionListener(device));
+            menu.add(item); 
+        }
+        devicenames = DeviceLocator.getDeviceNames(Synthesizer.class);
         for(int i=0; i<devicenames.length; ++i){
             JMenuItem item = new JMenuItem(devicenames[i]);
             MidiDevice device = DeviceLocator.getDevice(devicenames[i]);

@@ -54,6 +54,9 @@ public class DeviceLocator {
 //         return menu;
 //     }
 
+    /**
+     * return first matching device
+     */
     public static MidiDevice getDevice(Class type)
         throws MidiUnavailableException {
         MidiDevice device = null;
@@ -111,4 +114,7 @@ public class DeviceLocator {
 //             return new SynthesizerPlayer((Synthesizer)device);
         return new ReceiverPlayer(device.getReceiver());
     }
+
+//     public static MidiDevice getDevice(byte[] identifier)
+//         throws MidiUnavailableException {
 }

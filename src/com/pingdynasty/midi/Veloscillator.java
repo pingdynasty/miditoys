@@ -56,7 +56,7 @@ public class Veloscillator {
         }
     }
 
-    public static void main(String[] args){
+    public static final void main(String[] args){
         Veloscillator velo = new Veloscillator();
         int length = 8;
         Veloscillator.Waveform wave;
