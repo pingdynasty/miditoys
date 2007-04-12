@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import javax.swing.event.*;
 import javax.sound.midi.*;
 import com.pingdynasty.midi.*;
 
@@ -32,12 +33,6 @@ public class Pong extends JPanel implements Runnable  {
     private RacketController rightController;
     private boolean running = true;
     private boolean started = false;
-
-    class KeyAction extends AbstractAction {
-        public void actionPerformed(ActionEvent event){
-            started = !started;
-        }
-    }
 
     class ChangeSpeedAction extends AbstractAction {
         private int speed;
@@ -180,23 +175,28 @@ public class Pong extends JPanel implements Runnable  {
 
         // set action handler for start/stop game (space bar)
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "start/stop game");
+//         getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "start/stop game");
+//         getInputMap().put(KeyStroke.getKeyStroke("SPACE"), "start/stop game");
         getActionMap().put("start/stop game", new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     started = !started;
-                    System.err.println("started: "+started);
                 }
             });
-
+//         addMouseMotionListener(new MouseMotionAdapter(){
+        addMouseListener(new MouseAdapter(){
+                public void mouseExited(MouseEvent e){
+                    requestFocusInWindow();
+                }
+                public void mouseClicked(MouseEvent e){
+                    requestFocusInWindow();
+                }
+            });
         ball.speed.x = HORIZONTAL_SPEED;
         ball.speed.y = 2;
         animator = new Thread(this);
         animator.start();
         setFocusable(true);
     }
-
-//     public void startOrStop(boolean start){
-//         started = start;
-//     }
 
     public void run(){
         while(running){
