@@ -1,11 +1,9 @@
 /*  
- * DKnob.java
- * (c) 2000 by Joakim Eriksson
+ * based on DKnob.java (c) 2000 by Joakim Eriksson
+ * http://www.dreamfabric.com/java/knob/knob.html
  *  
- * DKnob is a component similar to JSlider but with 
- * round "user interface", a knob. 
  */
-package com.dreamfabric;
+package com.pingdynasty.midi.bcontrol;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -13,8 +11,7 @@ import java.awt.geom.*;
 import javax.swing.*;
 import javax.swing.event.*;
 
-public class DKnob extends JComponent 
-{
+public class Knob extends JComponent  {
     private final static float START = 225;
     private final static float LENGTH = 270;
     private final static float PI = (float) 3.1415;
@@ -34,7 +31,6 @@ public class DKnob extends JComponent
     public final static int SIMPLE = 1;
     public final static int ROUND  = 2;
     private int dragType = ROUND;
-    
 
     private final static Dimension MIN_SIZE = new Dimension(40, 40);
     private final static Dimension PREF_SIZE = new Dimension(80, 80);
@@ -56,7 +52,7 @@ public class DKnob extends JComponent
     private Color focusColor;
     private double lastAng;
     
-    public DKnob() {
+    public Knob() {
 	DRAG_SPEED = 0.01F;
 	CLICK_SPEED = 0.01F;
 	SHADOWX = 1;
@@ -120,9 +116,9 @@ public class DKnob extends JComponent
 		public void keyReleased(KeyEvent e) {} 
 		public void keyPressed(KeyEvent e) { 
 		    int k = e.getKeyCode();
-		    if (k == e.VK_RIGHT)
+		    if (k == e.VK_RIGHT || k == e.VK_UP)
 			incValue();
-		    else if (k == e.VK_LEFT)
+		    else if (k == e.VK_LEFT || k == e.VK_DOWN)
 			decValue();
 		}		
 	    });
@@ -206,7 +202,7 @@ public class DKnob extends JComponent
     }
  
 
-    // Paint the DKnob
+    // Paint the Knob
     public void paint(Graphics g) {
 	int width = getWidth();
 	int height = getHeight();
