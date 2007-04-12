@@ -106,7 +106,7 @@
 
   <target name="pong" depends="pong.jar, pong.vst"/>
 
-  <target name="pong.jar" depends="readme">
+  <target name="pong.jar" depends="readme, compile">
     <taskdef name="pack" classname="org.sadun.util.ant.Pack">
       <classpath refid="lib.path"/>
     </taskdef>
@@ -141,7 +141,7 @@
 
   <target name="pong.vst" depends="pong.vst.mac, pong.vst.windows"/>
 
-  <target name="pong.vst.mac" depends="compile, pong.jar">
+  <target name="pong.vst.mac" depends="pong.jar">
     <property name="vst.dir.mac" value="${build.dir}/pong-mac.vst"/>
     <mkdir dir="${vst.dir.mac}"/>
     <copy todir="${vst.dir.mac}/Contents/">
