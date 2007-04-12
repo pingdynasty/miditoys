@@ -2,7 +2,6 @@ package com.pingdynasty.midi;
 
 import javax.sound.midi.*;
 
-// todo: check if pong applet on Firefox delays without using Scheduling Player.
 public class StepSequencer implements Runnable {
 
     protected Player player;
@@ -12,12 +11,20 @@ public class StepSequencer implements Runnable {
 //     private int acceleration;
     private boolean playing = false;
 
-    public class Step {
+    public static class Step {
         int note = 60;
         int velocity = 80;
         int duration = 80;
         int modulation = 0;
         int bend = 64;
+//         public Step(int note, int velocity, int duration, 
+//                     int modulation, int step){
+//             this.note = note;
+//             this.velocity = velocity;
+//             this.duration = duration;
+//             this.modulation = modulation;
+//             this.step = step;
+//         }
     }
 
     public StepSequencer(Player player, int length){

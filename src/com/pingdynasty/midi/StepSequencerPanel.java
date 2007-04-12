@@ -15,77 +15,23 @@ import javax.swing.table.*;
 public class StepSequencerPanel extends JPanel {
 
     private StepSequencer sequencer;
-    private ReceiverPlayer player;
     private JLabel statusbar;
     private StepsTableModel model;
     private Timer timer;
     private JSlider slider;
-    private ControlSurfaceHandler control;
     private boolean midiSync = false;
-    private MidiInputHandler midiInput;
 
-    public class MidiInputHandler implements Receiver {
-        private Transmitter transmitter;
-        private StepSequencerArpeggio[] arps;
-        private final int voices = 4;
-        private int[] notes = new int[128];
-        private int index;
+    private ControlSurfaceHandler midiControl;
+    private StepSequencerArpeggio midiInput;
+    private ReceiverPlayer midiOutput;
 
-        public MidiInputHandler(StepSequencer sequencer){
-            // create Arpeggio players
-            arps = new StepSequencerArpeggio[voices]; // max polyphonic arps
-            for(int i=0; i<arps.length; ++i)
-                arps[i] = new StepSequencerArpeggio(sequencer);
-        }
-
-        public void setTransmitter(Transmitter transmitter){
-            if(this.transmitter != null)
-                this.transmitter.close();
-            this.transmitter = transmitter;
-            transmitter.setReceiver(this);
-        }
-
-        public void send(MidiMessage msg, long time){
-            if(msg instanceof ShortMessage){
-                try{
-                    send((ShortMessage)msg, time);
-                }catch(Exception exc){
-                    exc.printStackTrace();
-                }
-            }else{
-                System.out.println("midi message "+msg);
-                return;
-            }
-        }
-
-        public void send(ShortMessage msg, long time)
-            throws InvalidMidiDataException {
-            status("midi in <"+msg.getStatus()+"><"+msg.getCommand()+"><"+
-                   msg.getData1()+"><"+msg.getData2()+">");
-            switch(msg.getStatus()){
-            case ShortMessage.NOTE_ON:{
-                if(index < voices){
-                    int note = msg.getData1();
-                    notes[note] = index++;
-                    arps[notes[note]].start(note);
-                }
-                break;
-            }
-            case ShortMessage.NOTE_OFF:{
-                int note = msg.getData1();
-                arps[notes[note]].stop();
-                --index;
-                break;
-            }
-            default:
-            }
-        }
-
-        public void close(){
-            if(transmitter != null)
-                transmitter.close();
-        }
-    }
+    private final static String midiControlInputName = "Control input";
+    private final static String midiControlOutputName = "Control output";
+    private final static String midiInputName = "MIDI input";
+    private final static String midiOutputName = "MIDI output";
+    private DevicePanel devicepanel = 
+        new DevicePanel(new String[]{midiInputName, midiControlInputName},  
+                        new String[]{midiOutputName, midiControlOutputName});
 
     public class ControlSurfaceHandler implements Receiver {
         private Transmitter transmitter;
@@ -99,6 +45,8 @@ public class StepSequencerPanel extends JPanel {
         }
 
         public void setTransmitter(Transmitter transmitter){
+            if(this.transmitter == transmitter)
+                return;
             if(this.transmitter != null)
                 this.transmitter.close();
             this.transmitter = transmitter;
@@ -106,6 +54,8 @@ public class StepSequencerPanel extends JPanel {
         }
 
         public void setReceiver(Receiver receiver){
+            if(this.receiver == receiver)
+                return;
             if(this.receiver != null)
                 this.receiver.close();
             this.receiver = receiver;
@@ -239,67 +189,10 @@ public class StepSequencerPanel extends JPanel {
         }
     }
 
-    class ReceiverActionListener implements ActionListener {
-        MidiDevice device;
-        public ReceiverActionListener(MidiDevice device){
-            this.device = device;
-        }
-        public void actionPerformed(ActionEvent event) {
-            try{
-                device.open();
-                control.setReceiver(device.getReceiver());
-                status("Control Surface output device: "+device.getDeviceInfo().getName());
-            }catch(Exception exc){exc.printStackTrace();}
-        }
-    }
-
-    class MidiInputActionListener implements ActionListener {
-        MidiDevice device;
-        public MidiInputActionListener(MidiDevice device){
-            this.device = device;
-        }
-        public void actionPerformed(ActionEvent event) {
-            try{
-                device.open();
-                midiInput.setTransmitter(device.getTransmitter());
-                status("MIDI IN device: "+device.getDeviceInfo().getName());
-            }catch(Exception exc){exc.printStackTrace();}
-        }
-    }
-
-    class TransmitterActionListener implements ActionListener {
-        MidiDevice device;
-        public TransmitterActionListener(MidiDevice device){
-            this.device = device;
-        }
-        public void actionPerformed(ActionEvent event) {
-            try{
-                device.open();
-                control.setTransmitter(device.getTransmitter());
-                status("Control Surface output device: "+device.getDeviceInfo().getName());
-            }catch(Exception exc){exc.printStackTrace();}
-        }
-    }
-
-    class PlayerActionListener implements ActionListener {
-        MidiDevice device;
-        public PlayerActionListener(MidiDevice device){
-            this.device = device;
-        }
-        public void actionPerformed(ActionEvent event) {
-            try{
-                player.close();
-                device.open();
-                player.setReceiver(device.getReceiver());
-                status("MIDI OUT device: "+device.getDeviceInfo().getName());
-            }catch(Exception exc){exc.printStackTrace();}
-        }
-    }
-
     public StepSequencerPanel(int width)
         throws MidiUnavailableException{
         timer = new Timer();
-        control = new ControlSurfaceHandler();
+        midiControl = new ControlSurfaceHandler();
         JPanel content = new JPanel(new BorderLayout());
 
         // statusbar
@@ -307,14 +200,15 @@ public class StepSequencerPanel extends JPanel {
         content.add(statusbar, BorderLayout.SOUTH);
 
         MidiDevice device = DeviceLocator.getDevice(Synthesizer.class);
+        devicepanel.setDevice(midiOutputName, device);
         device.open();
         status("MIDI OUT device: "+device.getDeviceInfo().getName());
-        player = new SchedulingPlayer(device.getReceiver());
+        midiOutput = new SchedulingPlayer(device.getReceiver());
 
         // create StepSequencer
-        this.sequencer = new StepSequencer(player, width);
+        this.sequencer = new StepSequencer(midiOutput, width);
         // create Arpeggio player
-        midiInput = new MidiInputHandler(sequencer);
+        midiInput = new StepSequencerArpeggio(sequencer);
 
         model = new StepsTableModel(sequencer);
         JTable steps = new JTable(model);
@@ -362,12 +256,27 @@ public class StepSequencerPanel extends JPanel {
                 }
             });
         buttons.add(button);
-        // dodgy send settings button
-        button = new JButton("send");
+        // midi config button
+        button = new JButton("config");
         button.addActionListener(new AbstractAction(){
                 public void actionPerformed(ActionEvent event) {
-                    status("send");
-                    control.synchronize();
+                    try{
+                        JFrame frame = devicepanel.getFrame();
+                        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                        frame.pack();
+                        frame.setVisible(true);
+                        frame.addWindowListener(new WindowAdapter() {
+                                public void windowClosing(WindowEvent e){
+                                    try{
+                                        updateDevices();
+                                    }catch(Exception exc){
+                                        exc.printStackTrace();
+                                    }
+                                }
+                            });
+                    }catch(Exception exc){
+                        exc.printStackTrace();
+                    }
                 }
             });
         buttons.add(button);
@@ -403,60 +312,44 @@ public class StepSequencerPanel extends JPanel {
 //         statusbar.repaint();
     }
 
+    protected void initialiseDevices(){
+
+    }
+
+    protected void updateDevices()
+        throws MidiUnavailableException {
+        // update devices from devicepanel settings
+        MidiDevice device = devicepanel.getDevice(midiInputName);
+        if(device != null){
+            device.open();
+            midiInput.setTransmitter(device.getTransmitter());
+        }
+
+        device = devicepanel.getDevice(midiControlInputName);
+        if(device != null){
+            device.open();
+            midiControl.setTransmitter(device.getTransmitter());
+        }
+
+        device = devicepanel.getDevice(midiOutputName);
+        if(device != null){
+            device.open();
+            midiOutput.setReceiver(device.getReceiver());
+        }
+
+        device = devicepanel.getDevice(midiControlOutputName);
+        if(device != null){
+            device.open();
+            midiControl.setReceiver(device.getReceiver());
+        }
+    }
+
     public static void main(String[] args)
         throws Exception {
         StepSequencerPanel panel = new StepSequencerPanel(8);
 
         // create frame
         JFrame frame = new JFrame("step sequencer");
-        // menu bar
-        JMenuBar menubar = new JMenuBar();
-        JMenu menu = new JMenu("MIDI OUT");
-        String[] devicenames = DeviceLocator.getDeviceNames(Synthesizer.class);
-        for(int i=0; i<devicenames.length; ++i){
-            JMenuItem item = new JMenuItem(devicenames[i]);
-            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
-            item.addActionListener(panel.new PlayerActionListener(device));
-            menu.add(item); 
-        }
-        devicenames = DeviceLocator.getDeviceNames(Receiver.class);
-        for(int i=0; i<devicenames.length; ++i){
-            JMenuItem item = new JMenuItem(devicenames[i]);
-            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
-            item.addActionListener(panel.new PlayerActionListener(device));
-            menu.add(item); 
-        }
-        menubar.add(menu);
-
-        menu = new JMenu("MIDI IN");
-        devicenames = DeviceLocator.getDeviceNames(Transmitter.class);
-        for(int i=0; i<devicenames.length; ++i){
-            JMenuItem item = new JMenuItem(devicenames[i]);
-            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
-            item.addActionListener(panel.new MidiInputActionListener(device));
-            menu.add(item); 
-        }
-        menubar.add(menu);
-
-        menu = new JMenu("Control Surface");
-        menu.add(new JLabel("input"));
-        devicenames = DeviceLocator.getDeviceNames(Transmitter.class);
-        for(int i=0; i<devicenames.length; ++i){
-            JMenuItem item = new JMenuItem(devicenames[i]);
-            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
-            item.addActionListener(panel.new TransmitterActionListener(device));
-            menu.add(item); 
-        }
-        menu.add(new JLabel("output"));
-        devicenames = DeviceLocator.getDeviceNames(Receiver.class);
-        for(int i=0; i<devicenames.length; ++i){
-            JMenuItem item = new JMenuItem(devicenames[i]);
-            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
-            item.addActionListener(panel.new ReceiverActionListener(device));
-            menu.add(item); 
-        }
-        menubar.add(menu);
-        frame.setJMenuBar(menubar);
         // configure frame
         frame.setSize(800, 400);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -506,7 +399,7 @@ public class StepSequencerPanel extends JPanel {
                     sequencer.getStep(col-1).bend = Integer.parseInt(str);
                     break;
                 }
-                control.synchronize();
+                midiControl.synchronize();
             }catch(Throwable exc){
                 status(exc.getMessage());
             }
