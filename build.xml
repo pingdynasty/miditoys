@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<project name="freq" default="all" basedir="." >
+<project name="miditoys" default="all" basedir="." >
 
   <property file="build.properties"/>
 
@@ -35,27 +35,16 @@
 	   destdir="${build.classes.dir}"
            debug="${java.debug}"
 	   source="${java.source}"
-	   target="${java.target}"
-	   excludes="com/pingdynasty/freq/Version.java">
+	   target="${java.target}">
       <classpath refid="lib.path"/>
     </javac>
   </target>
 
   <target name="compile" depends="src.compile"/>
 
-  <target name="pong" depends="compile">
-    <java classname="com.pingdynasty.pong.Pong" fork="yes">
-      <jvmarg value="-Djava.library.path=lib/native/macosx"/>
-      <classpath>
-        <path refid="lib.path"/>
-        <pathelement location="${build.classes.dir}"/>
-        <pathelement location="${src.properties.dir}"/>
-      </classpath>
-    </java>
-  </target>
-
-  <target name="walk" depends="compile">
-    <java classname="com.pingdynasty.midi.WalkingBass" fork="yes">
+  <target name="run" depends="compile"
+    description="run a Java class, which must be set with -Dclass=[classname]">
+    <java classname="${class}" fork="yes">
       <jvmarg value="-Djava.library.path=lib/native/macosx"/>
       <classpath>
         <path refid="lib.path"/>
@@ -98,6 +87,7 @@
       <fileset dir="${build.classes.dir}" includes="**/*.class"/>
       <fileset dir="${src.properties.dir}" includes="**/*.properties"/>
       <fileset dir="${build.dir}" includes="readme.txt"/>
+      <fileset dir="${proj.dir}/docs" includes="licence.txt"/>
       <manifest>
         <attribute name="Main-Class" value="com.pingdynasty.pong.Pong"/>
       </manifest>
@@ -107,41 +97,83 @@
   <target name="all" depends="prepare">
     <antcall target="compile"/>
     <antcall target="jar"/>
+    <antcall target="pong"/>
   </target>
 
   <target name="clean" depends="init" description="Clean up the build">
     <delete dir="${build.dir}"/>
   </target>
 
-  <target name="pong.vst" depends="pong.vst.mac, pong.vst.windows"/>
+  <target name="pong" depends="pong.jar, pong.vst"/>
 
-  <target name="pong.vst.mac" depends="compile, jar">
-    <property name="vst.dir" value="${build.dir}/pong-mac.vst"/>
-    <mkdir dir="${vst.dir}"/>
-    <copy todir="${vst.dir}/Contents/">
-      <fileset dir="${src.dir}/config" includes="Info.plist, PkgInfo"/>
-    </copy>
-    <copy tofile="${vst.dir}/Contents/MacOS/pong.jnilib" 
-          file="${proj.dir}/lib/native/macosx/libjvstwrapper.jnilib"/>
-    <copy tofile="${vst.dir}/Contents/Resources/pong.jnilib.ini" 
-          file="${src.dir}/config/pong.mac.ini"/>
-    <copy todir="${vst.dir}/Contents/Resources">
-      <fileset dir="${proj.dir}/lib" includes="jvaptools.jar, jVSTwRapper_bin.jar, jVSTsYstem_bin.jar"/>
-      <fileset dir="${build.dir}" includes="pong.jar"/>
-    </copy>
+  <target name="pong.jar" depends="readme">
+    <taskdef name="pack" classname="org.sadun.util.ant.Pack">
+      <classpath refid="lib.path"/>
+    </taskdef>
+    <pack classes="com.pingdynasty.pong.Pong"
+          targetJar="${build.dir}/pong.jar"
+          manifestMainClass="com.pingdynasty.pong.Pong"
+          includePkg="com.pingdynasty.">
+<!--           excludePkg="java.,javax.,sun.,jvst.,org.jvaptools."> -->
+      <additionalclass name="com.pingdynasty.pong.PongApplet"/>
+      <additionalclass name="com.pingdynasty.pong.vst.PongGUI"/>
+      <additionalclass name="com.pingdynasty.pong.vst.PongPlugin"/>
+      <additionalfileset dir="${proj.dir}/docs" includes="licence.txt"/>
+      <additionalfileset dir="${build.dir}" includes="readme.txt"/>
+      <additionalfileset dir="${src.properties.dir}" includes="com/pingdynasty/midi/ScaleMapper.properties"/>
+      <classpath>
+        <path refid="lib.path"/>
+        <pathelement location="${build.classes.dir}"/>
+	<pathelement location="${java.home}/../Classes/jsse.jar"/>
+	<pathelement location="${java.home}/../Classes/classes.jar"/>
+      </classpath>
+    </pack>
+<!--     <jar destfile="${build.dir}/${proj}.jar"> -->
+<!--       <fileset dir="${build.classes.dir}" includes="**/*.class"/> -->
+<!--       <fileset dir="${src.properties.dir}" includes="**/*.properties"/> -->
+<!--       <fileset dir="${build.dir}" includes="readme.txt"/> -->
+<!--       <fileset dir="${proj.dir}/docs" includes="licence.txt"/> -->
+<!--       <manifest> -->
+<!--         <attribute name="Main-Class" value="com.pingdynasty.pong.Pong"/> -->
+<!--       </manifest> -->
+<!--     </jar> -->
   </target>
 
-  <target name="pong.vst.windows" depends="compile, jar">
-    <property name="vst.dir" value="${build.dir}/pong-windows"/>
-    <mkdir dir="${vst.dir}"/>
-    <copy tofile="${vst.dir}/pong.dll" 
-          file="${proj.dir}/lib/native/win32/jVSTwRapper.dll"/>
-    <copy tofile="${vst.dir}/pong.windows.ini" 
-          file="${src.dir}/config/pong.ini"/>
-    <copy todir="${vst.dir}/">
+  <target name="pong.vst" depends="pong.vst.mac, pong.vst.windows"/>
+
+  <target name="pong.vst.mac" depends="compile, pong.jar">
+    <property name="vst.dir.mac" value="${build.dir}/pong-mac.vst"/>
+    <mkdir dir="${vst.dir.mac}"/>
+    <copy todir="${vst.dir.mac}/Contents/">
+      <fileset dir="${src.dir}/config" includes="Info.plist, PkgInfo"/>
+    </copy>
+    <copy tofile="${vst.dir.mac}/Contents/MacOS/pong.jnilib" 
+          file="${proj.dir}/lib/native/macosx/libjvstwrapper.jnilib"/>
+    <copy tofile="${vst.dir.mac}/Contents/Resources/pong.jnilib.ini" 
+          file="${src.dir}/config/pong.mac.ini"/>
+    <copy todir="${vst.dir.mac}/Contents/Resources">
       <fileset dir="${proj.dir}/lib" includes="jvaptools.jar, jVSTwRapper_bin.jar, jVSTsYstem_bin.jar"/>
       <fileset dir="${build.dir}" includes="pong.jar"/>
     </copy>
+    <zip destfile="${build.dir}/pong-vst-mac.zip" basedir="${build.dir}">
+      <include name="pong-mac.vst/**/*.*"/>
+    </zip>
+  </target>
+
+  <target name="pong.vst.windows" depends="compile, pong.jar">
+    <property name="vst.dir.win" value="${build.dir}/pong-windows"/>
+    <mkdir dir="${vst.dir.win}"/>
+    <copy tofile="${vst.dir.win}/pong.dll" 
+          file="${proj.dir}/lib/native/win32/jVSTwRapper.dll"/>
+    <copy tofile="${vst.dir.win}/pong.windows.ini" 
+          file="${src.dir}/config/pong.ini"/>
+    <copy todir="${vst.dir.win}/">
+      <fileset dir="${proj.dir}/lib" includes="jvaptools.jar, jVSTwRapper_bin.jar, jVSTsYstem_bin.jar"/>
+      <fileset dir="${build.dir}" includes="pong.jar"/>
+    </copy>
+    <zip destfile="${build.dir}/pong-vst-windows.zip" basedir="${build.dir}">
+      <include name="pong-windows/**/*.*"/>
+    </zip>
   </target>
 
 </project>
