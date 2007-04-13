@@ -4,8 +4,8 @@ import javax.sound.midi.*;
 
 public class StepSequencerPlayer extends StepSequencer {
 
-    private static final StepSequencer.Step norm = new StepSequencer.Step();
-    private StepSequencer.Step global;
+    private static final Step norm = new Step();
+    private Step global;
 
     public StepSequencerPlayer(StepSequencer sequencer){
         super(sequencer.player, sequencer.steps);
@@ -26,11 +26,11 @@ public class StepSequencerPlayer extends StepSequencer {
     public void play(Step step){
         // define a 'normal' step, use global +- deviation from norm
         try{
-            player.setDuration(((range(global.duration + step.duration - norm.duration)) * period) / 64);
-            player.setVelocity(range(global.velocity + step.velocity - norm.velocity));
-            player.modulate(range(global.modulation + step.modulation - norm.modulation));
-            player.bend(range(global.bend + step.bend - norm.bend));
-            player.play(range(global.note + step.note - norm.note));
+            player.setDuration(((range(global.getDuration() + step.getDuration() - norm.getDuration())) * period) / 64);
+            player.setVelocity(range(global.getVelocity() + step.getVelocity() - norm.getVelocity()));
+            player.modulate(range(global.getModulation() + step.getModulation() - norm.getModulation()));
+            player.bend(range(global.getBend() + step.getBend() - norm.getBend()));
+            player.play(range(global.getNote() + step.getNote() - norm.getNote()));
         }catch(InvalidMidiDataException exc){
             exc.printStackTrace();
         }
@@ -41,8 +41,8 @@ public class StepSequencerPlayer extends StepSequencer {
      */
     public void start(int channel, int note, int velocity){
         player.setChannel(channel);
-        global.note = note;
-        global.velocity = velocity;
+        global.setNote(note);
+        global.setVelocity(velocity);
         start();
     }
 }

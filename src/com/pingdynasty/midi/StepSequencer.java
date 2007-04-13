@@ -11,22 +11,6 @@ public class StepSequencer implements Runnable {
 //     private int acceleration;
     private boolean playing = false;
 
-    public static class Step {
-        int note = 60;
-        int velocity = 80;
-        int duration = 80;
-        int modulation = 0;
-        int bend = 64;
-//         public Step(int note, int velocity, int duration, 
-//                     int modulation, int step){
-//             this.note = note;
-//             this.velocity = velocity;
-//             this.duration = duration;
-//             this.modulation = modulation;
-//             this.step = step;
-//         }
-    }
-
     public StepSequencer(Player player, int length){
         this.player = player;
         steps = new Step[0];
@@ -35,7 +19,7 @@ public class StepSequencer implements Runnable {
         thread.start();
     }
 
-    protected StepSequencer(Player player, Step[] steps){
+    public StepSequencer(Player player, Step[] steps){
         this.player = player;
         this.steps = steps;
         thread = new Thread(this);
@@ -103,14 +87,14 @@ public class StepSequencer implements Runnable {
         try{
             // duration : a value of 64 should be 1/2 note:
             // (duration * period) / (64 * 4)
-//             player.setDuration((step.duration * period) / 256);
-            player.setDuration((step.duration * period) / 64);
-//             player.setDuration((step.duration * period) / 16);
-            System.out.println(NoteParser.getStringNote(step.note)+" duration: "+(step.duration * period) / 16);
-            player.setVelocity(step.velocity);
-            player.modulate(step.modulation);
-            player.bend(step.bend);
-            player.play(step.note);
+//             player.setDuration((step.getDuration() * period) / 256);
+            player.setDuration((step.getDuration() * period) / 64);
+//             player.setDuration((step.getDuration() * period) / 16);
+            System.out.println(NoteParser.getStringNote(step.getNote())+" duration: "+(step.getDuration() * period) / 16);
+            player.setVelocity(step.getVelocity());
+            player.modulate(step.getModulation());
+            player.bend(step.getBend());
+            player.play(step.getNote());
         }catch(InvalidMidiDataException exc){
             exc.printStackTrace();
         }
@@ -142,9 +126,5 @@ public class StepSequencer implements Runnable {
                 }catch(InterruptedException exc){}
             }
         }
-    }
-    
-    public static void main(String[] args){
-        for(int i=0; i<args.length; ++i);
     }
 }

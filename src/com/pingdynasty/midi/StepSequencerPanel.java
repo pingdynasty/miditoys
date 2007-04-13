@@ -107,13 +107,13 @@ public class StepSequencerPanel extends JPanel {
 //                    msg.getData1()+"><"+msg.getData2()+">");
                 int cmd = msg.getData1();
                 if(cmd >= 1 && cmd <= 8){
-                    sequencer.getStep(cmd-1).note = msg.getData2();
+                    sequencer.getStep(cmd-1).setNote(msg.getData2());
                 }else if(cmd >= 81 && cmd <= 88){
-                    sequencer.getStep(cmd-81).velocity = msg.getData2();
+                    sequencer.getStep(cmd-81).setVelocity(msg.getData2());
                 }else if(cmd >= 89 && cmd <= 96){
-                    sequencer.getStep(cmd-89).duration = msg.getData2();
+                    sequencer.getStep(cmd-89).setDuration(msg.getData2());
                 }else if(cmd >= 97 && cmd <= 104){
-                    sequencer.getStep(cmd-97).modulation = msg.getData2();
+                    sequencer.getStep(cmd-97).setModulation(msg.getData2());
                 }else if(cmd >= 33 && cmd <= 40){
                     sequencer.play(sequencer.getStep(cmd-33));
                 }else if(cmd == 105){
@@ -152,12 +152,12 @@ public class StepSequencerPanel extends JPanel {
             if(receiver == null)
                 return;
             for(int i=0; i<8; ++i){
-                StepSequencer.Step step = sequencer.getStep(i); 
+                Step step = sequencer.getStep(i); 
                 try{
-                    controlChange(1+i, step.note);
-                    controlChange(81+i, step.velocity);
-                    controlChange(89+i, step.duration);
-                    controlChange(97+i, step.modulation);
+                    controlChange(1+i, step.getNote());
+                    controlChange(81+i, step.getVelocity());
+                    controlChange(89+i, step.getDuration());
+                    controlChange(97+i, step.getModulation());
                 }catch(Exception exc){
                     exc.printStackTrace();
                 }
@@ -384,19 +384,19 @@ public class StepSequencerPanel extends JPanel {
                     int note = NoteParser.getMidiNote(str);
                     if(note < 0)
                         throw new IllegalArgumentException("invalid note: "+str);
-                    sequencer.getStep(col-1).note = note;
+                    sequencer.getStep(col-1).setNote(note);
                     break;
                 case 1:
-                    sequencer.getStep(col-1).velocity = Integer.parseInt(str);
+                    sequencer.getStep(col-1).setVelocity(Integer.parseInt(str));
                     break;
                 case 2:
-                    sequencer.getStep(col-1).duration = Integer.parseInt(str);
+                    sequencer.getStep(col-1).setDuration(Integer.parseInt(str));
                     break;
                 case 3:
-                    sequencer.getStep(col-1).modulation = Integer.parseInt(str);
+                    sequencer.getStep(col-1).setModulation(Integer.parseInt(str));
                     break;
                 case 4:
-                    sequencer.getStep(col-1).bend = Integer.parseInt(str);
+                    sequencer.getStep(col-1).setBend(Integer.parseInt(str));
                     break;
                 }
                 midiControl.synchronize();
@@ -410,15 +410,15 @@ public class StepSequencerPanel extends JPanel {
                 return labels[row];
             switch(row){
             case 0:
-                return NoteParser.getStringNote(sequencer.getStep(col - 1).note);
+                return NoteParser.getStringNote(sequencer.getStep(col - 1).getNote());
             case 1:
-                return new Integer(sequencer.getStep(col-1).velocity);
+                return new Integer(sequencer.getStep(col-1).getVelocity());
             case 2:
-                return new Integer(sequencer.getStep(col-1).duration);
+                return new Integer(sequencer.getStep(col-1).getDuration());
             case 3:
-                return new Integer(sequencer.getStep(col-1).modulation);
+                return new Integer(sequencer.getStep(col-1).getModulation());
             case 4:
-                return new Integer(sequencer.getStep(col-1).bend);
+                return new Integer(sequencer.getStep(col-1).getBend());
             }
             return null;
         }
