@@ -2,31 +2,35 @@ package com.pingdynasty.midi.bcontrol;
 
 import java.util.List;
 import javax.sound.midi.*;
+import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.event.*;
 import com.pingdynasty.midi.*;
 
-public class RotaryEncoder {
+public class RotaryEncoder extends MidiControl implements ChangeListener {
 
-    int value;
-//     int min; // 0-16383
-//     int max;
-    private ShortMessage msg;
-    private int command;
-    private int channel;
-    private int data1;
-    private int data2;
+    private int min = 0; // 0-16383
+    private int max = 127;
+    private Knob knob;
 
     public RotaryEncoder(int command, int channel, int data1, int data2){
-        this.command = command;
-        this.channel = channel;
-        this.data1 = data1;
-        this.data2 = data2;
-        msg = new ShortMessage();
+        super(command, channel, data1, data2);
+        knob = new Knob();
+        knob.addChangeListener(this);
     }
 
-    public MidiMessage getMidiMessage()
-        throws InvalidMidiDataException {
-        msg.setMessage(command, channel, data1, data2);
-        return msg;
+    // ChangeListener i/f
+    public void stateChanged(ChangeEvent event) {
+        // this is called when the graphical component is updated
+        Knob source = (Knob)event.getSource();
+        //                     if(!source.getValueIsAdjusting()){
+        int value = (int)(source.getValue() * (float)max) + min;
+//         System.out.println("encoder value: "+value);
+        try{
+            data2 = value;
+            updateMidiControl();
+        }catch(Exception exc){exc.printStackTrace();}
+        //                     }
     }
 
     public void generateSysexMessages(List messages, int encoder)
@@ -39,7 +43,7 @@ public class RotaryEncoder {
         // easypar message
         sysex = new BCRSysexMessage(index++);
         // assumes ShortMessage.CONTROL_CHANGE
-        sysex.setMessage("  .easypar CC "+channel+" "+data1+" 0 127 absolute");
+        sysex.setMessage("  .easypar CC "+channel+" "+data1+" "+min+" "+max+" absolute");
         messages.add(sysex);
         // showvalue message
         sysex = new BCRSysexMessage(index++);
@@ -49,6 +53,17 @@ public class RotaryEncoder {
         sysex = new BCRSysexMessage(index++);
         sysex.setMessage("  .mode 12dot");
         messages.add(sysex);
+    }
+
+    public JComponent getComponent(){
+        return knob;
+    }
+
+    public void updateGraphicalControl(){
+        float value = (float)(data2 - min) / (float)max;
+        System.out.println("knob value: "+value);
+        knob.setValue(value);
+        knob.repaint();
     }
 
     public static void createMessage(List messages, String data)
