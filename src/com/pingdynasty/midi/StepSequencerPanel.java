@@ -266,12 +266,15 @@ public class StepSequencerPanel extends JPanel {
                         frame.pack();
                         frame.setVisible(true);
                         frame.addWindowListener(new WindowAdapter() {
+                                public void windowDeactivated(WindowEvent e){
+                                    try{
+                                        updateDevices();
+                                    }catch(Exception exc){exc.printStackTrace();}
+                                }
                                 public void windowClosing(WindowEvent e){
                                     try{
                                         updateDevices();
-                                    }catch(Exception exc){
-                                        exc.printStackTrace();
-                                    }
+                                    }catch(Exception exc){exc.printStackTrace();}
                                 }
                             });
                     }catch(Exception exc){
@@ -318,6 +321,7 @@ public class StepSequencerPanel extends JPanel {
 
     protected void updateDevices()
         throws MidiUnavailableException {
+        status("updating midi devices");
         // update devices from devicepanel settings
         MidiDevice device = devicepanel.getDevice(midiInputName);
         if(device != null){

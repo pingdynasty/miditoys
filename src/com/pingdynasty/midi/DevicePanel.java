@@ -13,6 +13,7 @@ public class DevicePanel {
     private String[] inputnames;
     private String[] outputnames;
     private Map devices;
+    private JFrame frame;
 
     class DeviceActionListener implements ActionListener {
         MidiDevice device;
@@ -103,9 +104,19 @@ public class DevicePanel {
 
     public JFrame getFrame()
         throws MidiUnavailableException {
-        JPanel panel = getPanel();
-        JFrame frame = new JFrame("MIDI configuration");
-        frame.setContentPane(panel);
+        if(frame == null){
+            JPanel panel = getPanel();
+            JButton close = new JButton("close");
+            close.addActionListener(new AbstractAction(){
+                    public void actionPerformed(ActionEvent event){
+                        frame.setVisible(false);
+                    }
+                });
+            panel.add(close);
+            frame = new JFrame("MIDI configuration");
+            frame.setContentPane(panel);
+            frame.pack();
+        }
         return frame;
     }
 
@@ -115,5 +126,16 @@ public class DevicePanel {
 
     public MidiDevice getDevice(String name){
         return (MidiDevice)devices.get(name);
+    }
+
+    public void open()
+        throws MidiUnavailableException {
+        if(frame == null)
+            getFrame();
+        frame.setVisible(true);
+    }
+
+    public void close(){
+        frame.setVisible(false);
     }
 }
