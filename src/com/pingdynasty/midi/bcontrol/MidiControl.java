@@ -94,7 +94,6 @@ public abstract class MidiControl implements Control, Receiver {
     public MidiMessage getMidiMessage()
         throws InvalidMidiDataException {
         msg.setMessage(command, channel, data1, data2);
-        System.out.println("msg: "+msg);
         return msg;
     }
 
@@ -106,6 +105,6 @@ public abstract class MidiControl implements Control, Receiver {
 
     public abstract void updateGraphicalControl();
 
-    public abstract void generateSysexMessages(List messages, int encoder)
+    public abstract void generateSysexMessages(List messages)
         throws InvalidMidiDataException;
 }

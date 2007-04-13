@@ -1,5 +1,6 @@
 package com.pingdynasty.midi.bcontrol;
 
+import java.util.List;
 import java.nio.ByteBuffer;
 import javax.sound.midi.*;
 
@@ -68,6 +69,13 @@ public class BCRSysexMessage extends SysexMessage {
         BCRSysexMessage sysex = new BCRSysexMessage(index);
         sysex.setMessage(data);
         return sysex;
+    }
+
+    public static void createMessage(List messages, String data)
+        throws InvalidMidiDataException {
+        BCRSysexMessage sysex = new BCRSysexMessage(messages.size());
+        sysex.setMessage(data);
+        messages.add(sysex);
     }
 
     public static final void main(String[] args)

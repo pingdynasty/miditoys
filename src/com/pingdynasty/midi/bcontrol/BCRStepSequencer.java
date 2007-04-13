@@ -18,6 +18,7 @@ public class BCRStepSequencer extends JPanel {
     private RotaryEncoder[] encoders;
     private int channel = 0;
     private JLabel statusbar;
+    private JSlider slider;
 
     // MIDI handlers
     private ReceiverPlayer midiOutput;
@@ -113,22 +114,21 @@ public class BCRStepSequencer extends JPanel {
         List list = new ArrayList();
         BCRStep[] steps = new BCRStep[width];
         for(int i=0; i<width; ++i){
-            RotaryEncoder note = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 1+i, 60);
-            content.add(note.getComponent());
+            RotaryEncoder note = new RotaryEncoder(1+i, ShortMessage.CONTROL_CHANGE, channel, 1+i, 60);
             list.add(note);
-            RotaryEncoder velocity = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 81+i, 80);
-            content.add(velocity.getComponent());
+            RotaryEncoder velocity = new RotaryEncoder(81+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 80);
             list.add(velocity);
-            RotaryEncoder duration = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 89+i, 80);
-            content.add(duration.getComponent());
+            RotaryEncoder duration = new RotaryEncoder(89+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 80);
             list.add(duration);
-            RotaryEncoder modulation = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 97+i, 0);
-            content.add(modulation.getComponent());
+            RotaryEncoder modulation = new RotaryEncoder(97+i, ShortMessage.CONTROL_CHANGE, channel, 97+i, 0);
             list.add(modulation);
             steps[i] = new BCRStep(note, velocity, duration, modulation);
         }
         encoders = new RotaryEncoder[list.size()];
         list.toArray(encoders);
+        for(int j=0; j<4; ++j)
+            for(int i=0; i<encoders.length / 4; ++i)
+                content.add(encoders[i*4+j].getComponent());
         sequencer = new StepSequencer(null, steps);
 
         this.add(content, BorderLayout.CENTER);
@@ -136,8 +136,35 @@ public class BCRStepSequencer extends JPanel {
         // buttons
         JPanel buttons = new JPanel();
         buttons.setLayout(new BoxLayout(buttons, BoxLayout.Y_AXIS));
+        // play button
+        JButton button = new JButton("play");
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event) {
+                    status("play");
+                    sequencer.play();
+                }
+            });
+        buttons.add(button);
+        // start button
+        button = new JButton("start");
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event) {
+                    status("start");
+                    sequencer.start();
+                }
+            });
+        // stop button
+        buttons.add(button);
+        button = new JButton("stop");
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event) {
+                    status("stop");
+                    sequencer.stop();
+                }
+            });
+        buttons.add(button);
         // midi config button
-        JButton button = new JButton("config");
+        button = new JButton("config");
         button.addActionListener(new AbstractAction(){
                 public void actionPerformed(ActionEvent event) {
                     try{
@@ -160,7 +187,26 @@ public class BCRStepSequencer extends JPanel {
                 }
             });
         buttons.add(button);
-        content.add(buttons, BorderLayout.EAST);
+        this.add(buttons, BorderLayout.EAST);
+
+        // BPM control
+        slider = new JSlider(JSlider.HORIZONTAL, 20, 380, 
+                             60000/sequencer.getPeriod());
+        //Turn on labels at major tick marks.
+        slider.setMajorTickSpacing(60);
+        slider.setMinorTickSpacing(10);
+        slider.setPaintTicks(true);
+        slider.setPaintLabels(true);
+        slider.addChangeListener(new ChangeListener(){
+                public void stateChanged(ChangeEvent event) {
+                    JSlider source = (JSlider)event.getSource();
+                    if(!source.getValueIsAdjusting()){
+                        int bpm = (int)source.getValue();
+                        sequencer.setPeriod(60000 / bpm);
+                    }
+                }
+            });
+        this.add(slider, BorderLayout.NORTH);
     }
 
     public void initialiseMidiDevices()
@@ -172,6 +218,13 @@ public class BCRStepSequencer extends JPanel {
         status("MIDI OUT device: "+device.getDeviceInfo().getName());
         midiOutput = new SchedulingPlayer(device.getReceiver());
         sequencer.setPlayer(midiOutput);
+
+        // try to initialise BCR
+        device = DeviceLocator.getDevice("Port 1 (MidiIN:3)");
+        devicepanel.setDevice(midiControlInputName, device);
+        device = DeviceLocator.getDevice("Port 1 (MidiOUT:3)");
+        devicepanel.setDevice(midiControlOutputName, device);
+        updateMidiDevices();
     }
 
     public void updateMidiDevices()
@@ -191,8 +244,6 @@ public class BCRStepSequencer extends JPanel {
 //             Transmitter transmitter = device.getTransmitter();
             status("control input: "+device);
             midiControl.setTransmitter(device.getTransmitter());
-//             for(int i=0; i<encoders.length; ++i)
-//                 encoders[i].setTransmitter(device.getTransmitter());
         }
 
         device = devicepanel.getDevice(midiOutputName);
@@ -206,14 +257,47 @@ public class BCRStepSequencer extends JPanel {
             device.open();
             Receiver receiver = device.getReceiver();
             status("control output: "+receiver);
-            for(int i=0; i<encoders.length; ++i)
-                encoders[i].setReceiver(receiver);
+            try{
+//                 sendSysexMessages(receiver);
+                for(int i=0; i<encoders.length; ++i){
+                    encoders[i].setReceiver(receiver);
+                    // done by the .default sysex message
+                    encoders[i].updateMidiControl();
+                }
+            }catch(InvalidMidiDataException exc){exc.printStackTrace();}
         }
     }
 
     public void status(String msg){
         System.out.println(msg);
         statusbar.setText(msg);
+    }
+
+    public void sendSysexMessages(Receiver receiver)
+        throws InvalidMidiDataException {
+        List list = new ArrayList();
+        BCRSysexMessage.createMessage(list, "$rev R1");
+        BCRSysexMessage.createMessage(list, "$preset");
+        BCRSysexMessage.createMessage(list, "  .name 'bcr keyboard control    '");
+        BCRSysexMessage.createMessage(list, "  .snapshot off");
+        BCRSysexMessage.createMessage(list, "  .request off");
+        BCRSysexMessage.createMessage(list, "  .egroups 4");
+        BCRSysexMessage.createMessage(list, "  .fkeys on");
+        BCRSysexMessage.createMessage(list, "  .lock off");
+        BCRSysexMessage.createMessage(list, "  .init");
+        for(int i=8; i<encoders.length; ++i)
+            encoders[i].generateSysexMessages(list);
+//             for(int i=0; i<8; ++i)
+//                 new RotaryEncoder(1+i, ShortMessage.CONTROL_CHANGE, channel, 1+i, 60).generateSysexMessages(list);
+//             new RotaryEncoder(1, ShortMessage.CONTROL_CHANGE, 1, 1, 50).generateSysexMessages(list);
+//             new RotaryEncoder(2, ShortMessage.CONTROL_CHANGE, 1, 2, 60).generateSysexMessages(list);
+//             new RotaryEncoder(3, ShortMessage.CONTROL_CHANGE, 1, 3, 70).generateSysexMessages(list);
+//             new RotaryEncoder(4, ShortMessage.CONTROL_CHANGE, 1, 4, 80).generateSysexMessages(list);
+//             new RotaryEncoder(5, ShortMessage.CONTROL_CHANGE, 1, 5, 90).generateSysexMessages(list);
+        BCRSysexMessage.createMessage(list, " ");
+        BCRSysexMessage.createMessage(list, "$end");
+        for(int i=0; i<list.size(); ++i)
+            receiver.send((MidiMessage)list.get(i), -1);
     }
 
     public static void main(String[] args)
@@ -223,7 +307,7 @@ public class BCRStepSequencer extends JPanel {
         // create frame
         JFrame frame = new JFrame("step sequencer");
         // configure frame
-        frame.setSize(800, 400);
+        frame.setSize(800, 600);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setContentPane(seq);
         frame.setVisible(true);

@@ -11,15 +11,16 @@ public class BCRStep extends Step {
     private MidiControl duration;
     private MidiControl modulation;
 //     private MidiControl bend;
+// private MidiControl offset;
 
-    public BCRStep(int index, int channel){
-//         this.index = index;
-        note = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 1+index, 60);
-        velocity = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 81+index, 80);
-        duration = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 89+index, 80);
-        modulation = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 97+index, 0);
-//         bend = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 1+index, 64);
-    }
+//     public BCRStep(int index, int channel){
+// //         this.index = index;
+//         note = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 1+index, 60);
+//         velocity = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 81+index, 80);
+//         duration = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 89+index, 80);
+//         modulation = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 97+index, 0);
+// //         bend = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 1+index, 64);
+//     }
 
     public BCRStep(RotaryEncoder note, RotaryEncoder velocity, 
                    RotaryEncoder duration, RotaryEncoder modulation){

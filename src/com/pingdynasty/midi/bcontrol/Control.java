@@ -13,6 +13,6 @@ public interface Control {
     public MidiMessage getMidiMessage()
         throws InvalidMidiDataException;
 
-    public void generateSysexMessages(List messages, int encoder)
+    public void generateSysexMessages(List messages)
         throws InvalidMidiDataException;
 }

@@ -9,14 +9,18 @@ import com.pingdynasty.midi.*;
 
 public class RotaryEncoder extends MidiControl implements ChangeListener {
 
+    private int encoder;
     private int min = 0; // 0-16383
     private int max = 127;
     private Knob knob;
 
-    public RotaryEncoder(int command, int channel, int data1, int data2){
+    public RotaryEncoder(int encoder, int command, int channel, int data1, int data2){
         super(command, channel, data1, data2);
+        this.encoder = encoder;
         knob = new Knob();
         knob.addChangeListener(this);
+        float value = (float)(data2 - min) / (float)max;
+        knob.setValue(value);
     }
 
     // ChangeListener i/f
@@ -33,26 +37,19 @@ public class RotaryEncoder extends MidiControl implements ChangeListener {
         //                     }
     }
 
-    public void generateSysexMessages(List messages, int encoder)
+    public void generateSysexMessages(List messages)
         throws InvalidMidiDataException {
-        int index = messages.size();
         // encoder start message
-        BCRSysexMessage sysex = new BCRSysexMessage(index++);
-        sysex.setMessage("$encoder "+encoder);
-        messages.add(sysex);
+        BCRSysexMessage.createMessage(messages, "$encoder "+encoder);
         // easypar message
-        sysex = new BCRSysexMessage(index++);
         // assumes ShortMessage.CONTROL_CHANGE
-        sysex.setMessage("  .easypar CC "+channel+" "+data1+" "+min+" "+max+" absolute");
-        messages.add(sysex);
+        BCRSysexMessage.createMessage(messages, "  .easypar CC "+channel+" "+data1+" "+min+" "+max+" absolute");
         // showvalue message
-        sysex = new BCRSysexMessage(index++);
-        sysex.setMessage("  .showvalue on");
-        messages.add(sysex);
+        BCRSysexMessage.createMessage(messages, "  .showvalue on");
         // mode message
-        sysex = new BCRSysexMessage(index++);
-        sysex.setMessage("  .mode 12dot");
-        messages.add(sysex);
+        BCRSysexMessage.createMessage(messages, "  .mode 12dot");
+        // default message
+        BCRSysexMessage.createMessage(messages, "  .default "+data2);
     }
 
     public JComponent getComponent(){
@@ -66,38 +63,31 @@ public class RotaryEncoder extends MidiControl implements ChangeListener {
         knob.repaint();
     }
 
-    public static void createMessage(List messages, String data)
-        throws Exception {
-        BCRSysexMessage sysex = new BCRSysexMessage(messages.size());
-        sysex.setMessage(data);
-        messages.add(sysex);
-    }
-
     public static final void main(String[] args)
         throws Exception {
         List messages = new java.util.ArrayList();
-        createMessage(messages, "$rev R1");
-//         createMessage(messages, "$preset");
-//         createMessage(messages, "  .name 'bcr keyboard control    '");
-//         createMessage(messages, "  .snapshot off");
-//         createMessage(messages, "  .request off");
-//         createMessage(messages, "  .egroups 4");
-//         createMessage(messages, "  .fkeys on");
-//         createMessage(messages, "  .lock off");
-//         createMessage(messages, "  .init");
+        BCRSysexMessage.createMessage(messages, "$rev R1");
+//         BCRSysexMessage.createMessage(messages, "$preset");
+//         BCRSysexMessage.createMessage(messages, "  .name 'bcr keyboard control    '");
+//         BCRSysexMessage.createMessage(messages, "  .snapshot off");
+//         BCRSysexMessage.createMessage(messages, "  .request off");
+//         BCRSysexMessage.createMessage(messages, "  .egroups 4");
+//         BCRSysexMessage.createMessage(messages, "  .fkeys on");
+//         BCRSysexMessage.createMessage(messages, "  .lock off");
+//         BCRSysexMessage.createMessage(messages, "  .init");
 
         RotaryEncoder[] knobs = new RotaryEncoder[]{
-            new RotaryEncoder(ShortMessage.CONTROL_CHANGE, 1, 1, 127),
-            new RotaryEncoder(ShortMessage.CONTROL_CHANGE, 1, 2, 127),
-            new RotaryEncoder(ShortMessage.CONTROL_CHANGE, 1, 3, 127),
-            new RotaryEncoder(ShortMessage.CONTROL_CHANGE, 1, 4, 127),
-            new RotaryEncoder(ShortMessage.CONTROL_CHANGE, 1, 5, 127)
+            new RotaryEncoder(1, ShortMessage.CONTROL_CHANGE, 1, 1, 50),
+            new RotaryEncoder(2, ShortMessage.CONTROL_CHANGE, 1, 2, 60),
+            new RotaryEncoder(3, ShortMessage.CONTROL_CHANGE, 1, 3, 70),
+            new RotaryEncoder(4, ShortMessage.CONTROL_CHANGE, 1, 4, 80),
+            new RotaryEncoder(5, ShortMessage.CONTROL_CHANGE, 1, 5, 90)
         };
         for(int i=0; i<knobs.length; ++i)
-            knobs[i].generateSysexMessages(messages, i+1);
+            knobs[i].generateSysexMessages(messages);
 
-        createMessage(messages, " ");
-        createMessage(messages, "$end");
+        BCRSysexMessage.createMessage(messages, " ");
+        BCRSysexMessage.createMessage(messages, "$end");
 
         String[] names = DeviceLocator.getDeviceNames(Receiver.class);
         for(int i=0; i<names.length; ++i)
