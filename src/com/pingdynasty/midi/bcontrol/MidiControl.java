@@ -2,6 +2,7 @@ package com.pingdynasty.midi.bcontrol;
 
 import java.util.List;
 import javax.sound.midi.*;
+import javax.swing.JComponent;
 
 // a Control that sends and receives MIDI update requests
 public abstract class MidiControl implements Control, Receiver {
@@ -93,7 +94,9 @@ public abstract class MidiControl implements Control, Receiver {
 
     public MidiMessage getMidiMessage()
         throws InvalidMidiDataException {
-        msg.setMessage(command, channel, data1, data2);
+//         msg.setMessage(command, channel, data1, data2);
+        // note: BCR only responds when channel is set to 0
+        msg.setMessage(command, 0, data1, data2);
         return msg;
     }
 
@@ -104,6 +107,8 @@ public abstract class MidiControl implements Control, Receiver {
     }
 
     public abstract void updateGraphicalControl();
+
+    public abstract JComponent getComponent();
 
     public abstract void generateSysexMessages(List messages)
         throws InvalidMidiDataException;

@@ -22,8 +22,8 @@ public class BCRStep extends Step {
 // //         bend = new RotaryEncoder(ShortMessage.CONTROL_CHANGE, channel, 1+index, 64);
 //     }
 
-    public BCRStep(RotaryEncoder note, RotaryEncoder velocity, 
-                   RotaryEncoder duration, RotaryEncoder modulation){
+    public BCRStep(MidiControl note, MidiControl velocity, 
+                   MidiControl duration, MidiControl modulation){
         this.note = note;
         this.velocity = velocity;
         this.duration = duration;

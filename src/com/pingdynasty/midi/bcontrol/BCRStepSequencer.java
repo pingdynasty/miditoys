@@ -2,6 +2,8 @@ package com.pingdynasty.midi.bcontrol;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Collections;
 import javax.sound.midi.*;
 import com.pingdynasty.midi.*;
 import java.awt.*;
@@ -15,8 +17,8 @@ import javax.swing.event.*;
 // separate graphical/midi controls from functions, ie one knob can have several functions
 public class BCRStepSequencer extends JPanel {
     private StepSequencer sequencer;
-    private RotaryEncoder[] encoders;
-    private int channel = 0;
+    private MidiControl[] controls;
+    private int channel = 1;
     private JLabel statusbar;
     private JSlider slider;
 
@@ -51,7 +53,7 @@ public class BCRStepSequencer extends JPanel {
                     exc.printStackTrace();
                 }
             }else{
-                System.out.println("midi message "+message);
+//                 System.out.println("midi message "+message);
                 return;
             }
         }
@@ -64,6 +66,9 @@ public class BCRStepSequencer extends JPanel {
 //                    msg.getData1()+"><"+msg.getData2()+">");
                 int cmd = msg.getData1();
                 // note: BCRStep.setXXX() will send out a CC message
+
+                // todo: change MidiControl.setValue() to not do updates
+                // find correct MidiControl, call setValue() and updateMidiControl()
                 if(cmd >= 1 && cmd <= 8){
                     sequencer.getStep(cmd-1).setNote(msg.getData2());
                 }else if(cmd >= 81 && cmd <= 88){
@@ -72,6 +77,12 @@ public class BCRStepSequencer extends JPanel {
                     sequencer.getStep(cmd-89).setDuration(msg.getData2());
                 }else if(cmd >= 97 && cmd <= 104){
                     sequencer.getStep(cmd-97).setModulation(msg.getData2());
+                }else if(cmd >= 65 && cmd <= 81){
+                    // todo: maintain a map or index of CC to controls
+                    // remove these hardcoded mappings
+                    try{
+                        controls[cmd - 57].setValue(msg.getData2());
+                    }catch(Exception exc){exc.printStackTrace();}
                 }else if(cmd >= 33 && cmd <= 40){
                     sequencer.play(sequencer.getStep(cmd-33));
                 }else if(cmd == 105){
@@ -110,27 +121,29 @@ public class BCRStepSequencer extends JPanel {
         JPanel content = new JPanel();
         content.setLayout(new GridLayout(0, width));
 
-        // rotary encoders and steps
+        // create rotary encoders and buttons
         List list = new ArrayList();
         BCRStep[] steps = new BCRStep[width];
-        for(int i=0; i<width; ++i){
-            RotaryEncoder note = new RotaryEncoder(1+i, ShortMessage.CONTROL_CHANGE, channel, 1+i, 60);
-            list.add(note);
-            RotaryEncoder velocity = new RotaryEncoder(81+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 80);
-            list.add(velocity);
-            RotaryEncoder duration = new RotaryEncoder(89+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 80);
-            list.add(duration);
-            RotaryEncoder modulation = new RotaryEncoder(97+i, ShortMessage.CONTROL_CHANGE, channel, 97+i, 0);
-            list.add(modulation);
-            steps[i] = new BCRStep(note, velocity, duration, modulation);
-        }
-        encoders = new RotaryEncoder[list.size()];
-        list.toArray(encoders);
-        for(int j=0; j<4; ++j)
-            for(int i=0; i<encoders.length / 4; ++i)
-                content.add(encoders[i*4+j].getComponent());
+        for(int i=0; i<width; ++i)
+            list.add(new RotaryEncoder(1+i, ShortMessage.CONTROL_CHANGE, channel, 1+i, 60));
+        for(int i=0; i<width*2; ++i)
+            list.add(new ToggleButton(33+i, ShortMessage.CONTROL_CHANGE, channel, 65+i, 0));
+        for(int i=0; i<width; ++i)
+            list.add(new RotaryEncoder(33+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 80));
+        for(int i=0; i<width; ++i)
+            list.add(new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 80));
+        for(int i=0; i<width; ++i)
+            list.add(new RotaryEncoder(49+i, ShortMessage.CONTROL_CHANGE, channel, 97+i, 0));
+        controls = new MidiControl[list.size()];
+        list.toArray(controls);
+
+        for(int i=0; i<width; ++i)
+            steps[i] = new BCRStep(controls[i], controls[i+(width*3)], controls[i+(width*4)], controls[i+(width*5)]);
+
         sequencer = new StepSequencer(null, steps);
 
+        for(int i=0; i<controls.length; ++i)
+            content.add(controls[i].getComponent());
         this.add(content, BorderLayout.CENTER);
 
         // buttons
@@ -258,12 +271,11 @@ public class BCRStepSequencer extends JPanel {
             Receiver receiver = device.getReceiver();
             status("control output: "+receiver);
             try{
-//                 sendSysexMessages(receiver);
-                for(int i=0; i<encoders.length; ++i){
-                    encoders[i].setReceiver(receiver);
+                sendSysexMessages(receiver);
+                for(int i=0; i<controls.length; ++i)
+                    controls[i].setReceiver(receiver);
                     // done by the .default sysex message
-                    encoders[i].updateMidiControl();
-                }
+//                     controls[i].updateMidiControl();
             }catch(InvalidMidiDataException exc){exc.printStackTrace();}
         }
     }
@@ -277,23 +289,16 @@ public class BCRStepSequencer extends JPanel {
         throws InvalidMidiDataException {
         List list = new ArrayList();
         BCRSysexMessage.createMessage(list, "$rev R1");
-        BCRSysexMessage.createMessage(list, "$preset");
-        BCRSysexMessage.createMessage(list, "  .name 'bcr keyboard control    '");
-        BCRSysexMessage.createMessage(list, "  .snapshot off");
-        BCRSysexMessage.createMessage(list, "  .request off");
-        BCRSysexMessage.createMessage(list, "  .egroups 4");
-        BCRSysexMessage.createMessage(list, "  .fkeys on");
-        BCRSysexMessage.createMessage(list, "  .lock off");
-        BCRSysexMessage.createMessage(list, "  .init");
-        for(int i=8; i<encoders.length; ++i)
-            encoders[i].generateSysexMessages(list);
-//             for(int i=0; i<8; ++i)
-//                 new RotaryEncoder(1+i, ShortMessage.CONTROL_CHANGE, channel, 1+i, 60).generateSysexMessages(list);
-//             new RotaryEncoder(1, ShortMessage.CONTROL_CHANGE, 1, 1, 50).generateSysexMessages(list);
-//             new RotaryEncoder(2, ShortMessage.CONTROL_CHANGE, 1, 2, 60).generateSysexMessages(list);
-//             new RotaryEncoder(3, ShortMessage.CONTROL_CHANGE, 1, 3, 70).generateSysexMessages(list);
-//             new RotaryEncoder(4, ShortMessage.CONTROL_CHANGE, 1, 4, 80).generateSysexMessages(list);
-//             new RotaryEncoder(5, ShortMessage.CONTROL_CHANGE, 1, 5, 90).generateSysexMessages(list);
+//         BCRSysexMessage.createMessage(list, "$preset");
+//         BCRSysexMessage.createMessage(list, "  .name 'bcr keyboard control    '");
+//         BCRSysexMessage.createMessage(list, "  .snapshot off");
+//         BCRSysexMessage.createMessage(list, "  .request off");
+//         BCRSysexMessage.createMessage(list, "  .egroups 4");
+//         BCRSysexMessage.createMessage(list, "  .fkeys on");
+//         BCRSysexMessage.createMessage(list, "  .lock off");
+//         BCRSysexMessage.createMessage(list, "  .init");
+        for(int i=0; i<controls.length; ++i)
+            controls[i].generateSysexMessages(list);
         BCRSysexMessage.createMessage(list, " ");
         BCRSysexMessage.createMessage(list, "$end");
         for(int i=0; i<list.size(); ++i)

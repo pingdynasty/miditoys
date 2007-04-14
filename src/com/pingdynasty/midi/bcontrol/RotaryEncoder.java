@@ -7,20 +7,34 @@ import javax.swing.*;
 import javax.swing.event.*;
 import com.pingdynasty.midi.*;
 
-public class RotaryEncoder extends MidiControl implements ChangeListener {
+public class RotaryEncoder extends MidiControl 
+    implements ChangeListener, Comparable {
 
-    private int encoder;
+    private int code;
     private int min = 0; // 0-16383
     private int max = 127;
     private Knob knob;
 
-    public RotaryEncoder(int encoder, int command, int channel, int data1, int data2){
+    public RotaryEncoder(int code, int command, int channel, int data1, int data2){
         super(command, channel, data1, data2);
-        this.encoder = encoder;
+        this.code = code;
         knob = new Knob();
         knob.addChangeListener(this);
         float value = (float)(data2 - min) / (float)max;
         knob.setValue(value);
+    }
+
+    public int compareTo(Object o){
+        if(code < ((RotaryEncoder)o).code)
+            return -1;
+        if(code > ((RotaryEncoder)o).code)
+            return 1;
+        return 0;
+    }
+
+    public int getCode(){
+        // the encoder number
+        return code;
     }
 
     // ChangeListener i/f
@@ -29,7 +43,7 @@ public class RotaryEncoder extends MidiControl implements ChangeListener {
         Knob source = (Knob)event.getSource();
         //                     if(!source.getValueIsAdjusting()){
         int value = (int)(source.getValue() * (float)max) + min;
-//         System.out.println("encoder value: "+value);
+        System.out.println("encoder value: "+value);
         try{
             data2 = value;
             updateMidiControl();
@@ -39,26 +53,34 @@ public class RotaryEncoder extends MidiControl implements ChangeListener {
 
     public void generateSysexMessages(List messages)
         throws InvalidMidiDataException {
+        System.out.println("encoder "+code+"  .easypar CC "+channel+" "+data1+" "+min+" "+max+" absolute");
         // encoder start message
-        BCRSysexMessage.createMessage(messages, "$encoder "+encoder);
+        BCRSysexMessage.createMessage(messages, "$encoder "+code);
         // easypar message
         // assumes ShortMessage.CONTROL_CHANGE
         BCRSysexMessage.createMessage(messages, "  .easypar CC "+channel+" "+data1+" "+min+" "+max+" absolute");
         // showvalue message
         BCRSysexMessage.createMessage(messages, "  .showvalue on");
         // mode message
-        BCRSysexMessage.createMessage(messages, "  .mode 12dot");
+        if(code < 33) // push encoder
+            BCRSysexMessage.createMessage(messages, "  .mode 12dot");
+        else
+            BCRSysexMessage.createMessage(messages, "  .mode 1dot");
         // default message
         BCRSysexMessage.createMessage(messages, "  .default "+data2);
     }
 
     public JComponent getComponent(){
-        return knob;
+//         return knob;
+        JPanel panel = new JPanel();
+        panel.add(knob);
+        panel.add(new JLabel(""+code));
+        return panel;
     }
 
     public void updateGraphicalControl(){
         float value = (float)(data2 - min) / (float)max;
-        System.out.println("knob value: "+value);
+//         System.out.println("knob value: "+value);
         knob.setValue(value);
         knob.repaint();
     }

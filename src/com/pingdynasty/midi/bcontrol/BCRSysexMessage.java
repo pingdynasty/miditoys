@@ -35,7 +35,7 @@ public class BCRSysexMessage extends SysexMessage {
         ByteBuffer buf = ByteBuffer.allocate(message.length() + 8);
         byte[] data = new byte[]{
             0x00, 0x20, 0x32, // Behringer manufacturer's code
-            0x00, 0x15, 0x20, // header, space
+            0x7F, 0x7F, 0x20, // header, space
         };
         buf.put(data);
         putInteger(buf, index);
