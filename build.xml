@@ -98,10 +98,34 @@
     <antcall target="compile"/>
     <antcall target="jar"/>
     <antcall target="pong"/>
+    <antcall target="bcr-steps"/>
   </target>
 
   <target name="clean" depends="init" description="Clean up the build">
     <delete dir="${build.dir}"/>
+  </target>
+
+  <target name="bcr-steps" depends="bcr-steps.jar"/>
+
+  <target name="bcr-steps.jar" depends="readme, compile">
+    <taskdef name="pack" classname="org.sadun.util.ant.Pack">
+      <classpath refid="lib.path"/>
+    </taskdef>
+    <pack classes="com.pingdynasty.midi.bcontrol.BCRStepSequencer"
+          targetJar="${build.dir}/bcr-steps.jar"
+          manifestMainClass="com.pingdynasty.midi.bcontrol.BCRStepSequencer"
+          includePkg="com.pingdynasty.">
+<!--           excludePkg="java.,javax.,sun.,jvst.,org.jvaptools."> -->
+      <additionalfileset dir="${proj.dir}/docs" includes="licence.txt"/>
+      <additionalfileset dir="${build.dir}" includes="readme.txt"/>
+      <additionalfileset dir="${src.properties.dir}" includes="bcr-steps/**/*,bcontrol/**/*"/>
+      <classpath>
+        <path refid="lib.path"/>
+        <pathelement location="${build.classes.dir}"/>
+	<pathelement location="${java.home}/../Classes/jsse.jar"/>
+	<pathelement location="${java.home}/../Classes/classes.jar"/>
+      </classpath>
+    </pack>
   </target>
 
   <target name="pong" depends="pong.jar, pong.vst"/>
