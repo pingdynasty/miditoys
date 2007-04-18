@@ -1,0 +1,33 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head><title>bcr steps help</title></head>
+  <body style="font-family: Tahoma">
+    <img src="bcr-steps.png" alt="bcr steps" >
+
+    <h1 id="usage">Usage Instructions</h1>
+
+    <h2>General controls</h2>
+    <p>At the top of the screen is a BPM slider which lets you control the sequence tempo. You can also set the application to listen for MIDI sync on the MIDI input bus. The button to turn MIDI sync on and off is the third one from the top, on the far right (all controls have tool tips).</p>
+    <p>The button to the left of the MIDI sync button is the stop/start button.</p>
+    <p>You will see that there are a few more buttons below and above the start/stop and the MIDI sync buttons. Most of these are not (yet) used, they merely mimic the layout of the Behringer BCR2000.</p>
+
+    <h2>Step controls</h2>
+    <p>The top row of push encoders (knobs) controls the notes played by each of the eight steps. By turning the knobs (on the screen or on your configured MIDI device) you can change the note value - the new value will show in the application status window.</p>
+    <p>Hint: On the BCR2000, pressing the push encoders lets you listen to each step individually.</p>
+    <p>Below the knobs, there are two rows of eight buttons. They can be used to play the sequence, transposed to a different note value. The notes range from F3 (top left) to G#4 (bottom right). The sequence will play for as long as you hold the button down.</p>
+    <p>Below the buttons there are three more rows of knobs. These knobs work in different modes, the mode is controlled by the four buttons in the lower right corner. The four buttons ccorrespond to modes A, B, C and D (though currently only modes A and B are used). Pressing a mode button will change the controls, and update the values on the screen and on the controller.</p>
+
+    <h3>Mode A</h3>
+    <p>In mode A, the three rows of eight knobs each control a basic parameter for the eight steps of the sequence. The top row controls note velocity (how hard the note will be hit, ie how loud the note will be played).</p>
+    <p>The second row controls note duration, as a function of the current tempo. A value of 64 (center position of the knob) will play the note for the duration of one beat. The max value plays the note for 2 beats. You can disables the note completely by turning the duration down to zero.</p>
+    <p>The third row of knobs controls the delay. With a delay of zero, the note is played on the beat. The maximum value delays the note for an entire beat (making it fall simultaneously with the next step, unless that is also delayed).</p>
+
+    <h3>Mode B</h3>
+    <p>Pressing the second button in the group of four buttons in the bottom right corner switches the controls to mode B.</p>
+    <p>The first row of knobs below the buttons sets the step modulation. The modulation value is sent to the MIDI output with each step (as a MIDI CC 1 message), thus controlling the modulation envelope.</p>
+    <p>The second row of knobs controls the pitch bend for each step. The third row is not yet in use.</p>
+
+    <p>See also:</p>
+    <p><a href="help-configuration.html">MIDI Configuration</a></p>
+    <p><a href="help.html">Licence and Credits</a></p>
+  </body>
+</html>
