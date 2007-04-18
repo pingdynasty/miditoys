@@ -7,6 +7,7 @@ import javax.swing.JComponent;
 // a Control that sends and receives MIDI update requests
 public abstract class MidiControl implements Control, Receiver {
 
+    protected Callback callback;
     protected Transmitter transmitter;
     protected Receiver receiver;
     protected int command;
@@ -24,13 +25,36 @@ public abstract class MidiControl implements Control, Receiver {
         msg = new ShortMessage();
     }
 
+    public void setCallback(Callback callback){
+        this.callback = callback;
+    }
+
+    public int getCommand(){
+        return command;
+    }
+
+    public int getChannel(){
+        return channel;
+    }
+
+    public int getData1(){
+        return data1;
+    }
+
+    public int getData2(){
+        return data2;
+    }
+
     public int getValue(){
         return data2;
     }
 
+    // nb: calls updateMidiControl() and updateGraphicalControl() 
+    // nb: but does not call callback()
     public void setValue(int value)
         throws InvalidMidiDataException {
         data2 = value;
+//         callback();
         updateMidiControl();
         updateGraphicalControl();
     }
@@ -62,26 +86,22 @@ public abstract class MidiControl implements Control, Receiver {
                 exc.printStackTrace();
             }
         }else{
-            System.out.println("midi message "+message);
+//             System.out.println("midi message "+message);
             return;
         }
     }
 
     public void send(ShortMessage msg, long time){
-        System.out.println("midi sm <"+msg+"><"+time+"><"+
-                           msg.getCommand()+"><"+msg.getChannel()+"><"+
-                           msg.getData1()+"><"+msg.getData2()+">");
+//         System.out.println("midi sm <"+msg.getCommand()+"><"+msg.getChannel()+"><"+
+//                            msg.getData1()+"><"+msg.getData2()+">");
         if(command == msg.getStatus() && 
-           channel == msg.getChannel() &&
+           (channel == msg.getChannel() || msg.getChannel() == 0) &&
            data1 == msg.getData1()){
             data2 = msg.getData2();
-            System.out.println("received matching data");
+            // notify callback
+            callback();
             // notify graphical unit of update
             updateGraphicalControl();
-        }else{
-            System.out.println("no match"+
-                               command+"><"+channel+"><"+
-                               data1+"><"+data2+">");
         }
     }
 
@@ -104,6 +124,11 @@ public abstract class MidiControl implements Control, Receiver {
         throws InvalidMidiDataException {
         if(receiver != null)
             receiver.send(getMidiMessage(), -1);
+    }
+
+    protected void callback(){
+        if(callback != null)
+            callback.action(command, channel, data1, data2);
     }
 
     public abstract void updateGraphicalControl();

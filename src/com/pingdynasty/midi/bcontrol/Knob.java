@@ -28,9 +28,10 @@ public class Knob extends JComponent  {
     private int size;
     private int middle;
     
-    public final static int SIMPLE = 1;
-    public final static int ROUND  = 2;
-    private int dragType = ROUND;
+    public final static int DRAG_MODE_SIMPLE = 1;
+    public final static int DRAG_MODE_ROUND  = 2;
+    public final static int DRAG_MODE_VERTICAL  = 3;
+    private int dragType = DRAG_MODE_VERTICAL;
 
     private final static Dimension MIN_SIZE = new Dimension(40, 40);
     private final static Dimension PREF_SIZE = new Dimension(80, 80);
@@ -47,7 +48,7 @@ public class Knob extends JComponent  {
     
     private float ang = (float) START_ANG;
     private float val;
-    private int dragpos = -1;
+    private Point dragpos = new Point();
     private float startVal;
     private Color focusColor;
     private double lastAng;
@@ -64,7 +65,7 @@ public class Knob extends JComponent  {
 	hitArc.setAngleStart(235); // Degrees ??? Radians???
 	addMouseListener(new MouseAdapter() {
 		public void mousePressed(MouseEvent me) {
-		    dragpos = me.getX() + me.getY();
+		    dragpos = new Point(me.getX(), me.getY());
 		    startVal = val;
 
 		    // Fix last angle
@@ -89,19 +90,28 @@ public class Knob extends JComponent  {
 	// Let the user control the knob with the mouse
 	addMouseMotionListener(new MouseMotionAdapter() {
 		public void mouseDragged(MouseEvent me) {
-		    if ( dragType == SIMPLE) {
+		    switch(dragType){
+                    case DRAG_MODE_SIMPLE: {
 			float f = DRAG_SPEED * (float)
-			    ((me.getX() + me.getY()) - dragpos);
+			    ((me.getX() + me.getY()) - (dragpos.x + dragpos.y));
 			setValue(startVal + f);
-		    } else if ( dragType == ROUND) {
+                        break;
+                    }
+		    case DRAG_MODE_ROUND: {
 			// Measure relative the middle of the button! 
 			int xpos = middle - me.getX();
 			int ypos = middle - me.getY();
 			double ang = Math.atan2(xpos, ypos);
 			double diff = lastAng - ang;
 			setValue((float) (getValue() + (diff / LENGTH_ANG)));
-
 			lastAng = ang;
+                        break;
+                    }
+                    case DRAG_MODE_VERTICAL: {
+                        float f = DRAG_SPEED * (float)(dragpos.y - me.getY());
+			setValue(startVal + f);
+                        break;
+                    }
 		    }
 		}
 		
@@ -228,8 +238,8 @@ public class Knob extends JComponent  {
 		
 	    }
 	
-	// Set the position of the Zero
-	g.drawString("0", 2, size + 10);
+// 	// Set the position of the Zero
+// 	g.drawString("0", 2, size + 10);
 	
 	// Paint focus if in focus
 	if (hasFocus()) {

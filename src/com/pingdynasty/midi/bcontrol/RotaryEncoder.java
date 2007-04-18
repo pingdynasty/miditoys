@@ -15,10 +15,13 @@ public class RotaryEncoder extends MidiControl
     private int max = 127;
     private Knob knob;
 
-    public RotaryEncoder(int code, int command, int channel, int data1, int data2){
+    public RotaryEncoder(int code, int command, int channel, int data1, int data2,
+                         String description){
         super(command, channel, data1, data2);
         this.code = code;
         knob = new Knob();
+        if(description != null)
+            knob.setToolTipText(description);
         knob.addChangeListener(this);
         float value = (float)(data2 - min) / (float)max;
         knob.setValue(value);
@@ -43,9 +46,9 @@ public class RotaryEncoder extends MidiControl
         Knob source = (Knob)event.getSource();
         //                     if(!source.getValueIsAdjusting()){
         int value = (int)(source.getValue() * (float)max) + min;
-        System.out.println("encoder value: "+value);
         try{
             data2 = value;
+            callback();
             updateMidiControl();
         }catch(Exception exc){exc.printStackTrace();}
         //                     }
@@ -53,7 +56,7 @@ public class RotaryEncoder extends MidiControl
 
     public void generateSysexMessages(List messages)
         throws InvalidMidiDataException {
-        System.out.println("encoder "+code+"  .easypar CC "+channel+" "+data1+" "+min+" "+max+" absolute");
+//         System.out.println("encoder "+code+"  .easypar CC "+channel+" "+data1+" "+min+" "+max+" absolute");
         // encoder start message
         BCRSysexMessage.createMessage(messages, "$encoder "+code);
         // easypar message
@@ -65,17 +68,17 @@ public class RotaryEncoder extends MidiControl
         if(code < 33) // push encoder
             BCRSysexMessage.createMessage(messages, "  .mode 12dot");
         else
-            BCRSysexMessage.createMessage(messages, "  .mode 1dot");
+            BCRSysexMessage.createMessage(messages, "  .mode 1dot/off");
         // default message
         BCRSysexMessage.createMessage(messages, "  .default "+data2);
     }
 
     public JComponent getComponent(){
-//         return knob;
-        JPanel panel = new JPanel();
-        panel.add(knob);
-        panel.add(new JLabel(""+code));
-        return panel;
+        return knob;
+//         JPanel panel = new JPanel();
+//         panel.add(knob);
+//         panel.add(new JLabel(""+code));
+//         return panel;
     }
 
     public void updateGraphicalControl(){
@@ -99,11 +102,11 @@ public class RotaryEncoder extends MidiControl
 //         BCRSysexMessage.createMessage(messages, "  .init");
 
         RotaryEncoder[] knobs = new RotaryEncoder[]{
-            new RotaryEncoder(1, ShortMessage.CONTROL_CHANGE, 1, 1, 50),
-            new RotaryEncoder(2, ShortMessage.CONTROL_CHANGE, 1, 2, 60),
-            new RotaryEncoder(3, ShortMessage.CONTROL_CHANGE, 1, 3, 70),
-            new RotaryEncoder(4, ShortMessage.CONTROL_CHANGE, 1, 4, 80),
-            new RotaryEncoder(5, ShortMessage.CONTROL_CHANGE, 1, 5, 90)
+            new RotaryEncoder(1, ShortMessage.CONTROL_CHANGE, 1, 1, 50, null),
+            new RotaryEncoder(2, ShortMessage.CONTROL_CHANGE, 1, 2, 60, null),
+            new RotaryEncoder(3, ShortMessage.CONTROL_CHANGE, 1, 3, 70, null),
+            new RotaryEncoder(4, ShortMessage.CONTROL_CHANGE, 1, 4, 80, null),
+            new RotaryEncoder(5, ShortMessage.CONTROL_CHANGE, 1, 5, 90, null)
         };
         for(int i=0; i<knobs.length; ++i)
             knobs[i].generateSysexMessages(messages);

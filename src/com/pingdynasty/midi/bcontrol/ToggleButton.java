@@ -10,15 +10,24 @@ import com.pingdynasty.midi.*;
 public class ToggleButton extends MidiControl 
     implements ActionListener {
 
-    private int off = 0;
-    private int on = 127;
-    private int code;
-    private JToggleButton button;
+    protected int off = 0;
+    protected int on = 127;
+    protected int code;
+    protected AbstractButton button;
 
-    public ToggleButton(int code, int command, int channel, int data1, int data2){
+    protected ToggleButton(int command, int channel, int data1, int data2){
+        super(command, channel, data1, data2);
+    }
+
+    public ToggleButton(int code, int command, int channel, int data1, int data2,
+                        String description){
         super(command, channel, data1, data2);
         this.code = code;
-        button = new JToggleButton("b"+code, data2 == on);
+        button = new BControlButton();
+//         button = new JToggleButton();
+        if(description != null)
+            button.setToolTipText(description);
+        button.setSelected(data2 == on);
         button.addActionListener(this);
     }
 
@@ -27,20 +36,22 @@ public class ToggleButton extends MidiControl
     }
 
     public void actionPerformed(ActionEvent event) {
+//         System.out.println("action performed "+event);
         // this is called when the graphical component is updated
         if(data2 == on)
             data2 = off;
         else
             data2 = on;
+        button.setSelected(data2 == on);
         try{
-            System.out.println("value: "+data2);
+            callback();
             updateMidiControl();
         }catch(Exception exc){exc.printStackTrace();}
     }
 
     public void generateSysexMessages(List messages)
         throws InvalidMidiDataException {
-        System.out.println("button "+code+"  .easypar CC "+channel+" "+data1+" "+on+" "+off+" toggleon");
+//         System.out.println("button "+code+"  .easypar CC "+channel+" "+data1+" "+on+" "+off+" toggleon");
         // encoder start message
         BCRSysexMessage.createMessage(messages, "$button "+code);
         // easypar message
@@ -57,7 +68,6 @@ public class ToggleButton extends MidiControl
     }
 
     public void updateGraphicalControl(){
-        System.out.println("data2: "+data2);
         button.setSelected(data2 == on);
         button.repaint();
     }
