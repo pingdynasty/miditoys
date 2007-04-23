@@ -115,7 +115,7 @@
           targetJar="${build.dir}/bcr-steps.jar"
           manifestMainClass="com.pingdynasty.midi.bcontrol.BCRStepSequencer"
           includePkg="com.pingdynasty.">
-<!--           excludePkg="java.,javax.,sun.,jvst.,org.jvaptools."> -->
+      <additionalclass name="com.pingdynasty.midi.bcontrol.BCRStepSequencerApplet"/>
       <additionalfileset dir="${proj.dir}/docs" includes="licence.txt"/>
       <additionalfileset dir="${build.dir}" includes="readme.txt"/>
       <additionalfileset dir="${src.properties.dir}" includes="bcr-steps/**/*,bcontrol/**/*"/>
