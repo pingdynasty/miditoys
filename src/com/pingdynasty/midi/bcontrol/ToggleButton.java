@@ -56,7 +56,7 @@ public class ToggleButton extends MidiControl
         BCRSysexMessage.createMessage(messages, "$button "+code);
         // easypar message
         // assumes ShortMessage.CONTROL_CHANGE
-        BCRSysexMessage.createMessage(messages, "  .easypar CC "+channel+" "+data1+" "+on+" "+off+" toggleon");
+        BCRSysexMessage.createMessage(messages, "  .easypar CC "+(channel+1)+" "+data1+" "+on+" "+off+" toggleon");
         // showvalue message
         BCRSysexMessage.createMessage(messages, "  .showvalue on");
         // default message

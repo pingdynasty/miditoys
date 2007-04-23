@@ -61,7 +61,7 @@ public class RotaryEncoder extends MidiControl
         BCRSysexMessage.createMessage(messages, "$encoder "+code);
         // easypar message
         // assumes ShortMessage.CONTROL_CHANGE
-        BCRSysexMessage.createMessage(messages, "  .easypar CC "+channel+" "+data1+" "+min+" "+max+" absolute");
+        BCRSysexMessage.createMessage(messages, "  .easypar CC "+(channel+1)+" "+data1+" "+min+" "+max+" absolute");
         // showvalue message
         BCRSysexMessage.createMessage(messages, "  .showvalue on");
         // mode message

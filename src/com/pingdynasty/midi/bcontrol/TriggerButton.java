@@ -55,7 +55,7 @@ public class TriggerButton extends ToggleButton implements ChangeListener {
         BCRSysexMessage.createMessage(messages, "$button "+code);
         // easypar message
         // assumes ShortMessage.CONTROL_CHANGE
-        BCRSysexMessage.createMessage(messages, "  .easypar CC "+channel+" "+data1+" "+on+" "+off+" toggleoff");
+        BCRSysexMessage.createMessage(messages, "  .easypar CC "+(channel+1)+" "+data1+" "+on+" "+off+" toggleoff");
         // showvalue message
         BCRSysexMessage.createMessage(messages, "  .showvalue off");
     }

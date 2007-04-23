@@ -94,6 +94,7 @@ public abstract class MidiControl implements Control, Receiver {
     public void send(ShortMessage msg, long time){
 //         System.out.println("midi sm <"+msg.getCommand()+"><"+msg.getChannel()+"><"+
 //                            msg.getData1()+"><"+msg.getData2()+">");
+        // todo: remove channel == 0 check, it's really MIDI channel 1
         if(command == msg.getStatus() && 
            (channel == msg.getChannel() || msg.getChannel() == 0) &&
            data1 == msg.getData1()){
