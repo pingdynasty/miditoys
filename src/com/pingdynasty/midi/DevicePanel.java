@@ -43,30 +43,27 @@ public class DevicePanel {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         if(inputnames.length > 0){
             content.add(new JLabel("Input"));
-            content.add(getPanel(inputnames, Transmitter.class));
+            content.add(getPanel(inputnames, true));
         }
         if(outputnames.length > 0){
             content.add(new JLabel("Output"));
-            content.add(getPanel(outputnames, Receiver.class));
+            content.add(getPanel(outputnames, false));
         }
-//         JButton button = new JButton("close");
-//         button.addActionListener(new AbstractAction(){
-//                 public void actionPerformed(ActionEvent event){
-//                     JButton src = (JButton)event.getSource();
-//         then what?
-//                 }
-//             });
-//         content.add(button);
         return content;
     }
 
-    public JPanel getPanel(String[] names, Class type)
+    public JPanel getPanel(String[] names, boolean input)
         throws MidiUnavailableException {
         MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
         List list = new ArrayList();
-        for(int i=0; i<info.length; ++i)
-            if(type.isInstance(MidiSystem.getMidiDevice(info[i])))
-                list.add(MidiSystem.getMidiDevice(info[i]));
+        for(int i=0; i<info.length; ++i){
+            MidiDevice device = MidiSystem.getMidiDevice(info[i]);
+//             if((!input && device.getMaxReceivers() != 0) ||
+//                (input  && device.getMaxTransmitters() != 0))
+            if((!input && (device instanceof Receiver || device instanceof Synthesizer)) ||
+               (input  && device instanceof Transmitter))
+                list.add(device);
+        }
         MidiDevice[] mididevices = new MidiDevice[list.size()];
         list.toArray(mididevices);
 
@@ -93,7 +90,8 @@ public class DevicePanel {
                 JRadioButton button = new JRadioButton();
                 button.addActionListener(new DeviceActionListener(mididevices[j], names[i]));
                 MidiDevice device = getDevice(names[i]);
-                if(device != null && device == mididevices[j])
+                if(device != null && device.getDeviceInfo().getName()
+                   .equals(mididevices[j].getDeviceInfo().getName()))
                     button.setSelected(true);
                 groups[i].add(button);
                 content.add(button);
