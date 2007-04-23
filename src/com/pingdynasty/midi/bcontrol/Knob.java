@@ -23,8 +23,8 @@ public class Knob extends JComponent  {
 
     private int SHADOWX = 1;
     private int SHADOWY = 1;
-    private float DRAG_SPEED;
-    private float CLICK_SPEED;
+    private float DRAG_SPEED = 0.0078125F; // 1.0 / 128;
+    private float CLICK_SPEED = 0.0078125F; // 1.0 / 128;
     private int size;
     private int middle;
     
@@ -53,12 +53,7 @@ public class Knob extends JComponent  {
     private Color focusColor;
     private double lastAng;
     
-    public Knob() {
-	DRAG_SPEED = 0.01F;
-	CLICK_SPEED = 0.01F;
-	SHADOWX = 1;
-	SHADOWY = 1;
-	
+    public Knob() {	
 	focusColor = DEFAULT_FOCUS_COLOR;
 	
 	setPreferredSize(PREF_SIZE);
