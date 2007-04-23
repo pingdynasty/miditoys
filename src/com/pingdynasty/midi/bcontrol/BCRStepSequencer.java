@@ -30,11 +30,11 @@ import javax.swing.event.*;
 //// maybe have a separate screen indicator instead. what about arp plays?
 // - output encoder values - notes, periods (as beat fractions), plain values
 // - change switch-pressed image to look depressed (to give real action feel)
+// - sort out midi channel issue: Java midi channels are 1 less
 public class BCRStepSequencer extends JPanel {
     private StepSequencer sequencer;
     private MidiControl[] controls;
     private MidiControl[] cc_controls; // quick index for CC controls
-    private int channel = 1;
     private int width = 8;
     private JLabel statusbar;
     private JSlider slider;
@@ -44,19 +44,13 @@ public class BCRStepSequencer extends JPanel {
     private ReceiverPlayer midiOutput;
     private StepSequencerArpeggio midiInput;
     private ControlSurfaceHandler midiControl;
-    private final static String midiControlInputName = "Control input";
-    private final static String midiControlOutputName = "Control output";
-    private final static String midiInputName = "MIDI input";
-    private final static String midiOutputName = "MIDI output";
-    private DevicePanel devicepanel = 
-        new DevicePanel(new String[]{midiInputName, midiControlInputName},  
-                        new String[]{midiOutputName, midiControlOutputName});
+    private BCRStepSequencerConfiguration devicepanel;
 
     public class AboutFrame extends JFrame {
         public AboutFrame(){
             super("about");
-            URL url = ClassLoader.getSystemResource("bcr-steps/about.png");
-            getContentPane().add(new JLabel(new ImageIcon(url)));
+            Icon icon = ResourceLocator.getIcon("bcr-steps/about.png");
+            getContentPane().add(new JLabel(icon));
             addMouseListener(new MouseAdapter(){
                     public void mouseClicked(MouseEvent e){
                         setVisible(false);
@@ -76,7 +70,7 @@ public class BCRStepSequencer extends JPanel {
         public HelpFrame(){
             super("help");
             try{
-                URL url = ClassLoader.getSystemResource("bcr-steps/help.html");
+                URL url = ResourceLocator.getResourceURL("bcr-steps/help.html");
                 JEditorPane text = new JEditorPane(url);
                 text.setEditable(false);
                 text.setMargin(new Insets(8, 8, 16, 16));
@@ -163,7 +157,9 @@ public class BCRStepSequencer extends JPanel {
                 if(data2 < 64)
                     midiInput.noteoff(note);
                 else
-                    midiInput.noteon(channel, note, velocity);
+                    midiInput.noteon(note, velocity);
+                // note: in order to pass on channel information, we need to do
+                // midiOutput.setChannel(channel);
                 status(NoteParser.getStringNote(note)+" arpeggio");
             }else if(data1 >= 105 && data1 <= 108){
                 // mode buttons - four buttons in bottom right corner
@@ -285,6 +281,8 @@ public class BCRStepSequencer extends JPanel {
     public BCRStepSequencer(){
         super(new BorderLayout());
         midiOutput = new SchedulingPlayer(null);
+        // the channel that all controls are tuned to listen and talk on
+        int channel = 0;
 
         // statusbar
         statusbar = new JLabel();
@@ -360,7 +358,7 @@ public class BCRStepSequencer extends JPanel {
         this.add(mainarea, BorderLayout.CENTER);
 
         Box buttonarea = new Box(BoxLayout.Y_AXIS);
-        JLabel label = new JLabel(new ImageIcon(ClassLoader.getSystemResource("bcr-steps/icon.png")));
+        JLabel label = new JLabel(ResourceLocator.getIcon("bcr-steps/icon.png"));
         label.setHorizontalAlignment(SwingConstants.LEFT);
         buttonarea.add(label);
         buttonarea.add(buttonarea.createVerticalStrut(50));
@@ -468,71 +466,66 @@ public class BCRStepSequencer extends JPanel {
 
     public void initialiseMidiDevices()
         throws MidiUnavailableException {
-        // initialise MIDI out
-        MidiDevice device = DeviceLocator.getDevice(Synthesizer.class);
-        devicepanel.setDevice(midiOutputName, device);
-        device.open();
-        status("MIDI OUT device: "+device.getDeviceInfo().getName());
 
-        // try to initialise BCR
-        device = DeviceLocator.getDevice("Port 1 (MidiIN:3)");
-        devicepanel.setDevice(midiControlInputName, device);
-        device = DeviceLocator.getDevice("Port 1 (MidiOUT:3)");
-        devicepanel.setDevice(midiControlOutputName, device);
-        updateMidiDevices();
+        devicepanel = new BCRStepSequencerConfiguration();
 
         // lock into MIDI config frame
         devicepanel.getFrame().addWindowListener(new WindowAdapter() {
                 public void windowDeactivated(WindowEvent e){
                     try{
-                        System.out.println("window deactivated");
+                        System.out.println("deactivated");
                         updateMidiDevices();
                     }catch(Exception exc){exc.printStackTrace();}
                 }
                 public void windowClosing(WindowEvent e){
                     try{
-                        System.out.println("window closed");
+                        System.out.println("closed");
                         updateMidiDevices();
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             });
+
+        updateMidiDevices();
     }
 
     public void updateMidiDevices()
         throws MidiUnavailableException {
-        status("updating midi devices");
         // update devices from devicepanel settings
-        MidiDevice device = devicepanel.getDevice(midiInputName);
+        MidiDevice device = devicepanel.getMidiInput();
         if(device != null){
             device.open();
             midiInput.setTransmitter(device.getTransmitter());
         }
 
-        device = devicepanel.getDevice(midiControlInputName);
+        device = devicepanel.getMidiControlInput();
         if(device != null){
             device.open();
-//             Transmitter transmitter = device.getTransmitter();
-            status("control input: "+device);
             midiControl.setTransmitter(device.getTransmitter());
         }
 
-        device = devicepanel.getDevice(midiOutputName);
+        device = devicepanel.getMidiOutput();
         if(device != null){
             device.open();
             midiOutput.setReceiver(device.getReceiver());
+            midiOutput.setChannel(devicepanel.getChannel());
+            status("MIDI output: "+device.getDeviceInfo().getName());
         }
 
-        device = devicepanel.getDevice(midiControlOutputName);
+        device = devicepanel.getMidiControlOutput();
         if(device != null){
             device.open();
             Receiver receiver = device.getReceiver();
             status("control output: "+receiver);
             try{
-                sendSysexMessages(receiver);
-                for(int i=0; i<controls.length; ++i)
+                if(devicepanel.doSysex())
+                    sendSysexMessages(receiver);
+                for(int i=0; i<controls.length; ++i){
                     controls[i].setReceiver(receiver);
-                    // done by the .default sysex message
-//                     controls[i].updateMidiControl();
+                    if(!devicepanel.doSysex()){
+                        // otherwise done by the .default sysex message
+                        controls[i].updateMidiControl();
+                    }
+                }
             }catch(InvalidMidiDataException exc){exc.printStackTrace();}
         }
     }
@@ -550,9 +543,9 @@ public class BCRStepSequencer extends JPanel {
         BCRSysexMessage.createMessage(list, "  .name 'bcr keyboard control    '");
         BCRSysexMessage.createMessage(list, "  .snapshot off");
         BCRSysexMessage.createMessage(list, "  .request off");
-        BCRSysexMessage.createMessage(list, "  .egroups 4");
+        BCRSysexMessage.createMessage(list, "  .egroups 1");
         BCRSysexMessage.createMessage(list, "  .fkeys off");
-//         BCRSysexMessage.createMessage(list, "  .lock off");
+        BCRSysexMessage.createMessage(list, "  .lock off");
         BCRSysexMessage.createMessage(list, "  .init");
         for(int i=0; i<controls.length; ++i)
             controls[i].generateSysexMessages(list);
