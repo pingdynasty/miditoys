@@ -108,12 +108,12 @@ public class StepSequencerArpeggio implements Receiver {
         taken.remove(resource);
     }
 
-    public void noteon(int channel, int note, int velocity){
+    public void noteon(int note, int velocity){
         if(players[note] == null)
             players[note] = getPlayer();
         if(players[note] != null){
             players[note].setPeriod(sequencer.getPeriod());
-            players[note].start(channel, note, velocity);
+            players[note].start(note, velocity);
         }
     }
 
@@ -167,7 +167,7 @@ public class StepSequencerArpeggio implements Receiver {
             // todo: move Receiver to BCRStepSequencer, call arp.noteon()/noteoff()
         case ShortMessage.NOTE_ON:{
             System.out.println("arp note on <"+msg.getData1()+"><"+msg.getData2());
-            noteon(msg.getChannel(), msg.getData1(), msg.getData2());
+            noteon(msg.getData1(), msg.getData2());
             break;
         }
         case ShortMessage.NOTE_OFF:{
