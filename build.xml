@@ -189,8 +189,8 @@
     <mkdir dir="${vst.dir.win}"/>
     <copy tofile="${vst.dir.win}/pong.dll" 
           file="${proj.dir}/lib/native/win32/jVSTwRapper.dll"/>
-    <copy tofile="${vst.dir.win}/pong.windows.ini" 
-          file="${src.dir}/config/pong.ini"/>
+    <copy tofile="${vst.dir.win}/pong.ini" 
+          file="${src.dir}/config/pong.windows.ini"/>
     <copy todir="${vst.dir.win}/">
       <fileset dir="${proj.dir}/lib" includes="jvaptools.jar, jVSTwRapper_bin.jar, jVSTsYstem_bin.jar"/>
       <fileset dir="${build.dir}" includes="pong.jar"/>
