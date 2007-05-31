@@ -25,6 +25,9 @@ public class BCRBeatSlicer extends JPanel {
     private JSlider slider;
     private EventHandler eventHandler = new EventHandler();
 
+//     private Transmitter midiSync;
+    private MidiSync midiSync;
+
     // MIDI handlers
     private ReceiverPlayer midiOutput;
 //     private StepSequencerArpeggio midiInput;
@@ -162,9 +165,11 @@ public class BCRBeatSlicer extends JPanel {
             }else if(data1 == 115){
                 // store button
                 if(data2 < 64){
+                    midiSync.stop();
 //                     sequencer.stop();
                     status("stop");
                 }else{
+                    midiSync.start();
 //                     sequencer.start();
                     status("start");
                 }
@@ -254,7 +259,10 @@ public class BCRBeatSlicer extends JPanel {
                 break;
             }
             case ShortMessage.CONTROL_CHANGE: {
+                assert msg.getData1() > cc_controls.length;
+                assert cc_controls[msg.getData1()] != null;
                 cc_controls[msg.getData1()].send(msg, -1);
+                break;
             }
             case ShortMessage.NOTE_ON:
             case ShortMessage.NOTE_OFF:
@@ -409,8 +417,15 @@ public class BCRBeatSlicer extends JPanel {
             if(controls[i].getCommand() == ShortMessage.CONTROL_CHANGE)
                 cc_controls[controls[i].getData1()] = controls[i];
 
-
+        // create beat slicer
         slicer = new BeatSlicer(new File("bass_sanity.wav"), width);
+
+        // BPM control
+        int bpm = 120;
+        slider = new JSlider(JSlider.HORIZONTAL, 20, 380, bpm);
+        midiSync = new MidiSync(bpm);
+        midiSync.setReceiver(slicer);
+
 //         sequencer = new StepSequencer(midiOutput, width);
 //         midiInput = new StepSequencerArpeggio(sequencer);
         midiControl = new ControlSurfaceHandler();
@@ -418,10 +433,6 @@ public class BCRBeatSlicer extends JPanel {
         for(int i=0; i<controls.length; ++i)
             controls[i].setCallback(eventHandler);
 
-        // BPM control
-//         slider = new JSlider(JSlider.HORIZONTAL, 20, 380, 
-//                              60000/sequencer.getPeriod());
-        slider = new JSlider(JSlider.HORIZONTAL, 20, 380, 120);
                              
         //Turn on labels at major tick marks.
         slider.setMajorTickSpacing(60);
@@ -433,7 +444,7 @@ public class BCRBeatSlicer extends JPanel {
                     JSlider source = (JSlider)event.getSource();
                     if(!source.getValueIsAdjusting()){
                         int bpm = (int)source.getValue();
-//                         sequencer.setPeriod(60000 / bpm);
+                        midiSync.setBPM(bpm);
                     }
                 }
             });

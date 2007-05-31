@@ -2,12 +2,13 @@ package com.pingdynasty.midi;
 
 import java.io.File;
 import java.io.IOException;
-// import javax.sound.midi.*;
+import javax.sound.midi.*;
 import javax.sound.sampled.*;
 
-public class BeatSlicer {
+public class BeatSlicer implements Receiver {
 
     private Slice[] slices;
+    private int tick;
 
     public class Slice implements LineListener {
         private int start;
@@ -74,6 +75,20 @@ public class BeatSlicer {
             clip.close();
         }
 
+//         public void reset(){
+//             clip.setFramePosition(startframe);
+//         }
+
+        public void retrigger(){
+            clip.setFramePosition(startframe);
+            if(clip.isActive()){
+//             if(clip.isRunning()){
+                clip.stop();
+//                 clip.loop(Clip.LOOP_CONTINUOUSLY);
+                clip.loop(1);
+            }
+        }
+
         public int getStart(){
             return start;
         }
@@ -93,7 +108,9 @@ public class BeatSlicer {
             if(endframe > frames)
                 endframe = frames;
             clip.setLoopPoints(startframe, endframe);
-            clip.setFramePosition(startframe);
+//             if(clip.isActive())
+                retrigger();
+//             clip.setFramePosition(startframe);
         }
 
         /** Set length of slice to a value between 0 (beginning of slice)
@@ -106,8 +123,10 @@ public class BeatSlicer {
             if(endframe > frames)
                 endframe = frames;
             clip.setLoopPoints(startframe, endframe);
-            clip.setFramePosition(startframe);
+//             if(clip.isActive())
+                retrigger();
 //             System.out.println("frames "+startframe+"-"+endframe);
+//             clip.setFramePosition(startframe);
         }
     }
 
@@ -135,6 +154,47 @@ public class BeatSlicer {
         throws Exception{
         assert pos < slices.length : "invalid slice number: "+pos;
         slices[pos].play();
+    }
+
+//     public void setTransmitter(Transmitter transmitter){
+//         if(this.transmitter == transmitter)
+//             return;
+//         if(this.transmitter != null)
+//             this.transmitter.close();
+//         this.transmitter = transmitter;
+//         transmitter.setReceiver(this);
+//     }
+
+    public void send(MidiMessage msg, long time){
+        if(msg instanceof ShortMessage){
+            try{
+                send((ShortMessage)msg, time);
+            }catch(Exception exc){
+                exc.printStackTrace();
+            }
+        }else{
+            return;
+        }
+    }
+
+    public void send(ShortMessage msg, long time)
+        throws InvalidMidiDataException {
+        switch(msg.getStatus()){
+        case ShortMessage.TIMING_CLOCK: {
+            if(++tick == 24){
+                for(int i=0; i<slices.length; ++i)
+                    slices[i].retrigger();
+                System.err.println("retriggered");
+                tick = 0;
+            }
+            break;
+        }
+        }
+    }
+
+    public void close(){
+        for(int i=0; i<slices.length; ++i)
+            slices[i].close();
     }
 
 //     public static void main(String[] args)
