@@ -14,6 +14,7 @@ public class RotaryEncoder extends MidiControl
     private int min = 0; // 0-16383
     private int max = 127;
     private Knob knob;
+    private boolean internalChange;
 
     public RotaryEncoder(int code, int command, int channel, int data1, int data2,
                          String description){
@@ -42,16 +43,16 @@ public class RotaryEncoder extends MidiControl
 
     // ChangeListener i/f
     public void stateChanged(ChangeEvent event) {
-        // this is called when the graphical component is updated
-        Knob source = (Knob)event.getSource();
-        //                     if(!source.getValueIsAdjusting()){
-        int value = (int)(source.getValue() * (float)max) + min;
-        try{
-            data2 = value;
-            callback();
-            updateMidiControl();
-        }catch(Exception exc){exc.printStackTrace();}
-        //                     }
+        if(!internalChange){
+            // this is called when the graphical component is updated
+            Knob source = (Knob)event.getSource();
+            int value = (int)(source.getValue() * (float)max) + min;
+            try{
+                data2 = value;
+                callback();
+                updateMidiControl();
+            }catch(Exception exc){exc.printStackTrace();}
+        }
     }
 
     public void generateSysexMessages(List messages)
@@ -82,10 +83,11 @@ public class RotaryEncoder extends MidiControl
     }
 
     public void updateGraphicalControl(){
+        internalChange = true;
         float value = (float)(data2 - min) / (float)max;
-//         System.out.println("knob value: "+value);
         knob.setValue(value);
         knob.repaint();
+        internalChange = false;
     }
 
     public static final void main(String[] args)
