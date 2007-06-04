@@ -594,16 +594,16 @@ public class BCRStepSequencer extends JPanel {
 
     public static void main(String[] args)
         throws Exception {
-        BCRStepSequencer seq = new BCRStepSequencer();
-        seq.initialiseMidiDevices();
+        BCRStepSequencer steps = new BCRStepSequencer();
+        steps.initialiseMidiDevices();
         // create frame
         JFrame frame = new JFrame("bcr steps");
-        frame.setJMenuBar(seq.getMenuBar());
+        frame.setJMenuBar(steps.getMenuBar());
         // configure frame
 //         frame.pack();
         frame.setSize(625, 500);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setContentPane(seq);
+        frame.setContentPane(steps);
         frame.setVisible(true);
         // Create a general double-buffering strategy
         frame.createBufferStrategy(2);

@@ -160,7 +160,7 @@ public class Keyboard extends JFrame implements KeyListener {
         statusbar.setText(msg);
     }
 
-    public static void main(String[  ] args) 
+    public static void main(String[] args) 
         throws MidiUnavailableException, Exception {
 
         // choose first available Syntheziser or Receiver device
