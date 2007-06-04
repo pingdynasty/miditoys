@@ -20,6 +20,9 @@ public class BeatSlicer implements Receiver {
         private int start;
         private int length;
 
+        private int volume;
+        private FloatControl volumeControl;
+
 //         private boolean playing;
         private boolean looping;
 
@@ -32,7 +35,14 @@ public class BeatSlicer implements Receiver {
             setStart(0);
             setLength(MAX_VALUE);
             System.out.println("frames: "+(data.length / line.getFormat().getFrameSize()));
-            line.addLineListener(this);
+            try{
+                volumeControl = (FloatControl)line.getControl(FloatControl.Type.MASTER_GAIN);
+            }catch(IllegalArgumentException exc){
+                volumeControl = (FloatControl)line.getControl(FloatControl.Type.VOLUME);
+            }
+            System.out.println("volume "+volumeControl);
+//             setVolume(MAX_VALUE);
+//             line.addLineListener(this);
         }
 
     public void update(LineEvent event){
@@ -47,11 +57,11 @@ public class BeatSlicer implements Receiver {
         // start playing the clip from the start position
         public void start(){
             line.flush();
-            System.out.println("writing "+len+"/"+line.available());
+//             System.out.println("writing "+len+"/"+line.available());
             line.start();
             line.write(data, offset, len);
 //             line.drain();
-            System.out.println("started "+offset+"/"+len+" "+line.getFramePosition());
+//             System.out.println("started "+offset+"/"+len+" "+line.getFramePosition());
         }
 
         public void stop(){
@@ -110,6 +120,23 @@ public class BeatSlicer implements Receiver {
             if(offset + len > data.length)
                 len = data.length - offset;
             retrigger();
+        }
+
+        public void setVolume(int volume){
+            this.volume = volume;
+            volumeControl.setValue(((float)volume) * (volumeControl.getMaximum() - volumeControl.getMinimum()) / 127.0f + volumeControl.getMinimum());
+        }
+
+        public int getVolume(){
+            return volume;
+        }
+
+        public byte[] getData(){
+            return data;
+        }
+
+        public AudioFormat getAudioFormat(){
+            return line.getFormat();
         }
     }
 
@@ -187,7 +214,7 @@ public class BeatSlicer implements Receiver {
             if(++tick == 24){
                 for(int i=0; i<slices.length; ++i)
                     slices[i].retrigger();
-                System.err.println("retriggered");
+//                 System.err.println("retriggered");
                 tick = 0;
             }
             break;

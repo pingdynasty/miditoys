@@ -24,6 +24,7 @@ public class BCRBeatSlicer extends JPanel {
     private JLabel statusbar;
     private JSlider slider;
     private EventHandler eventHandler = new EventHandler();
+    private WaveformPanel waveform;
 
 //     private Transmitter midiSync;
     private MidiSync midiSync;
@@ -102,6 +103,8 @@ public class BCRBeatSlicer extends JPanel {
                 case MODE_A :
                     for(int i=0; i<width; ++i)
                         cc_controls[i+81].setValue(slicer.getSlice(i).getLength());
+                    for(int i=0; i<width; ++i)
+                        cc_controls[i+89].setValue(slicer.getSlice(i).getVolume());
 //                     for(int i=0; i<width; ++i)
 //                         cc_controls[i+89].setValue(sequencer.getStep(i).getDuration());
 //                     for(int i=0; i<width; ++i)
@@ -131,6 +134,7 @@ public class BCRBeatSlicer extends JPanel {
             if(data1 >= 1 && data1 <= 8){
                 // push encoder turned
                 slicer.getSlice(data1 - 1).setStart(data2);
+                waveform.setStartMark(data2 * waveform.getWidth() / 127);
                 status("frame start "+data2);
             }else if(data1 >= 33 && data1 <= 40){
                 // push encoder pressed
@@ -144,8 +148,8 @@ public class BCRBeatSlicer extends JPanel {
                 // button row 1 pressed
                 if(data2 > 63)
                     slicer.getSlice(data1 - 65).play();
-                else
-                    slicer.getSlice(data1 - 65).stop();
+//                 else
+//                     slicer.getSlice(data1 - 65).stop();
                 status("play slice "+(data1 - 65));
             }else if(data1 >= 73 && data1 <= 80){
                 // button row 2 pressed
@@ -193,9 +197,12 @@ public class BCRBeatSlicer extends JPanel {
                     if(data1 >= 81 && data1 <= 88){
                         // top row simple encoder (below buttons)
                         slicer.getSlice(data1 - 81).setLength(data2);
+//                         waveform.setEndMark(data2 * waveform.getWidth() / 127);
+                        waveform.setMarkLength(data2 * waveform.getWidth() / 127);
 //                         sequencer.getStep(data1 - 81).setVelocity(data2);
                     }else if(data1 >= 89 && data1 <= 96){
                         // second row simple encoder
+                        slicer.getSlice(data1 - 89).setVolume(data2);
 //                         sequencer.getStep(data1 - 89).setDuration(data2);
                     }else if(data1 >= 97 && data1 <= 104){
                         // third row simple encoder
@@ -286,6 +293,9 @@ public class BCRBeatSlicer extends JPanel {
         // the channel that all controls are tuned to listen and talk on
         int channel = 0;
 
+        // create beat slicer
+        slicer = new BeatSlicer(new File("bass_sanity.wav"), width);
+
         // statusbar
         statusbar = new JLabel();
         statusbar.setHorizontalAlignment(SwingConstants.CENTER);
@@ -293,6 +303,12 @@ public class BCRBeatSlicer extends JPanel {
 
         JPanel mainarea = new JPanel();
         mainarea.setLayout(new BoxLayout(mainarea, BoxLayout.Y_AXIS));
+
+        // add waveform graph
+        waveform = new WaveformPanel(600, 50);
+        waveform.setData(slicer.getSlice(0).getData(), slicer.getSlice(0).getAudioFormat());
+        mainarea.add(waveform);
+
         JPanel rows = new JPanel();
         rows.setLayout(new BoxLayout(rows, BoxLayout.X_AXIS));
 //         JPanel mainarea = new JPanel(new GridLayout(0, width));
@@ -313,8 +329,11 @@ public class BCRBeatSlicer extends JPanel {
         // two rows of simple buttons
         rows = new JPanel(new GridLayout(2, width));
         for(int i=0; i<width; ++i){
-            ToggleButton button = 
-                new ToggleButton(33+i, ShortMessage.CONTROL_CHANGE, channel, 65+i, 0,
+//             ToggleButton button = 
+//                 new ToggleButton(33+i, ShortMessage.CONTROL_CHANGE, channel, 65+i, 0,
+//                                  "play slice "+(i+1));
+            TriggerButton button = 
+                new TriggerButton(33+i, ShortMessage.CONTROL_CHANGE, channel, 65+i, 0,
                                  "play slice "+(i+1));
             list.add(button);
             rows.add(button.getComponent());
@@ -345,7 +364,7 @@ public class BCRBeatSlicer extends JPanel {
         for(int i=0; i<width; ++i){
             MidiControl control = 
                 new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 80,
-                                  "step "+(1+i)+" duration/bend");
+                                  "step "+(1+i)+" volume");
             list.add(control);
             rows.add(control.getComponent());
         }
@@ -416,9 +435,6 @@ public class BCRBeatSlicer extends JPanel {
         for(int i=0; i<controls.length; ++i)
             if(controls[i].getCommand() == ShortMessage.CONTROL_CHANGE)
                 cc_controls[controls[i].getData1()] = controls[i];
-
-        // create beat slicer
-        slicer = new BeatSlicer(new File("bass_sanity.wav"), width);
 
         // BPM control
         int bpm = 120;
