@@ -2,6 +2,7 @@ package com.pingdynasty.midi;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
 import javax.sound.midi.*;
 import javax.sound.sampled.*;
 
@@ -11,81 +12,72 @@ public class BeatSlicer implements Receiver {
     private int tick;
 
     public class Slice implements LineListener {
+        private int offset;
+        private int len;
+        private byte[] data;
+        private SourceDataLine line;
+        private int framesize;
         private int start;
         private int length;
-        private int startframe;
-        private int endframe;
-        public static final int MAX_VALUE = 127;
-        private Clip clip;
 
-        public Slice(Clip clip) {
-            this.clip = clip;
+//         private boolean playing;
+        private boolean looping;
+
+        public static final int MAX_VALUE = 127;
+
+        public Slice(byte[] data, SourceDataLine line){
+            this.data = data;
+            this.line = line;
+            framesize = line.getFormat().getFrameSize();
             setStart(0);
             setLength(MAX_VALUE);
-            System.out.println("frames: "+clip.getFrameLength());
-            clip.addLineListener(this);
+            System.out.println("frames: "+(data.length / line.getFormat().getFrameSize()));
+            line.addLineListener(this);
         }
 
     public void update(LineEvent event){
         System.out.println("line event: "+event);
-        if(event.getType().equals(LineEvent.Type.STOP)){
-            stop();
-//             for(int i=0; i<slices.length; ++i)
-//                 slices[i].stop();
-        }else if(event.getType().equals(LineEvent.Type.CLOSE)){
-            close();
-//             for(int i=0; i<slices.length; ++i)
-//                 slices[i].close();
-            /*
-             *	There is a bug in the jdk1.3/1.4.
-             *	It prevents correct termination of the VM.
-             *	So we have to exit ourselves.
-             */
-            System.out.println("Asking to do system exit!");
-            // System.exit(0);
-        }
-    }
-
-//         private void updateClip(){
-//             clip.setLoopPoints(startframe, endframe);
-//             clip.setFramePosition(startframe);
+//         if(event.getType().equals(LineEvent.Type.STOP)){
+//             stop();
+//         }else if(event.getType().equals(LineEvent.Type.CLOSE)){
+//             close();
 //         }
+    }
 
         // start playing the clip from the start position
         public void start(){
-            clip.setFramePosition(startframe);
-            clip.start();
-        }
-
-        public void play(){
-            clip.setFramePosition(startframe);
-            clip.loop(1);
-        }
-
-        public void loop(){
-            clip.setFramePosition(startframe);
-            clip.loop(Clip.LOOP_CONTINUOUSLY);
+            line.flush();
+            System.out.println("writing "+len+"/"+line.available());
+            line.start();
+            line.write(data, offset, len);
+//             line.drain();
+            System.out.println("started "+offset+"/"+len+" "+line.getFramePosition());
         }
 
         public void stop(){
-            clip.stop();
+            looping = false;
+            line.stop();
+        }
+
+        public void play(){
+            start();
+        }
+
+        public void loop(){
+            looping = true;
+            start();
         }
 
         public void close(){
-            clip.close();
+            line.close();
         }
 
-//         public void reset(){
-//             clip.setFramePosition(startframe);
-//         }
-
         public void retrigger(){
-            clip.setFramePosition(startframe);
-            if(clip.isActive()){
-//             if(clip.isRunning()){
-                clip.stop();
-//                 clip.loop(Clip.LOOP_CONTINUOUSLY);
-                clip.loop(1);
+//             if(line.isRunning()){
+//             if(line.isActive()){
+            if(looping){
+                line.stop();
+                start();
             }
         }
 
@@ -102,15 +94,11 @@ public class BeatSlicer implements Receiver {
          */
         public void setStart(int start){
             this.start = start;
-            int frames = clip.getFrameLength();
-            startframe = (frames * start) / MAX_VALUE;
-            endframe = (frames * length) / MAX_VALUE + startframe;
-            if(endframe > frames)
-                endframe = frames;
-            clip.setLoopPoints(startframe, endframe);
-//             if(clip.isActive())
-                retrigger();
-//             clip.setFramePosition(startframe);
+            offset = (((data.length / framesize) * start) / MAX_VALUE) * framesize;
+            len = (((data.length / framesize) * length) / MAX_VALUE) * framesize;
+            if(offset + len > data.length)
+                len = data.length - offset;
+            retrigger();
         }
 
         /** Set length of slice to a value between 0 (beginning of slice)
@@ -118,30 +106,45 @@ public class BeatSlicer implements Receiver {
          */
         public void setLength(int length){
             this.length = length;
-            int frames = clip.getFrameLength();
-            endframe = (frames * length) / MAX_VALUE + startframe;
-            if(endframe > frames)
-                endframe = frames;
-            clip.setLoopPoints(startframe, endframe);
-//             if(clip.isActive())
-                retrigger();
-//             System.out.println("frames "+startframe+"-"+endframe);
-//             clip.setFramePosition(startframe);
+            len = (((data.length / framesize) * length) / MAX_VALUE) * framesize;
+            if(offset + len > data.length)
+                len = data.length - offset;
+            retrigger();
         }
     }
 
     public BeatSlicer(File file, int length)
         throws Exception {
         slices = new Slice[length];
+
+        AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(file);
+        if(audioInputStream == null)
+            throw new IllegalArgumentException("invalid sound file "+file.getName());
+        AudioFormat format = audioInputStream.getFormat();
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+//         int offset = 0;
+        for(int len = audioInputStream.read(buf); len > 0;
+            len = audioInputStream.read(buf)){
+            outputStream.write(buf, 0, len);
+//             offset += len;
+        }
+        byte[] data = outputStream.toByteArray();
+        DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+        System.out.println("data "+data.length+" "+format+" "+info);
+
         for(int i=0; i<length; ++i){
-            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(file);
-            if(audioInputStream == null)
-                throw new IllegalArgumentException("invalid sound file "+file.getName());
-            AudioFormat format = audioInputStream.getFormat();
-            DataLine.Info info = new DataLine.Info(Clip.class, format);
-            Clip clip = (Clip)AudioSystem.getLine(info);
-            clip.open(audioInputStream);
-            slices[i] = new Slice(clip);
+//             AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(file);
+//             if(audioInputStream == null)
+//                 throw new IllegalArgumentException("invalid sound file "+file.getName());
+//             AudioFormat format = audioInputStream.getFormat();
+//             Clip clip = (Clip)AudioSystem.getLine(info);
+//             clip.open(audioInputStream);
+            SourceDataLine line = (SourceDataLine)AudioSystem.getLine(info);
+//             line.open(format);
+            line.open(format, data.length); // clip size as buffer size
+            slices[i] = new Slice(data, line);
         }
     }
 
