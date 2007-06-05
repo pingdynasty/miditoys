@@ -50,28 +50,26 @@ public class WaveformPanel extends JPanel {
 //             displayData[i] = (displayData[i] / max ) * dim.height; // normalize values
         for(int i=0; i<width; ++i)
             displayData[i] /=  max; // normalize to range 0.0 - 1.0
+        repaint();
     }
 
     public void paintComponent(Graphics g){
         super.paintComponent(g);
-        int height = getHeight();
+        int center = getHeight() / 2;
 	g.setColor(Color.gray);
         for(int i=0; i<startMark; i++){
-            int value = (int) (displayData[i] * height);
-//             int y1 = (nHeight - 2 * value) / 2;
-//             int y2 = y1 + 2 * value;
-//             g.drawLine(i, y1, i, y2);
-            g.drawLine(i, height - value, i, value);
+            int value = (int) (displayData[i] * center);
+            g.drawLine(i, center - value, i, center + value);
         }
 	g.setColor(Color.black);
         for(int i=startMark; i<endMark; i++){
-            int value = (int) (displayData[i] * height);
-            g.drawLine(i, height - value, i, value);
+            int value = (int) (displayData[i] * center);
+            g.drawLine(i, center - value, i, center + value);
         }
 	g.setColor(Color.gray);
         for(int i=endMark; i<displayData.length; i++){
-            int value = (int) (displayData[i] * height);
-            g.drawLine(i, height - value, i, value);
+            int value = (int) (displayData[i] * center);
+            g.drawLine(i, center - value, i, center + value);
         }
     }
 
@@ -93,6 +91,14 @@ public class WaveformPanel extends JPanel {
 
     public void setEndMark(int mark){
         this.endMark = mark;
+        repaint();
+    }
+
+    public void setMark(BeatSlicer.Slice slice){
+        startMark = slice.getStart() * width / 127;
+        endMark = slice.getLength() * width / 127 + startMark;
+        if(endMark > displayData.length)
+            endMark = displayData.length;
         repaint();
     }
 
