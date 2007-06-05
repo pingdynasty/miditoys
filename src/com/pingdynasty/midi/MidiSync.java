@@ -8,7 +8,7 @@ public class MidiSync implements Runnable, Transmitter {
     private boolean running;
     private Receiver receiver; 
     private ShortMessage syncMessage;
-    private long latency = 2; // assume 2ms latency by default
+    private long latency = 4; // assume 4ms latency by default
 
     public MidiSync(int bpm){
         setBPM(bpm);
@@ -63,7 +63,7 @@ public class MidiSync implements Runnable, Transmitter {
         while(running){
             int tick;
             long target;
-            long period = (60000 / bpm) / 24;
+            long period = (60000 / bpm - latency) / 24;
             try{
                 tick = 0;
                 target = System.currentTimeMillis() + (60000 / bpm);
@@ -73,7 +73,7 @@ public class MidiSync implements Runnable, Transmitter {
                         receiver.send(syncMessage, -1);
                 }
                 target = target - System.currentTimeMillis();
-                System.err.println("adjusting "+target+"/"+period);
+//                 System.err.println("adjusting "+target+"/"+period);
                 if(target > latency)
                     Thread.sleep(target - latency);
                 if(receiver != null)
