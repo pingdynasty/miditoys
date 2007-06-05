@@ -11,6 +11,7 @@ public class BeatSlicer implements Receiver {
     private Slice[] slices;
     private int tick;
 
+    // alternative: subclass AudioInputStream to play only slice, use Clip to play stream.
     public class Slice implements LineListener {
         private int offset;
         private int len;
@@ -19,31 +20,42 @@ public class BeatSlicer implements Receiver {
         private int framesize;
         private int start;
         private int length;
-
         private int volume;
         private FloatControl volumeControl;
-
-//         private boolean playing;
+        private int pan;
+        private FloatControl panControl;
+        private int ramp;
         private boolean looping;
 
         public static final int MAX_VALUE = 127;
 
-        public Slice(byte[] data, SourceDataLine line){
+        public Slice(int start, int length){
+            this.start = start;
+            this.length = length;
+            volume = 108; // 108 is equivalent of 0-level Master Gain
+        }
+
+        public void setData(byte[] data, SourceDataLine line){
             this.data = data;
             this.line = line;
             framesize = line.getFormat().getFrameSize();
-            setStart(0);
-            setLength(MAX_VALUE);
-            System.out.println("frames: "+(data.length / line.getFormat().getFrameSize()));
+            setStart(start);
+            setLength(length);
             try{
                 volumeControl = (FloatControl)line.getControl(FloatControl.Type.MASTER_GAIN);
             }catch(IllegalArgumentException exc){
                 volumeControl = (FloatControl)line.getControl(FloatControl.Type.VOLUME);
             }
-            System.out.println("volume "+volumeControl);
+            panControl = (FloatControl)line.getControl(FloatControl.Type.PAN);
+//             if(volume == -1)
+//                 volume = (int)(((volumeControl.getValue() - volumeControl.getMinimum()) / (volumeControl.getMaximum() - volumeControl.getMinimum())) * 127.0f);
+//             else
+//                 setVolume(volume);
+//             System.out.println("volume "+volume+"/"+volumeControl.getValue());
 //             setVolume(MAX_VALUE);
 //             line.addLineListener(this);
         }
+
 
     public void update(LineEvent event){
         System.out.println("line event: "+event);
@@ -57,11 +69,12 @@ public class BeatSlicer implements Receiver {
         // start playing the clip from the start position
         public void start(){
             line.flush();
-//             System.out.println("writing "+len+"/"+line.available());
+//             if(ramp > 0)
+//                 volumeControl.shift(0, ((float)volume) * (volumeControl.getMaximum() - volumeControl.getMinimum()) / 127.0f + volumeControl.getMinimum(), ramp * 100);
+            // todo: FloatControl shift implementation does not work, implement with separate thread
             line.start();
             line.write(data, offset, len);
 //             line.drain();
-//             System.out.println("started "+offset+"/"+len+" "+line.getFramePosition());
         }
 
         public void stop(){
@@ -131,6 +144,23 @@ public class BeatSlicer implements Receiver {
             return volume;
         }
 
+        public void setPan(int pan){
+            this.pan = pan;
+            panControl.setValue(((float)pan) * (panControl.getMaximum() - panControl.getMinimum()) / 127.0f + panControl.getMinimum());
+        }
+
+        public int getPan(){
+            return pan;
+        }
+
+        public void setRamp(int ramp){
+            this.ramp = ramp;
+        }
+
+        public int getRamp(){
+            return ramp;
+        }
+
         public byte[] getData(){
             return data;
         }
@@ -140,10 +170,15 @@ public class BeatSlicer implements Receiver {
         }
     }
 
-    public BeatSlicer(File file, int length)
+    public BeatSlicer(int length)
         throws Exception {
         slices = new Slice[length];
+        for(int i=0; i<length; ++i)
+            slices[i] = new Slice(i * Slice.MAX_VALUE / length, Slice.MAX_VALUE / length);
+    }
 
+    public void loadSample(File file)
+        throws Exception {
         AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(file);
         if(audioInputStream == null)
             throw new IllegalArgumentException("invalid sound file "+file.getName());
@@ -161,7 +196,7 @@ public class BeatSlicer implements Receiver {
         DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
         System.out.println("data "+data.length+" "+format+" "+info);
 
-        for(int i=0; i<length; ++i){
+        for(int i=0; i<slices.length; ++i){
 //             AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(file);
 //             if(audioInputStream == null)
 //                 throw new IllegalArgumentException("invalid sound file "+file.getName());
@@ -169,9 +204,8 @@ public class BeatSlicer implements Receiver {
 //             Clip clip = (Clip)AudioSystem.getLine(info);
 //             clip.open(audioInputStream);
             SourceDataLine line = (SourceDataLine)AudioSystem.getLine(info);
-//             line.open(format);
-            line.open(format, data.length); // clip size as buffer size
-            slices[i] = new Slice(data, line);
+            line.open(format, data.length); // use total sample size as buffer size
+            slices[i].setData(data, line);
         }
     }
 
