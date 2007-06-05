@@ -83,6 +83,7 @@ public class RotaryEncoder extends MidiControl
     }
 
     public void updateGraphicalControl(){
+        knob.requestFocusInWindow();
         internalChange = true;
         float value = (float)(data2 - min) / (float)max;
         knob.setValue(value);
