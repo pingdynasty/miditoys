@@ -55,20 +55,18 @@ public class Knob extends JComponent  {
     
     public Knob() {	
 	focusColor = DEFAULT_FOCUS_COLOR;
-	
+        setFocusable(true);
 	setPreferredSize(PREF_SIZE);
 	hitArc.setAngleStart(235); // Degrees ??? Radians???
 	addMouseListener(new MouseAdapter() {
 		public void mousePressed(MouseEvent me) {
 		    dragpos = new Point(me.getX(), me.getY());
 		    startVal = val;
-
 		    // Fix last angle
 		    int xpos = middle - me.getX();
 		    int ypos = middle - me.getY();
 		    lastAng = Math.atan2(xpos, ypos);
-
-		    requestFocus();
+		    requestFocusInWindow();
 		}
 		
 		public void mouseClicked(MouseEvent me) {
@@ -77,7 +75,7 @@ public class Knob extends JComponent  {
 			hitArc.setAngleExtent(MULTIP * (ang-START_ANG)-10);
 			if  (hitArc.contains(me.getX(), me.getY())) {
 			    decValue();
-			} else incValue();	
+			}  else incValue();	
 		    }
 		}
 	    });
@@ -115,10 +113,7 @@ public class Knob extends JComponent  {
 	    });
 
 	// Let the user control the knob with the keyboard
-	addKeyListener(new KeyListener() {
-		
-		public void keyTyped(KeyEvent e) {}
-		public void keyReleased(KeyEvent e) {} 
+	addKeyListener(new KeyAdapter() {
 		public void keyPressed(KeyEvent e) { 
 		    int k = e.getKeyCode();
 		    if (k == e.VK_RIGHT || k == e.VK_UP)
@@ -145,16 +140,6 @@ public class Knob extends JComponent  {
     public int getDragType() {
 	return dragType;
     }
-    
-    public boolean isManagingFocus() {
-	return true;
-    }
-    
-    public boolean isFocusTraversable() {
-	return true;
-    }
-    
-    
     
     private void incValue() {
 	setValue(val + CLICK_SPEED);
