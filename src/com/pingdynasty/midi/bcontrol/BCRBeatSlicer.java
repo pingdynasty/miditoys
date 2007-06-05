@@ -14,9 +14,9 @@ import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.text.html.HTMLDocument;
 import javax.swing.event.*;
+// import javax.swing.filechooser.FileFilter;
 
 public class BCRBeatSlicer extends JPanel {
-//     private StepSequencer sequencer;
     private BeatSlicer slicer;
     private MidiControl[] controls;
     private MidiControl[] cc_controls; // quick index for CC controls
@@ -34,6 +34,17 @@ public class BCRBeatSlicer extends JPanel {
 //     private StepSequencerArpeggio midiInput;
     private ControlSurfaceHandler midiControl;
     private BCRStepSequencerConfiguration configuration;
+
+    public class WaveformFocusListener extends FocusAdapter {
+        private int slice;
+        WaveformFocusListener(int slice){
+            this.slice = slice;
+        }
+        public void focusGained(FocusEvent e){
+            if(!e.isTemporary())
+                waveform.setMark(slicer.getSlice(slice));
+        }
+    }
 
 //     public class AboutFrame extends JFrame {
 //         public AboutFrame(){
@@ -105,13 +116,13 @@ public class BCRBeatSlicer extends JPanel {
                         cc_controls[i+81].setValue(slicer.getSlice(i).getLength());
                     for(int i=0; i<width; ++i)
                         cc_controls[i+89].setValue(slicer.getSlice(i).getVolume());
-//                     for(int i=0; i<width; ++i)
-//                         cc_controls[i+89].setValue(sequencer.getStep(i).getDuration());
-//                     for(int i=0; i<width; ++i)
-//                         cc_controls[i+97].setValue(sequencer.getStep(i).getDelay());
+                    for(int i=0; i<width; ++i)
+                        cc_controls[i+89].setValue(slicer.getSlice(i).getPan());
                     status("mode A");
                     break;
                 case MODE_B :
+                    for(int i=0; i<width; ++i)
+                        cc_controls[i+89].setValue(slicer.getSlice(i).getRamp());
 //                     for(int i=0; i<width; ++i)
 //                         cc_controls[i+81].setValue(sequencer.getStep(i).getModulation());
 //                     for(int i=0; i<width; ++i)
@@ -129,12 +140,14 @@ public class BCRBeatSlicer extends JPanel {
         }
 
         public void action(int command, int channel, int data1, int data2){
-            status("action: "+command+" channel "+channel+
-                   " data1 "+data1+" data2 "+data2);
+//             status("action: "+command+" channel "+channel+
+//                    " data1 "+data1+" data2 "+data2);
             if(data1 >= 1 && data1 <= 8){
                 // push encoder turned
                 slicer.getSlice(data1 - 1).setStart(data2);
-                waveform.setStartMark(data2 * waveform.getWidth() / 127);
+                waveform.setMark(slicer.getSlice(data1 - 1));
+//                 waveform.setStartMark(data2 * waveform.getWidth() / 127);
+//                 waveform.setMarkLength(slicer.getSlice(data1 - 1).getLength() * waveform.getWidth() / 127);
                 status("frame start "+data2);
             }else if(data1 >= 33 && data1 <= 40){
                 // push encoder pressed
@@ -158,14 +171,24 @@ public class BCRBeatSlicer extends JPanel {
                 else
                     slicer.getSlice(data1 - 73).stop();
                 status("loop slice "+(data1 - 65));
-            }else if(data1 >= 105 && data1 <= 108){
-                // mode buttons - four buttons in bottom right corner
+            }else if(data1 >= 105 && data1 <= 106){
+                // mode buttons - top two of four buttons in bottom right corner
                 setMode(data1 - 105);
-                // turn off three other buttons and make sure this one is on
-                for(int i=105; i<=108; ++i)
+                // turn off the other mode buttons and make sure this one is on
+                for(int i=105; i<=106; ++i)
                     try{
                         cc_controls[i].setValue(mode == i - 105 ? 127 : 0);
                     }catch(Exception exc){exc.printStackTrace();}
+            }else if(data1 == 108){
+                // bottom right corner button
+                status("updating MIDI controller");
+                try{
+                    for(int i=0; i<controls.length; ++i)
+                        controls[i].updateMidiControl();
+                }catch(InvalidMidiDataException exc){
+                    exc.printStackTrace();
+                }
+                status("MIDI controller update complete");
             }else if(data1 == 115){
                 // store button
                 if(data2 < 64){
@@ -198,7 +221,8 @@ public class BCRBeatSlicer extends JPanel {
                         // top row simple encoder (below buttons)
                         slicer.getSlice(data1 - 81).setLength(data2);
 //                         waveform.setEndMark(data2 * waveform.getWidth() / 127);
-                        waveform.setMarkLength(data2 * waveform.getWidth() / 127);
+//                         waveform.setMarkLength(data2 * waveform.getWidth() / 127);
+                        waveform.setMark(slicer.getSlice(data1 - 81));
 //                         sequencer.getStep(data1 - 81).setVelocity(data2);
                     }else if(data1 >= 89 && data1 <= 96){
                         // second row simple encoder
@@ -206,6 +230,7 @@ public class BCRBeatSlicer extends JPanel {
 //                         sequencer.getStep(data1 - 89).setDuration(data2);
                     }else if(data1 >= 97 && data1 <= 104){
                         // third row simple encoder
+                        slicer.getSlice(data1 - 97).setPan(data2);
 //                         sequencer.getStep(data1 - 97).setDelay(data2);
                     }
                     break;
@@ -245,10 +270,9 @@ public class BCRBeatSlicer extends JPanel {
                 }catch(Exception exc){
                     exc.printStackTrace();
                 }
-            }else{
-                System.out.println("midi message "+message);
+//             }else{
 //                 System.out.println("midi message "+message);
-                return;
+//                 return;
             }
         }
 
@@ -294,7 +318,7 @@ public class BCRBeatSlicer extends JPanel {
         int channel = 0;
 
         // create beat slicer
-        slicer = new BeatSlicer(new File("bass_sanity.wav"), width);
+        slicer = new BeatSlicer(width);
 
         // statusbar
         statusbar = new JLabel();
@@ -305,8 +329,7 @@ public class BCRBeatSlicer extends JPanel {
         mainarea.setLayout(new BoxLayout(mainarea, BoxLayout.Y_AXIS));
 
         // add waveform graph
-        waveform = new WaveformPanel(600, 50);
-        waveform.setData(slicer.getSlice(0).getData(), slicer.getSlice(0).getAudioFormat());
+        waveform = new WaveformPanel(500, 50);
         mainarea.add(waveform);
 
         JPanel rows = new JPanel();
@@ -316,10 +339,13 @@ public class BCRBeatSlicer extends JPanel {
         List list = new ArrayList();
         for(int i=0; i<width; ++i){
             MidiControl control = 
-                new RotaryEncoder(1+i, ShortMessage.CONTROL_CHANGE, channel, 1+i, 0,
+                new RotaryEncoder(1+i, ShortMessage.CONTROL_CHANGE, channel, 1+i,
+                                  slicer.getSlice(i).getStart(),
                                   "slice "+(1+i)+" start position");
             list.add(control);
             rows.add(control.getComponent());
+            control.getComponent().addFocusListener(new WaveformFocusListener(i));
+
             // add 'invisible' button to back up the push encoder
             // todo: replace with PushEncoder class that can handle double-click as press
             TriggerButton trigger = new TriggerButton(1+i, ShortMessage.CONTROL_CHANGE, channel, 33+i, 0, "not in use");
@@ -354,28 +380,34 @@ public class BCRBeatSlicer extends JPanel {
         // first row of simple encoders (below buttons)
         for(int i=0; i<width; ++i){
             MidiControl control = 
-                new RotaryEncoder(33+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 127,
+                new RotaryEncoder(33+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 
+                                  slicer.getSlice(i).getLength(),
                                   "slice "+(1+i)+" length");
             list.add(control);
             rows.add(control.getComponent());
+            control.getComponent().addFocusListener(new WaveformFocusListener(i));
         }
 
         // second row of simple encoders
         for(int i=0; i<width; ++i){
             MidiControl control = 
-                new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 80,
+                new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 
+                                  slicer.getSlice(i).getVolume(),
                                   "step "+(1+i)+" volume");
             list.add(control);
             rows.add(control.getComponent());
+            control.getComponent().addFocusListener(new WaveformFocusListener(i));
         }
 
         // third row of simple encoders
         for(int i=0; i<width; ++i){
             MidiControl control = 
-                new RotaryEncoder(49+i, ShortMessage.CONTROL_CHANGE, channel, 97+i, 0,
-                                  "step "+(1+i)+" delay");
+                new RotaryEncoder(49+i, ShortMessage.CONTROL_CHANGE, channel, 97+i, 
+                                  slicer.getSlice(i).getPan(),
+                                  "step "+(1+i)+" stereo pan");
             list.add(control);
             rows.add(control.getComponent());
+            control.getComponent().addFocusListener(new WaveformFocusListener(i));
         }
         mainarea.add(rows);
 
@@ -418,7 +450,7 @@ public class BCRBeatSlicer extends JPanel {
 
         // four simple buttons bottom right
         toggles = new ToggleButton[4];
-        tooltips = new String[]{"mode A", "mode B", "not in use", "not in use"};
+        tooltips = new String[]{"mode A", "mode B", "not in use", "synchronise MIDI controller"};
         for(int i=0; i<4; ++i){
             toggles[i] = new ToggleButton(49+i, ShortMessage.CONTROL_CHANGE, channel, 105+i, 
                                           eventHandler.getMode() == i ? 127 : 0, tooltips[i]);
@@ -587,8 +619,17 @@ public class BCRBeatSlicer extends JPanel {
     public JMenuBar getMenuBar(){
         // add menu bar
         JMenuBar menubar = new JMenuBar();
-        JMenu menu = new JMenu("bcr beats");
-        AbstractAction action;//  = new AbstractAction("about"){
+        JMenu menu;
+        AbstractAction action;
+
+        menu = new JMenu("bcr beats");
+        action = new AbstractAction("load sample"){
+                public void actionPerformed(ActionEvent event) {
+                    chooseSampleFile();
+                }
+            };
+        menu.add(new JMenuItem(action));
+//        AbstractAction action  = new AbstractAction("about"){
 //                 public void actionPerformed(ActionEvent event) {
 //                     JFrame frame = new AboutFrame();
 //                     frame.setVisible(true);
@@ -610,9 +651,54 @@ public class BCRBeatSlicer extends JPanel {
 //                 }
 //             };
 //         menu.add(action);
+        action = new AbstractAction("quit"){
+                public void actionPerformed(ActionEvent event) {
+                    System.exit(0);
+                }
+            };
+        menu.add(new JMenuItem(action));
         menubar.add(menu);
         return menubar;
     }
+
+    public void chooseSampleFile(){
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Load Sample");
+        // Choose only files, not directories
+        fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+        // Start in current directory
+//         fc.setCurrentDirectory(new File("."));
+
+        // Set filter for Java source files.
+//         FileFilter filter = new FileFilter(){
+//                 public boolean accept(File f) {
+//                     return f.getName ().toLowerCase().endsWith(".wav")
+//                         || f.isDirectory();
+//                 }
+//             };
+//         fc.setFileFilter(filter);
+
+        // Now open chooser
+        int result = fc.showOpenDialog(this);
+        if(result == JFileChooser.CANCEL_OPTION) {
+            return;
+        }else if (result == JFileChooser.APPROVE_OPTION) {
+            File file = fc.getSelectedFile();
+            loadSample(file);
+        }
+    }
+
+    public void loadSample(File file){
+        try{
+            slicer.loadSample(file);
+        }catch(Exception exc){
+            status("failed to load sample "+file.getName()+": "+exc.getMessage());
+        }
+        waveform.setData(slicer.getSlice(0).getData(), slicer.getSlice(0).getAudioFormat());
+        status("loaded sample from file "+file.getName());
+    }
+
 
     public void destroy(){
 //         midiInput.close();
@@ -623,6 +709,9 @@ public class BCRBeatSlicer extends JPanel {
     public static void main(String[] args)
         throws Exception {
         BCRBeatSlicer beats = new BCRBeatSlicer();
+        if(args.length > 0)
+            beats.loadSample(new File(args[0]));
+
         beats.initialiseMidiDevices();
         // create frame
         JFrame frame = new JFrame("bcr beats");
