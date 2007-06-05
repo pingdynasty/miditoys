@@ -8,7 +8,7 @@ import java.util.Locale;
 import java.util.Properties;
 import com.pingdynasty.midi.*;
 
-public class BCRKeyboard extends Panel {
+public class BCRKeyboard extends JPanel {
     private ReceiverPlayer player;
     private ChannelPanel channelpanel;
     private boolean noteOn[] = new boolean[1024]; // keep track of notes that are on
@@ -143,7 +143,7 @@ public class BCRKeyboard extends Panel {
         statusbar.setText(msg);
     }
 
-    public static void main(String[  ] args) 
+    public static void main(String[] args) 
         throws MidiUnavailableException, Exception {
 
         // choose first available Syntheziser or Receiver device
