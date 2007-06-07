@@ -33,6 +33,7 @@ public class BeatSlicer implements Receiver {
             this.start = start;
             this.length = length;
             volume = 108; // 108 is equivalent of 0-level Master Gain
+            pan = 63; // center stereo pan
         }
 
         public void setData(byte[] data, SourceDataLine line){
@@ -251,6 +252,20 @@ public class BeatSlicer implements Receiver {
 //                 System.err.println("retriggered");
                 tick = 0;
             }
+            break;
+        }
+        case ShortMessage.NOTE_ON:{
+            int slice = msg.getData1() - 60;
+            System.out.println("note on: "+msg.getData1());
+            if(slice > 0 && slice < slices.length)
+                slices[slice].start();
+            break;
+        }
+        case ShortMessage.NOTE_OFF:{
+            int slice = msg.getData1() - 60;
+            System.out.println("note off: "+msg.getData1());
+            if(slice > 0 && slice < slices.length)
+                slices[slice].stop();
             break;
         }
         }

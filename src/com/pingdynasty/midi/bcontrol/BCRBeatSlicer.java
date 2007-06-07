@@ -30,7 +30,7 @@ public class BCRBeatSlicer extends JPanel {
     private MidiSync midiSync;
 
     // MIDI handlers
-    private ReceiverPlayer midiOutput;
+//     private ReceiverPlayer midiOutput;
 //     private StepSequencerArpeggio midiInput;
     private ControlSurfaceHandler midiControl;
     private BCRStepSequencerConfiguration configuration;
@@ -313,7 +313,7 @@ public class BCRBeatSlicer extends JPanel {
     public BCRBeatSlicer()
         throws Exception{
         super(new BorderLayout());
-        midiOutput = new SchedulingPlayer(null);
+//         midiOutput = new SchedulingPlayer(null);
         // the channel that all controls are tuned to listen and talk on
         int channel = 0;
 
@@ -552,11 +552,12 @@ public class BCRBeatSlicer extends JPanel {
     public void updateMidiDevices()
         throws MidiUnavailableException {
         // update devices from configuration settings
-        MidiDevice device;//  = configuration.getMidiInput();
-//         if(device != null){
-//             device.open();
+        MidiDevice device = configuration.getMidiInput();
+        if(device != null){
+            device.open();
+            device.getTransmitter().setReceiver(slicer);
 //             midiInput.setTransmitter(device.getTransmitter());
-//         }
+        }
 
         device = configuration.getMidiControlInput();
         if(device != null){
@@ -564,13 +565,13 @@ public class BCRBeatSlicer extends JPanel {
             midiControl.setTransmitter(device.getTransmitter());
         }
 
-        device = configuration.getMidiOutput();
-        if(device != null){
-            device.open();
-            midiOutput.setReceiver(device.getReceiver());
-            midiOutput.setChannel(configuration.getChannel());
-            status("MIDI output: "+device.getDeviceInfo().getName());
-        }
+//         device = configuration.getMidiOutput();
+//         if(device != null){
+//             device.open();
+//             midiOutput.setReceiver(device.getReceiver());
+//             midiOutput.setChannel(configuration.getChannel());
+//             status("MIDI output: "+device.getDeviceInfo().getName());
+//         }
 
         device = configuration.getMidiControlOutput();
         if(device != null){
@@ -702,7 +703,8 @@ public class BCRBeatSlicer extends JPanel {
 
     public void destroy(){
 //         midiInput.close();
-        midiOutput.close();
+//         midiOutput.close();
+        slicer.close();
         midiControl.close();
     }
 
