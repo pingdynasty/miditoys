@@ -92,14 +92,12 @@ public class MidiKeyboardListener implements KeyListener {
 
     protected void noteon(int note)
         throws InvalidMidiDataException{
-//         System.out.println("note on: "+note);
         msg.setMessage(ShortMessage.NOTE_ON, channel, note, velocity);
         receiver.send(msg, -1);
     }
 
     protected void noteoff(int note)
         throws InvalidMidiDataException{
-//         System.out.println("note on: "+note);
         msg.setMessage(ShortMessage.NOTE_OFF, channel, note, velocity);
         receiver.send(msg, -1);
     }
