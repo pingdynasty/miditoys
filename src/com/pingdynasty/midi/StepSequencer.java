@@ -1,6 +1,8 @@
 package com.pingdynasty.midi;
 
 import javax.sound.midi.*;
+import javax.swing.JComponent;
+import javax.swing.JProgressBar;
 
 public class StepSequencer implements Runnable {
 
@@ -12,12 +14,12 @@ public class StepSequencer implements Runnable {
     private long next; // dispatch time for next note
     private static final long MARGIN = 5; // 5ms margin when dispatching notes
 
+    private JProgressBar progress;
+
     public StepSequencer(Player player, int length){
-        this.player = player;
-        steps = new Step[0];
-        setLength(length);
-        thread = new Thread(this);
-        thread.start();
+        this(player, new Step[length]);
+        for(int i=0; i<length; ++i)
+            steps[i] = new Step();
     }
 
     public StepSequencer(Player player, Step[] steps){
@@ -25,6 +27,14 @@ public class StepSequencer implements Runnable {
         this.steps = steps;
         thread = new Thread(this);
         thread.start();
+
+        progress = new JProgressBar(JProgressBar.HORIZONTAL, 0, steps.length * 24);
+        progress.setValue(0);
+    }
+
+
+    public JComponent getProgressBar(){
+        return progress;
     }
 
     public boolean isStarted(){
@@ -73,6 +83,7 @@ public class StepSequencer implements Runnable {
      */
     public void play(){
         long now; // = System.currentTimeMillis();
+        progress.setValue(0);
         for(int i=0; i<steps.length; ++i){
             now = System.currentTimeMillis();
 //             System.out.println("diff: "+(now-next));
@@ -86,6 +97,7 @@ public class StepSequencer implements Runnable {
                 }catch(InterruptedException exc){
                     return;
                 }
+            progress.setValue(i*24);
             play(steps[i]);
             // set the delivery time for next step
             next = now + period - (now - next);
@@ -94,6 +106,7 @@ public class StepSequencer implements Runnable {
 //                     System.out.println("sleep "+period+"/24="+(period/24));
                     Thread.sleep(period / 24);
                     now = System.currentTimeMillis() + MARGIN;
+                    progress.setValue(progress.getValue() + 1);
                 }
             }catch(InterruptedException exc){
                 return;

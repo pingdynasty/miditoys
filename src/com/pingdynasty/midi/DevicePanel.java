@@ -14,6 +14,8 @@ public class DevicePanel {
     private String[] outputnames;
     private Map devices;
     private JFrame frame;
+    private Action updateAction; // action to perform when configuration is saved/updated
+    private Action cancelAction; // action to perform when configuration is cancelled
 
     class DeviceActionListener implements ActionListener {
         MidiDevice device;
@@ -23,11 +25,21 @@ public class DevicePanel {
             this.name = name;
         }
         public void actionPerformed(ActionEvent event) {
-            try{
-                device.open();
+            MidiDevice previous = getDevice(name);
+            if(previous == device)
+                return;
+            if(previous != null)
+                previous.close();
+            if(device == null){
+                devices.remove(name);
+                System.out.println(name+": disabled");
+            }else{
+//             try{
+//                 device.open();
                 devices.put(name, device);
                 System.out.println(name+": "+device.getDeviceInfo().getName());
-            }catch(Exception exc){exc.printStackTrace();}
+//             }catch(Exception exc){exc.printStackTrace();}
+            }
         }
     }
 
@@ -37,16 +49,28 @@ public class DevicePanel {
         devices = new HashMap();
     }
 
+    public void setUpdateAction(Action updateAction){
+        this.updateAction = updateAction;
+    }
+
+    public void setCancelAction(Action cancelAction){
+        this.cancelAction = cancelAction;
+    }
+
     public JPanel getPanel()
         throws MidiUnavailableException {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         if(inputnames.length > 0){
-            content.add(new JLabel("Input"));
+            JLabel label = new JLabel("Input");
+            label.setHorizontalAlignment(SwingConstants.LEFT);
+            content.add(label);
             content.add(getPanel(inputnames, true));
         }
         if(outputnames.length > 0){
-            content.add(new JLabel("Output"));
+            JLabel label = new JLabel("Output");
+            label.setHorizontalAlignment(SwingConstants.LEFT);
+            content.add(label);
             content.add(getPanel(outputnames, false));
         }
         return content;
@@ -68,16 +92,27 @@ public class DevicePanel {
         list.toArray(mididevices);
 
         JPanel content = new JPanel();
-        content.setLayout(new GridLayout(mididevices.length+1, names.length+1));
+        content.setLayout(new GridLayout(mididevices.length+2, names.length+1));
 
         ButtonGroup[] groups = new ButtonGroup[names.length];
         for(int i=0; i<names.length; ++i)
             groups[i] = new ButtonGroup();
 
-        // first row
+        // first row labels
         content.add(new JLabel());
         for(int i=0; i<names.length; ++i)
             content.add(new JLabel(names[i]));
+
+        // second row 'none' buttons
+        content.add(new JLabel("none"));
+        for(int i=0; i<names.length; ++i){
+            JRadioButton button = new JRadioButton();
+            button.addActionListener(new DeviceActionListener(null, names[i]));
+            if(getDevice(names[i]) == null)
+                button.setSelected(true);
+            groups[i].add(button);
+            content.add(button);
+        }
 
         // device rows
         for(int j=0; j<mididevices.length; ++j){
@@ -85,7 +120,7 @@ public class DevicePanel {
                 mididevices[j].getDeviceInfo().getName();
 //                 + " " + mididevices[j].getDeviceInfo().getDescription()
             content.add(new JLabel(desc));
-
+            // input columns
             for(int i=0; i<names.length; ++i){
                 JRadioButton button = new JRadioButton();
                 button.addActionListener(new DeviceActionListener(mididevices[j], names[i]));
@@ -104,13 +139,26 @@ public class DevicePanel {
         throws MidiUnavailableException {
         if(frame == null){
             JPanel panel = getPanel();
-            JButton close = new JButton("close");
-            close.addActionListener(new AbstractAction(){
+            Box box = Box.createHorizontalBox();
+            JButton button = new JButton("update");
+            if(updateAction != null)
+                button.addActionListener(updateAction);
+            button.addActionListener(new AbstractAction(){
                     public void actionPerformed(ActionEvent event){
                         frame.setVisible(false);
                     }
                 });
-            panel.add(close);
+            box.add(button);
+            button = new JButton("cancel");
+            if(cancelAction != null)
+                button.addActionListener(cancelAction);
+            button.addActionListener(new AbstractAction(){
+                    public void actionPerformed(ActionEvent event){
+                        frame.setVisible(false);
+                    }
+                });
+            box.add(button);
+            panel.add(box);
             frame = new JFrame("MIDI configuration");
             frame.setContentPane(panel);
             frame.pack();

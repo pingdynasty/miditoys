@@ -47,20 +47,19 @@ public class BCRStepSequencerConfiguration extends DevicePanel  {
     }
 
     public JPanel getPanel()
-        throws MidiUnavailableException {
+        throws MidiUnavailableException{
 
         // initialise MIDI out
         MidiDevice device = DeviceLocator.getDevice(Synthesizer.class);
         setDevice(midiOutputName, device);
 
-//         // try to initialise BCR
-//         device = DeviceLocator.getDevice("Port 1 (MidiIN:3)");
-//         setDevice(midiControlInputName, device);
-//         device = DeviceLocator.getDevice("Port 1 (MidiOUT:3)");
-//         setDevice(midiControlOutputName, device);
+        // try to initialise BCR
+        device = DeviceLocator.getDevice("Port 1 (MidiIN:3)");
+        setDevice(midiControlInputName, device);
+        device = DeviceLocator.getDevice("Port 1 (MidiOUT:3)");
+        setDevice(midiControlOutputName, device);
 
         JPanel panel = super.getPanel();
-//         Box box = Box.createHorizontalBox();
 
         // doSysex configuration
         JPanel combo = new JPanel();

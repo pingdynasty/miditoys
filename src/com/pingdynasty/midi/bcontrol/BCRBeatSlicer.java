@@ -26,14 +26,9 @@ public class BCRBeatSlicer extends JPanel {
     private EventHandler eventHandler = new EventHandler();
     private WaveformPanel waveform;
 
-//     private Transmitter midiSync;
-    private MidiSync midiSync;
-
-    // MIDI handlers
-//     private ReceiverPlayer midiOutput;
-//     private StepSequencerArpeggio midiInput;
+    private MidiSync midiSync; // internal MIDI sync generator
     private ControlSurfaceHandler midiControl;
-    private BCRStepSequencerConfiguration configuration;
+    private BCRBeatSlicerConfiguration configuration;
 
     public class WaveformFocusListener extends FocusAdapter {
         private int slice;
@@ -46,54 +41,54 @@ public class BCRBeatSlicer extends JPanel {
         }
     }
 
-//     public class AboutFrame extends JFrame {
-//         public AboutFrame(){
-//             super("about");
-//             Icon icon = ResourceLocator.getIcon("bcr-steps/about.png");
-//             getContentPane().add(new JLabel(icon));
-//             addMouseListener(new MouseAdapter(){
-//                     public void mouseClicked(MouseEvent e){
-//                         setVisible(false);
-//                         dispose();
-//                     }
-//                 });
-//             setResizable(false);
-//             setUndecorated(true);
-//             getRootPane().setWindowDecorationStyle(JRootPane.FRAME);
-//             pack();
-//             Dimension dim = getToolkit().getScreenSize();
-//             setLocation(dim.width/2 - getWidth()/2, dim.height/2 - getHeight()/2);
-//         }
-//     }
+    public class AboutFrame extends JFrame {
+        public AboutFrame(){
+            super("about");
+            Icon icon = ResourceLocator.getIcon("bcr-beats/about.png");
+            getContentPane().add(new JLabel(icon));
+            addMouseListener(new MouseAdapter(){
+                    public void mouseClicked(MouseEvent e){
+                        setVisible(false);
+                        dispose();
+                    }
+                });
+            setResizable(false);
+            setUndecorated(true);
+            getRootPane().setWindowDecorationStyle(JRootPane.FRAME);
+            pack();
+            Dimension dim = getToolkit().getScreenSize();
+            setLocation(dim.width/2 - getWidth()/2, dim.height/2 - getHeight()/2);
+        }
+    }
 
-//     public class HelpFrame extends JFrame {
-//         public HelpFrame(){
-//             super("help");
-//             try{
-//                 URL url = ResourceLocator.getResourceURL("bcr-steps/help.html");
-//                 JEditorPane text = new JEditorPane(url);
-//                 text.setEditable(false);
-//                 text.setMargin(new Insets(8, 8, 16, 16));
-//                 text.addHyperlinkListener(new HyperlinkListener() {
-//                         public void hyperlinkUpdate(HyperlinkEvent e){
-//                             if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
-//                                 JEditorPane pane = (JEditorPane)e.getSource();
-//                                 try{
-//                                     pane.setPage(e.getURL());
-//                                 }catch(Exception exc){
-//                                     status(exc.toString());
-//                                     exc.printStackTrace();
-//                                 }
-//                             }
-//                         }
-//                     });
-//                 getContentPane().add(new JScrollPane(text));
-//             }catch(Exception exc){exc.printStackTrace();}
-//             setSize(500, 500);
-//             Dimension dim = getToolkit().getScreenSize();
-//             setLocation(dim.width/2 - getWidth()/2, dim.height/2 - getHeight()/2);
-//         }
-//     }
+    public class HelpFrame extends JFrame {
+        public HelpFrame(){
+            super("help");
+            try{
+                URL url = ResourceLocator.getResourceURL("bcr-beats/help.html");
+                JEditorPane text = new JEditorPane(url);
+                text.setEditable(false);
+                text.setMargin(new Insets(8, 8, 16, 16));
+                text.addHyperlinkListener(new HyperlinkListener() {
+                        public void hyperlinkUpdate(HyperlinkEvent e){
+                            if(e.getEventType() == HyperlinkEvent.EventType.ACTIVATED){
+                                JEditorPane pane = (JEditorPane)e.getSource();
+                                try{
+                                    pane.setPage(e.getURL());
+                                }catch(Exception exc){
+                                    status(exc.toString());
+                                    exc.printStackTrace();
+                                }
+                            }
+                        }
+                    });
+                getContentPane().add(new JScrollPane(text));
+            }catch(Exception exc){exc.printStackTrace();}
+            setSize(500, 500);
+            Dimension dim = getToolkit().getScreenSize();
+            setLocation(dim.width/2 - getWidth()/2, dim.height/2 - getHeight()/2);
+        }
+    }
 
     public class EventHandler implements Control.Callback {
         private int mode = MODE_A;
@@ -148,7 +143,7 @@ public class BCRBeatSlicer extends JPanel {
                 waveform.setMark(slicer.getSlice(data1 - 1));
 //                 waveform.setStartMark(data2 * waveform.getWidth() / 127);
 //                 waveform.setMarkLength(slicer.getSlice(data1 - 1).getLength() * waveform.getWidth() / 127);
-                status("frame start "+data2);
+//                 status("frame start "+data2);
             }else if(data1 >= 33 && data1 <= 40){
                 // push encoder pressed
 //                 if(data2 > 63)
@@ -313,12 +308,14 @@ public class BCRBeatSlicer extends JPanel {
     public BCRBeatSlicer()
         throws Exception{
         super(new BorderLayout());
-//         midiOutput = new SchedulingPlayer(null);
         // the channel that all controls are tuned to listen and talk on
-        int channel = 0;
+        int channel = 0; // 0 is midi channel 1
+        int bpm = 120; // default beats per minute
 
-        // create beat slicer
         slicer = new BeatSlicer(width);
+        midiControl = new ControlSurfaceHandler();
+        midiSync = new MidiSync(bpm);
+        midiSync.setReceiver(slicer);
 
         // statusbar
         statusbar = new JLabel();
@@ -329,7 +326,7 @@ public class BCRBeatSlicer extends JPanel {
         mainarea.setLayout(new BoxLayout(mainarea, BoxLayout.Y_AXIS));
 
         // add waveform graph
-        waveform = new WaveformPanel(500, 50);
+        waveform = new WaveformPanel(500, 100);
         mainarea.add(waveform);
 
         JPanel rows = new JPanel();
@@ -413,12 +410,12 @@ public class BCRBeatSlicer extends JPanel {
 
         this.add(mainarea, BorderLayout.CENTER);
 
+        // buttonarea comprises the content in the right hand column of the screen
         Box buttonarea = new Box(BoxLayout.Y_AXIS);
-//         JLabel label = new JLabel(ResourceLocator.getIcon("bcr-steps/icon.png"));
-//         label.setHorizontalAlignment(SwingConstants.LEFT);
-//         buttonarea.add(label);
-        buttonarea.add(buttonarea.createVerticalStrut(50));
-        buttonarea.add(buttonarea.createVerticalStrut(50));
+        JLabel label = new JLabel(ResourceLocator.getIcon("bcr-beats/icon.png"));
+        label.setHorizontalAlignment(SwingConstants.LEFT);
+        buttonarea.add(label);
+        buttonarea.add(buttonarea.createVerticalStrut(100));
 
         // encoder buttons
         ToggleButton[] toggles = new ToggleButton[4];
@@ -468,21 +465,8 @@ public class BCRBeatSlicer extends JPanel {
             if(controls[i].getCommand() == ShortMessage.CONTROL_CHANGE)
                 cc_controls[controls[i].getData1()] = controls[i];
 
-        // BPM control
-        int bpm = 120;
+        // BPM slider
         slider = new JSlider(JSlider.HORIZONTAL, 20, 380, bpm);
-        midiSync = new MidiSync(bpm);
-        midiSync.setReceiver(slicer);
-
-//         sequencer = new StepSequencer(midiOutput, width);
-//         midiInput = new StepSequencerArpeggio(sequencer);
-        midiControl = new ControlSurfaceHandler();
-
-        for(int i=0; i<controls.length; ++i)
-            controls[i].setCallback(eventHandler);
-
-                             
-        //Turn on labels at major tick marks.
         slider.setMajorTickSpacing(60);
         slider.setMinorTickSpacing(10);
         slider.setPaintTicks(true);
@@ -497,6 +481,16 @@ public class BCRBeatSlicer extends JPanel {
                 }
             });
         this.add(slider, BorderLayout.NORTH);
+
+        // we attach a midi keyboard listener to all components
+        MidiKeyboardListener listener = new MidiKeyboardListener();
+        listener.setReceiver(slicer);
+        this.addKeyListener(listener);
+        slider.addKeyListener(listener);
+        for(int i=0; i<controls.length; ++i){
+            controls[i].setCallback(eventHandler);
+            controls[i].getComponent().addKeyListener(listener);
+        }
     }
 
     private void addFourButtons(JComponent component, MidiControl[] controls){
@@ -528,23 +522,30 @@ public class BCRBeatSlicer extends JPanel {
     public void initialiseMidiDevices()
         throws MidiUnavailableException {
 
-        configuration = new BCRStepSequencerConfiguration();
-
-//         lock into MIDI config frame
-        configuration.getFrame().addWindowListener(new WindowAdapter() {
-                public void windowDeactivated(WindowEvent e){
+        configuration = new BCRBeatSlicerConfiguration();
+        configuration.setUpdateAction(new AbstractAction(){
+                public void actionPerformed(ActionEvent e){
                     try{
-                        System.out.println("deactivated");
-                        updateMidiDevices();
-                    }catch(Exception exc){exc.printStackTrace();}
-                }
-                public void windowClosing(WindowEvent e){
-                    try{
-                        System.out.println("closed");
                         updateMidiDevices();
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             });
+
+// //         lock into MIDI config frame
+//         configuration.getFrame().addWindowListener(new WindowAdapter() {
+//                 public void windowDeactivated(WindowEvent e){
+//                     try{
+//                         System.out.println("deactivated");
+//                         updateMidiDevices();
+//                     }catch(Exception exc){exc.printStackTrace();}
+//                 }
+//                 public void windowClosing(WindowEvent e){
+//                     try{
+//                         System.out.println("closed");
+//                         updateMidiDevices();
+//                     }catch(Exception exc){exc.printStackTrace();}
+//                 }
+//             });
 
         updateMidiDevices();
     }
@@ -556,7 +557,6 @@ public class BCRBeatSlicer extends JPanel {
         if(device != null){
             device.open();
             device.getTransmitter().setReceiver(slicer);
-//             midiInput.setTransmitter(device.getTransmitter());
         }
 
         device = configuration.getMidiControlInput();
@@ -624,19 +624,13 @@ public class BCRBeatSlicer extends JPanel {
         AbstractAction action;
 
         menu = new JMenu("bcr beats");
-        action = new AbstractAction("load sample"){
+        action  = new AbstractAction("about"){
                 public void actionPerformed(ActionEvent event) {
-                    chooseSampleFile();
+                    JFrame frame = new AboutFrame();
+                    frame.setVisible(true);
                 }
             };
-        menu.add(new JMenuItem(action));
-//        AbstractAction action  = new AbstractAction("about"){
-//                 public void actionPerformed(ActionEvent event) {
-//                     JFrame frame = new AboutFrame();
-//                     frame.setVisible(true);
-//                 }
-//             };
-//         menu.add(action);
+        menu.add(action);
         action = new AbstractAction("setup"){
                 public void actionPerformed(ActionEvent event) {
                     try{
@@ -645,13 +639,19 @@ public class BCRBeatSlicer extends JPanel {
                 }
             };
         menu.add(new JMenuItem(action));
-//         action = new AbstractAction("help"){
-//                 public void actionPerformed(ActionEvent event) {
-//                     JFrame frame = new HelpFrame();
-//                     frame.setVisible(true);
-//                 }
-//             };
-//         menu.add(action);
+        action = new AbstractAction("load sample"){
+                public void actionPerformed(ActionEvent event) {
+                    chooseSampleFile();
+                }
+            };
+        menu.add(new JMenuItem(action));
+        action = new AbstractAction("help"){
+                public void actionPerformed(ActionEvent event) {
+                    JFrame frame = new HelpFrame();
+                    frame.setVisible(true);
+                }
+            };
+        menu.add(action);
         action = new AbstractAction("quit"){
                 public void actionPerformed(ActionEvent event) {
                     System.exit(0);
@@ -720,7 +720,8 @@ public class BCRBeatSlicer extends JPanel {
         frame.setJMenuBar(beats.getMenuBar());
         // configure frame
 //         frame.pack();
-        frame.setSize(625, 500);
+
+        frame.setSize(625, 550);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setContentPane(beats);
         frame.setVisible(true);

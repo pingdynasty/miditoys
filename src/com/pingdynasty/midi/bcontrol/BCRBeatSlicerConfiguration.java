@@ -51,7 +51,6 @@ public class BCRBeatSlicerConfiguration extends DevicePanel  {
         setDevice(midiControlOutputName, device);
 
         JPanel panel = super.getPanel();
-//         Box box = Box.createHorizontalBox();
 
         // doSysex configuration
         JPanel combo = new JPanel();

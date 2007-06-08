@@ -44,7 +44,7 @@ public class BCRStepSequencer extends JPanel {
     private ReceiverPlayer midiOutput;
     private StepSequencerArpeggio midiInput;
     private ControlSurfaceHandler midiControl;
-    private BCRStepSequencerConfiguration devicepanel;
+    private BCRStepSequencerConfiguration configuration;
 
     public class AboutFrame extends JFrame {
         public AboutFrame(){
@@ -281,6 +281,10 @@ public class BCRStepSequencer extends JPanel {
     public BCRStepSequencer(){
         super(new BorderLayout());
         midiOutput = new SchedulingPlayer(null);
+        sequencer = new StepSequencer(midiOutput, width);
+        midiInput = new StepSequencerArpeggio(sequencer);
+        midiControl = new ControlSurfaceHandler();
+
         // the channel that all controls are tuned to listen and talk on
         int channel = 0;
 
@@ -291,6 +295,10 @@ public class BCRStepSequencer extends JPanel {
 
         JPanel mainarea = new JPanel();
         mainarea.setLayout(new BoxLayout(mainarea, BoxLayout.Y_AXIS));
+
+        // add stepsequencer visualisation
+        mainarea.add(sequencer.getProgressBar());
+
         JPanel rows = new JPanel();
         rows.setLayout(new BoxLayout(rows, BoxLayout.X_AXIS));
 //         JPanel mainarea = new JPanel(new GridLayout(0, width));
@@ -411,10 +419,6 @@ public class BCRStepSequencer extends JPanel {
             if(controls[i].getCommand() == ShortMessage.CONTROL_CHANGE)
                 cc_controls[controls[i].getData1()] = controls[i];
 
-        sequencer = new StepSequencer(midiOutput, width);
-        midiInput = new StepSequencerArpeggio(sequencer);
-        midiControl = new ControlSurfaceHandler();
-
         for(int i=0; i<controls.length; ++i)
             controls[i].setCallback(eventHandler);
 
@@ -429,10 +433,10 @@ public class BCRStepSequencer extends JPanel {
         slider.addChangeListener(new ChangeListener(){
                 public void stateChanged(ChangeEvent event) {
                     JSlider source = (JSlider)event.getSource();
-                    if(!source.getValueIsAdjusting()){
+//                     if(!source.getValueIsAdjusting()){
                         int bpm = (int)source.getValue();
                         sequencer.setPeriod(60000 / bpm);
-                    }
+//                     }
                 }
             });
         this.add(slider, BorderLayout.NORTH);
@@ -466,62 +470,52 @@ public class BCRStepSequencer extends JPanel {
 
     public void initialiseMidiDevices()
         throws MidiUnavailableException {
-
-        devicepanel = new BCRStepSequencerConfiguration();
-
-        // lock into MIDI config frame
-        devicepanel.getFrame().addWindowListener(new WindowAdapter() {
-                public void windowDeactivated(WindowEvent e){
+        configuration = new BCRStepSequencerConfiguration();
+        configuration.setUpdateAction(new AbstractAction(){
+                public void actionPerformed(ActionEvent e){
                     try{
-                        System.out.println("deactivated");
-                        updateMidiDevices();
-                    }catch(Exception exc){exc.printStackTrace();}
-                }
-                public void windowClosing(WindowEvent e){
-                    try{
-                        System.out.println("closed");
                         updateMidiDevices();
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             });
-
+        configuration.getFrame(); // runs configuration initialisation
         updateMidiDevices();
     }
 
     public void updateMidiDevices()
         throws MidiUnavailableException {
-        // update devices from devicepanel settings
-        MidiDevice device = devicepanel.getMidiInput();
+        // update devices from configuration settings
+        MidiDevice device = configuration.getMidiInput();
         if(device != null){
             device.open();
             midiInput.setTransmitter(device.getTransmitter());
         }
 
-        device = devicepanel.getMidiControlInput();
+        device = configuration.getMidiControlInput();
         if(device != null){
             device.open();
             midiControl.setTransmitter(device.getTransmitter());
         }
 
-        device = devicepanel.getMidiOutput();
+        device = configuration.getMidiOutput();
         if(device != null){
             device.open();
             midiOutput.setReceiver(device.getReceiver());
-            midiOutput.setChannel(devicepanel.getChannel());
+            midiOutput.setChannel(configuration.getChannel());
             status("MIDI output: "+device.getDeviceInfo().getName());
         }
 
-        device = devicepanel.getMidiControlOutput();
+        device = configuration.getMidiControlOutput();
         if(device != null){
             device.open();
             Receiver receiver = device.getReceiver();
             status("control output: "+receiver);
             try{
-                if(devicepanel.doSysex())
+                if(configuration.doSysex())
                     sendSysexMessages(receiver);
                 for(int i=0; i<controls.length; ++i){
                     controls[i].setReceiver(receiver);
-                    if(!devicepanel.doSysex()){
+                    if(!configuration.doSysex()){
                         // otherwise done by the .default sysex message
                         controls[i].updateMidiControl();
                     }
@@ -569,7 +563,7 @@ public class BCRStepSequencer extends JPanel {
         action = new AbstractAction("setup"){
                 public void actionPerformed(ActionEvent event) {
                     try{
-                        devicepanel.open();
+                        configuration.open();
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             };
@@ -581,6 +575,12 @@ public class BCRStepSequencer extends JPanel {
                 }
             };
         menu.add(action);
+        action = new AbstractAction("quit"){
+                public void actionPerformed(ActionEvent event) {
+                    System.exit(0);
+                }
+            };
+        menu.add(new JMenuItem(action));
         menubar.add(menu);
         return menubar;
     }
@@ -589,7 +589,7 @@ public class BCRStepSequencer extends JPanel {
         midiInput.close();
         midiOutput.close();
         midiControl.close();
-//         devicepanel.getFrame().dispose();
+//         configuration.getFrame().dispose();
     }
 
     public static void main(String[] args)
