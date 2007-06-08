@@ -98,7 +98,7 @@ public class BCRBeatSlicer extends JPanel {
         private static final int MODE_D = 3;
 
         public void setMode(int mode){
-            if(mode > MODE_A) // todo: enable mode b
+            if(mode > MODE_B) // todo: enable mode b
                 return;
             if(this.mode == mode)
                 return;
@@ -112,18 +112,16 @@ public class BCRBeatSlicer extends JPanel {
                     for(int i=0; i<width; ++i)
                         cc_controls[i+89].setValue(slicer.getSlice(i).getVolume());
                     for(int i=0; i<width; ++i)
-                        cc_controls[i+89].setValue(slicer.getSlice(i).getPan());
+                        cc_controls[i+97].setValue(slicer.getSlice(i).getPan());
                     status("mode A");
                     break;
                 case MODE_B :
                     for(int i=0; i<width; ++i)
-                        cc_controls[i+89].setValue(slicer.getSlice(i).getRamp());
-//                     for(int i=0; i<width; ++i)
-//                         cc_controls[i+81].setValue(sequencer.getStep(i).getModulation());
-//                     for(int i=0; i<width; ++i)
-//                         cc_controls[i+89].setValue(sequencer.getStep(i).getBend());
-//                     for(int i=0; i<width; ++i)
-//                         cc_controls[i+97].setValue(0);
+                        cc_controls[i+81].setValue(slicer.getSlice(i).getSampleRate());
+                    for(int i=0; i<width; ++i)
+                        cc_controls[i+89].setValue(0);
+                    for(int i=0; i<width; ++i)
+                        cc_controls[i+97].setValue(0);
                     status("mode B");
                     break;
                 }
@@ -139,15 +137,11 @@ public class BCRBeatSlicer extends JPanel {
 //                    " data1 "+data1+" data2 "+data2);
             if(data1 >= 1 && data1 <= 8){
                 // push encoder turned
-                slicer.getSlice(data1 - 1).setStart(data2);
-                waveform.setMark(slicer.getSlice(data1 - 1));
-//                 waveform.setStartMark(data2 * waveform.getWidth() / 127);
-//                 waveform.setMarkLength(slicer.getSlice(data1 - 1).getLength() * waveform.getWidth() / 127);
-//                 status("frame start "+data2);
+                BeatSlicer.Slice slice = slicer.getSlice(data1 - 1);
+                slice.setStart(data2);
+                waveform.setMark(slice);
             }else if(data1 >= 33 && data1 <= 40){
                 // push encoder pressed
-//                 if(data2 > 63)
-//                     sequencer.play(sequencer.getStep(data1 - 33));
                 if(data2 > 63)
                     slicer.getSlice(data1 - 33).start();
                 else
@@ -156,16 +150,14 @@ public class BCRBeatSlicer extends JPanel {
                 // button row 1 pressed
                 if(data2 > 63)
                     slicer.getSlice(data1 - 65).play();
-//                 else
-//                     slicer.getSlice(data1 - 65).stop();
-                status("play slice "+(data1 - 65));
+                status("play slice "+(data1 - 64));
             }else if(data1 >= 73 && data1 <= 80){
                 // button row 2 pressed
                 if(data2 > 63)
                     slicer.getSlice(data1 - 73).loop();
                 else
                     slicer.getSlice(data1 - 73).stop();
-                status("loop slice "+(data1 - 65));
+                status("loop slice "+(data1 - 72));
             }else if(data1 >= 105 && data1 <= 106){
                 // mode buttons - top two of four buttons in bottom right corner
                 setMode(data1 - 105);
@@ -177,22 +169,15 @@ public class BCRBeatSlicer extends JPanel {
             }else if(data1 == 108){
                 // bottom right corner button
                 status("updating MIDI controller");
-                try{
-                    for(int i=0; i<controls.length; ++i)
-                        controls[i].updateMidiControl();
-                }catch(InvalidMidiDataException exc){
-                    exc.printStackTrace();
-                }
+                updateMidiControl();
                 status("MIDI controller update complete");
             }else if(data1 == 115){
                 // store button
                 if(data2 < 64){
                     midiSync.stop();
-//                     sequencer.stop();
                     status("stop");
                 }else{
                     midiSync.start();
-//                     sequencer.start();
                     status("start");
                 }
             }else if(data1 == 116){
@@ -226,19 +211,16 @@ public class BCRBeatSlicer extends JPanel {
                     }else if(data1 >= 97 && data1 <= 104){
                         // third row simple encoder
                         slicer.getSlice(data1 - 97).setPan(data2);
-//                         sequencer.getStep(data1 - 97).setDelay(data2);
                     }
                     break;
                 case MODE_B :
                     if(data1 >= 81 && data1 <= 88){
                         // top row simple encoder (below buttons)
-//                         sequencer.getStep(data1 - 81).setModulation(data2);
-                    }else if(data1 >= 89 && data1 <= 96){
+                        slicer.getSlice(data1 - 81).setSampleRate(data2);
+//                     }else if(data1 >= 89 && data1 <= 96){
                         // second row simple encoder
-//                         sequencer.getStep(data1 - 89).setBend(data2);
 //                     }else if(data1 >= 97 && data1 <= 104){
                         // third row simple encoder
-                        // disabled for now
                     }
                     break;
                 }
@@ -272,16 +254,16 @@ public class BCRBeatSlicer extends JPanel {
         }
 
         public void send(ShortMessage msg, long time){
-            System.out.println("short message "+msg.getStatus()+" "+msg.getData1()+" "+msg.getData2());
+//             System.out.println("short message "+msg.getStatus()+" "+msg.getData1()+" "+msg.getData2());
             switch(msg.getStatus()){
             case ShortMessage.START: {
+                midiSync.start();
                 status("start");
-//                 sequencer.start();
                 break;
             }
             case ShortMessage.STOP: {
+                midiSync.stop();
                 status("stop");
-//                 sequencer.stop();
                 break;
             }
             case ShortMessage.CONTROL_CHANGE: {
@@ -294,8 +276,8 @@ public class BCRBeatSlicer extends JPanel {
             case ShortMessage.NOTE_OFF:
             case ShortMessage.PITCH_BEND:
                 break;
-            default:
-                status("midi control <"+msg+"><"+msg.getStatus()+">");
+//             default:
+//                 status("midi control <"+msg+"><"+msg.getStatus()+">");
             }
         }
 
@@ -390,7 +372,7 @@ public class BCRBeatSlicer extends JPanel {
             MidiControl control = 
                 new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 
                                   slicer.getSlice(i).getVolume(),
-                                  "step "+(1+i)+" volume");
+                                  "slice "+(1+i)+" volume");
             list.add(control);
             rows.add(control.getComponent());
             control.getComponent().addFocusListener(new WaveformFocusListener(i));
@@ -401,7 +383,7 @@ public class BCRBeatSlicer extends JPanel {
             MidiControl control = 
                 new RotaryEncoder(49+i, ShortMessage.CONTROL_CHANGE, channel, 97+i, 
                                   slicer.getSlice(i).getPan(),
-                                  "step "+(1+i)+" stereo pan");
+                                  "slice "+(1+i)+" stereo pan");
             list.add(control);
             rows.add(control.getComponent());
             control.getComponent().addFocusListener(new WaveformFocusListener(i));
@@ -519,6 +501,15 @@ public class BCRBeatSlicer extends JPanel {
         component.add(box);
     }
 
+    public void updateMidiControl(){
+        try{
+            for(int i=0; i<controls.length; ++i)
+                controls[i].updateMidiControl();
+        }catch(InvalidMidiDataException exc){
+            exc.printStackTrace();
+        }
+    }
+
     public void initialiseMidiDevices()
         throws MidiUnavailableException {
 
@@ -530,22 +521,6 @@ public class BCRBeatSlicer extends JPanel {
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             });
-
-// //         lock into MIDI config frame
-//         configuration.getFrame().addWindowListener(new WindowAdapter() {
-//                 public void windowDeactivated(WindowEvent e){
-//                     try{
-//                         System.out.println("deactivated");
-//                         updateMidiDevices();
-//                     }catch(Exception exc){exc.printStackTrace();}
-//                 }
-//                 public void windowClosing(WindowEvent e){
-//                     try{
-//                         System.out.println("closed");
-//                         updateMidiDevices();
-//                     }catch(Exception exc){exc.printStackTrace();}
-//                 }
-//             });
 
         updateMidiDevices();
     }
@@ -697,6 +672,7 @@ public class BCRBeatSlicer extends JPanel {
             status("failed to load sample "+file.getName()+": "+exc.getMessage());
         }
         waveform.setData(slicer.getSlice(0).getData(), slicer.getSlice(0).getAudioFormat());
+        updateMidiControl();
         status("loaded sample from file "+file.getName());
     }
 

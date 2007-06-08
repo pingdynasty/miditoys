@@ -24,6 +24,8 @@ public class BeatSlicer implements Receiver {
         private FloatControl volumeControl;
         private int pan;
         private FloatControl panControl;
+        private int samplerate;
+        private FloatControl samplerateControl;
         private int ramp;
         private boolean looping;
 
@@ -48,6 +50,9 @@ public class BeatSlicer implements Receiver {
                 volumeControl = (FloatControl)line.getControl(FloatControl.Type.VOLUME);
             }
             panControl = (FloatControl)line.getControl(FloatControl.Type.PAN);
+            samplerateControl = (FloatControl)line.getControl(FloatControl.Type.SAMPLE_RATE);
+            samplerate = (int)(((samplerateControl.getValue() - samplerateControl.getMinimum()) / (samplerateControl.getMaximum() - samplerateControl.getMinimum())) * 127.0f);
+            System.out.println("sample rate: "+samplerateControl.getValue()+":"+samplerate+" "+samplerateControl);
 //             if(volume == -1)
 //                 volume = (int)(((volumeControl.getValue() - volumeControl.getMinimum()) / (volumeControl.getMaximum() - volumeControl.getMinimum())) * 127.0f);
 //             else
@@ -152,6 +157,15 @@ public class BeatSlicer implements Receiver {
 
         public int getPan(){
             return pan;
+        }
+
+        public void setSampleRate(int samplerate){
+            this.samplerate = samplerate;
+            samplerateControl.setValue(((float)samplerate) * (samplerateControl.getMaximum() - samplerateControl.getMinimum()) / 127.0f + samplerateControl.getMinimum());
+        }
+
+        public int getSampleRate(){
+            return samplerate;
         }
 
         public void setRamp(int ramp){
