@@ -23,6 +23,7 @@ public class MidiKeyboardListener implements KeyListener {
     public MidiKeyboardListener(){
         msg = new ShortMessage();
         keyboard = new KeyboardMapper(Locale.getDefault());
+        keyboard.setOctave(3);
     }
 
     public void setReceiver(Receiver receiver){
@@ -91,14 +92,14 @@ public class MidiKeyboardListener implements KeyListener {
 
     protected void noteon(int note)
         throws InvalidMidiDataException{
-        System.out.println("note on: "+note);
+//         System.out.println("note on: "+note);
         msg.setMessage(ShortMessage.NOTE_ON, channel, note, velocity);
         receiver.send(msg, -1);
     }
 
     protected void noteoff(int note)
         throws InvalidMidiDataException{
-        System.out.println("note on: "+note);
+//         System.out.println("note on: "+note);
         msg.setMessage(ShortMessage.NOTE_OFF, channel, note, velocity);
         receiver.send(msg, -1);
     }

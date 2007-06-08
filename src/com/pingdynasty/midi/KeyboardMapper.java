@@ -60,6 +60,10 @@ public class KeyboardMapper {
             --octave;
     }
 
+    public void setOctave(int octave){
+        this.octave = octave;
+    }
+
     public int getOctave(){
         return octave;
     }
