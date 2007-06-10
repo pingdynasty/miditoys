@@ -4,11 +4,11 @@
     <img src="bcr-beats.png" alt="bcr beats" >
 
     <h1 id="configuration">MIDI Configuration</h1>
-    <p>MIDI configuration is accessed by choosing <i>setup</i> in the bcr beats menu.</p>
+    <p>The MIDI configuration is accessed by choosing <i>setup</i> in the bcr beats menu. If you select <i>send Sysex MIDI messages</i> then your MIDI controller will receive SysEx configuration message - you should probably only use this with a Behringer BCR2000.</p>
     <h2>MIDI Input and Output</h2>
-    <p>bcr beats also responds to MIDI input. Sending notes to bcr beats will trigger slice playback - the first slice corresponds to middle C (MIDI note 60) and the other slices are in half-note steps up from there. You can also send MIDI start and stop messages, and MIDI sync to control the tempo.</p>
+    <p><i>bcr beats</i> responds to MIDI input. Sending notes to bcr beats will trigger slice playback - the first slice corresponds to middle C (MIDI note 60) and the other slices are in half-note steps up from there. You can also send MIDI start and stop messages, and MIDI sync to control the tempo.</p>
     <h3>Controller Configuration</h3>
-    <p>bcr beats was designed to complement the Behringer BCR2000 controller. It can be used on its own, but you will have much more fun with a few real knobs to tweak.</p>
+    <p><i>bcr beats</i> was designed to complement the Behringer BCR2000 controller. It can be used on its own, but you will have much more fun with a few real knobs to tweak.</p>
     <p>If you have a BCR2000, make sure it is attached and switched on when you start the application. Then go to the MIDI configuration, and set the BCR MIDI input and output buses under <i>Control input</i> and <i>Control output</i>.</p>
     <p>When closing the configuration window, the application will send Sysex messages to setup your BCR2000. If for some reason you don't like the configuration, you can use the preset buttons on the device to change it. The application setup is based on factory preset 1, but adds functionality for the store/edit/learn/exit keys.</p>
     <p>Almost any MIDI controller capable of sending CC (<i>CONTROL CHANGE</i>) messages can be configured to work with bcr beats, by following similar control assignments.</p>
