@@ -51,11 +51,11 @@ public class MidiKeyboardListener implements KeyListener {
     public void keyPressed(KeyEvent e){
         int key = e.getKeyCode();
         try{
-            if(key == KeyEvent.VK_UP){
-                keyboard.changeOctaveUp();
-            }else if(key == KeyEvent.VK_DOWN){
-                keyboard.changeOctaveDown();
-            }else{
+//             if(key == KeyEvent.VK_UP){
+//                 keyboard.changeOctaveUp();
+//             }else if(key == KeyEvent.VK_DOWN){
+//                 keyboard.changeOctaveDown();
+//             }else{
                 int note = keyboard.getNote(key);
                 if(note >= 0 && !noteOn[note]){
                     try{
@@ -65,7 +65,7 @@ public class MidiKeyboardListener implements KeyListener {
                         exc.printStackTrace();
                     }
                 }
-            }
+//             }
         }catch(Exception exc){
             exc.printStackTrace();
         }
