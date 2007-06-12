@@ -41,15 +41,17 @@ public class BCRBeatSlicerConfiguration extends DevicePanel  {
         return getDevice(midiControlOutputName);
     }
 
-    public JPanel getPanel()
+    public void init()
         throws MidiUnavailableException {
-
         // try to initialise BCR
         MidiDevice device = DeviceLocator.getDevice("Port 1 (MidiIN:3)");
         setDevice(midiControlInputName, device);
         device = DeviceLocator.getDevice("Port 1 (MidiOUT:3)");
         setDevice(midiControlOutputName, device);
+    }
 
+    public JPanel getPanel()
+        throws MidiUnavailableException {
         JPanel panel = super.getPanel();
 
         // doSysex configuration
@@ -64,6 +66,7 @@ public class BCRBeatSlicerConfiguration extends DevicePanel  {
         button.setHorizontalAlignment(SwingConstants.LEFT);
         combo.add(new JLabel("send Sysex MIDI messages:"));
         combo.add(button);
+//         combo.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(combo);
 
         // channel configuration
@@ -77,6 +80,7 @@ public class BCRBeatSlicerConfiguration extends DevicePanel  {
             });
         combo.add(new JLabel("MIDI channel:"));
         combo.add(spinner);
+//         combo.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(combo);
 
         return panel;
