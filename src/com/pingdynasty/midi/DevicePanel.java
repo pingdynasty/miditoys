@@ -57,23 +57,47 @@ public class DevicePanel {
         this.cancelAction = cancelAction;
     }
 
+    public void init()
+        throws MidiUnavailableException {
+    }
+
     public JPanel getPanel()
         throws MidiUnavailableException {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        if(inputnames.length > 0){
-            JLabel label = new JLabel("Input");
-            label.setHorizontalAlignment(SwingConstants.LEFT);
-            content.add(label);
-            content.add(getPanel(inputnames, true));
-        }
-        if(outputnames.length > 0){
-            JLabel label = new JLabel("Output");
-            label.setHorizontalAlignment(SwingConstants.LEFT);
-            content.add(label);
-            content.add(getPanel(outputnames, false));
-        }
+        JTabbedPane tabs = new JTabbedPane();
+        JComponent panel = getInputPanel();
+        if(panel != null)
+            tabs.addTab("MIDI Input", panel);
+        panel = getOutputPanel();
+        if(panel != null)
+            tabs.addTab("MIDI Output", panel);
+        panel = getMiscPanel();
+        if(panel != null)
+            tabs.addTab("Miscellaneous", panel);
+        //The following line enables to use scrolling tabs.
+        tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        content.add(tabs);
         return content;
+    }
+
+    public JComponent getInputPanel()
+        throws MidiUnavailableException {
+        if(inputnames.length == 0)
+            return null;
+        return getPanel(inputnames, true);
+    }
+
+    public JComponent getOutputPanel()
+        throws MidiUnavailableException {
+        if(outputnames.length == 0)
+            return null;
+        return getPanel(outputnames, false);
+    }
+
+    public JComponent getMiscPanel()
+        throws MidiUnavailableException {
+        return null;
     }
 
     public JPanel getPanel(String[] names, boolean input)
@@ -91,9 +115,7 @@ public class DevicePanel {
         MidiDevice[] mididevices = new MidiDevice[list.size()];
         list.toArray(mididevices);
 
-        JPanel content = new JPanel();
-        content.setLayout(new GridLayout(mididevices.length+2, names.length+1));
-
+        JPanel content = new JPanel(new SpringLayout());
         ButtonGroup[] groups = new ButtonGroup[names.length];
         for(int i=0; i<names.length; ++i)
             groups[i] = new ButtonGroup();
@@ -116,7 +138,7 @@ public class DevicePanel {
 
         // device rows
         for(int j=0; j<mididevices.length; ++j){
-            String desc = // mididevices[j].getDeviceInfo().getVendor() + " " + 
+            String desc = mididevices[j].getDeviceInfo().getVendor() + " " + 
                 mididevices[j].getDeviceInfo().getName();
 //                 + " " + mididevices[j].getDeviceInfo().getDescription()
             content.add(new JLabel(desc));
@@ -132,13 +154,15 @@ public class DevicePanel {
                 content.add(button);
             }
         }
+        SpringUtilities.makeCompactGrid(content, mididevices.length+2, names.length+1, 
+                                        15, 15, 5, 5);
         return content;
     }
 
     public JFrame getFrame()
         throws MidiUnavailableException {
         if(frame == null){
-            JPanel panel = getPanel();
+            JComponent panel = getPanel();
             Box box = Box.createHorizontalBox();
             JButton button = new JButton("update");
             if(updateAction != null)
