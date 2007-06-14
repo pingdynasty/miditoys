@@ -1,7 +1,7 @@
 package com.pingdynasty.midi.bcontrol;
 
 import java.io.File;
-
+import java.net.URL;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -272,10 +272,10 @@ public class BCRBeatSlicer extends JPanel {
                 cc_controls[msg.getData1()].send(msg, -1);
                 break;
             }
-            case ShortMessage.NOTE_ON:
-            case ShortMessage.NOTE_OFF:
-            case ShortMessage.PITCH_BEND:
-                break;
+//             case ShortMessage.NOTE_ON:
+//             case ShortMessage.NOTE_OFF:
+//             case ShortMessage.PITCH_BEND:
+//                 break;
 //             default:
 //                 status("midi control <"+msg+"><"+msg.getStatus()+">");
             }
@@ -448,18 +448,18 @@ public class BCRBeatSlicer extends JPanel {
                 cc_controls[controls[i].getData1()] = controls[i];
 
         // BPM slider
-        slider = new JSlider(JSlider.HORIZONTAL, 20, 380, bpm);
-        slider.setMajorTickSpacing(60);
+        slider = new JSlider(JSlider.HORIZONTAL, 20, 240, bpm);
+        slider.setMajorTickSpacing(40);
         slider.setMinorTickSpacing(10);
         slider.setPaintTicks(true);
         slider.setPaintLabels(true);
         slider.addChangeListener(new ChangeListener(){
                 public void stateChanged(ChangeEvent event) {
                     JSlider source = (JSlider)event.getSource();
-                    if(!source.getValueIsAdjusting()){
+//                     if(!source.getValueIsAdjusting()){
                         int bpm = (int)source.getValue();
                         midiSync.setBPM(bpm);
-                    }
+//                     }
                 }
             });
         this.add(slider, BorderLayout.NORTH);
@@ -512,7 +512,6 @@ public class BCRBeatSlicer extends JPanel {
 
     public void initialiseMidiDevices()
         throws MidiUnavailableException {
-
         configuration = new BCRBeatSlicerConfiguration();
         configuration.setUpdateAction(new AbstractAction(){
                 public void actionPerformed(ActionEvent e){
@@ -521,7 +520,7 @@ public class BCRBeatSlicer extends JPanel {
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             });
-
+        configuration.init(); // runs configuration initialisation
         updateMidiDevices();
     }
 
@@ -670,10 +669,23 @@ public class BCRBeatSlicer extends JPanel {
             slicer.loadSample(file);
         }catch(Exception exc){
             status("failed to load sample "+file.getName()+": "+exc.getMessage());
+            return;
         }
         waveform.setData(slicer.getSlice(0).getData(), slicer.getSlice(0).getAudioFormat());
         updateMidiControl();
         status("loaded sample from file "+file.getName());
+    }
+
+    public void loadSample(URL url){
+        try{
+            slicer.loadSample(url);
+        }catch(Exception exc){
+            status("failed to load sample "+url+": "+exc.getMessage());
+            return;
+        }
+        waveform.setData(slicer.getSlice(0).getData(), slicer.getSlice(0).getAudioFormat());
+        updateMidiControl();
+        status("loaded sample from URL "+url);
     }
 
 
