@@ -1,5 +1,6 @@
 package com.pingdynasty.midi;
 
+import java.net.URL;
 import java.io.File;
 import java.io.IOException;
 import java.io.ByteArrayOutputStream;
@@ -36,6 +37,7 @@ public class BeatSlicer implements Receiver {
             this.length = length;
             volume = 108; // 108 is equivalent of 0-level Master Gain
             pan = 63; // center stereo pan
+            data = new byte[0];
         }
 
         public void setData(byte[] data, SourceDataLine line){
@@ -52,7 +54,6 @@ public class BeatSlicer implements Receiver {
             panControl = (FloatControl)line.getControl(FloatControl.Type.PAN);
             samplerateControl = (FloatControl)line.getControl(FloatControl.Type.SAMPLE_RATE);
             samplerate = (int)(((samplerateControl.getValue() - samplerateControl.getMinimum()) / (samplerateControl.getMaximum() - samplerateControl.getMinimum())) * 127.0f);
-            System.out.println("sample rate: "+samplerateControl.getValue()+":"+samplerate+" "+samplerateControl);
 //             if(volume == -1)
 //                 volume = (int)(((volumeControl.getValue() - volumeControl.getMinimum()) / (volumeControl.getMaximum() - volumeControl.getMinimum())) * 127.0f);
 //             else
@@ -143,7 +144,8 @@ public class BeatSlicer implements Receiver {
 
         public void setVolume(int volume){
             this.volume = volume;
-            volumeControl.setValue(((float)volume) * (volumeControl.getMaximum() - volumeControl.getMinimum()) / 127.0f + volumeControl.getMinimum());
+            if(volumeControl != null)
+                volumeControl.setValue(((float)volume) * (volumeControl.getMaximum() - volumeControl.getMinimum()) / 127.0f + volumeControl.getMinimum());
         }
 
         public int getVolume(){
@@ -152,7 +154,8 @@ public class BeatSlicer implements Receiver {
 
         public void setPan(int pan){
             this.pan = pan;
-            panControl.setValue(((float)pan) * (panControl.getMaximum() - panControl.getMinimum()) / 127.0f + panControl.getMinimum());
+            if(panControl != null)
+                panControl.setValue(((float)pan) * (panControl.getMaximum() - panControl.getMinimum()) / 127.0f + panControl.getMinimum());
         }
 
         public int getPan(){
@@ -161,7 +164,8 @@ public class BeatSlicer implements Receiver {
 
         public void setSampleRate(int samplerate){
             this.samplerate = samplerate;
-            samplerateControl.setValue(((float)samplerate) * (samplerateControl.getMaximum() - samplerateControl.getMinimum()) / 127.0f + samplerateControl.getMinimum());
+            if(samplerateControl != null)
+                samplerateControl.setValue(((float)samplerate) * (samplerateControl.getMaximum() - samplerateControl.getMinimum()) / 127.0f + samplerateControl.getMinimum());
         }
 
         public int getSampleRate(){
@@ -192,11 +196,24 @@ public class BeatSlicer implements Receiver {
             slices[i] = new Slice(i * Slice.MAX_VALUE / length, Slice.MAX_VALUE / length);
     }
 
+    public void loadSample(URL url)
+        throws Exception {
+        AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(url);
+        if(audioInputStream == null)
+            throw new IllegalArgumentException("invalid sound file URL "+url);
+        loadSample(audioInputStream);
+    }
+
     public void loadSample(File file)
         throws Exception {
         AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(file);
         if(audioInputStream == null)
             throw new IllegalArgumentException("invalid sound file "+file.getName());
+        loadSample(audioInputStream);
+    }
+
+    public void loadSample(AudioInputStream audioInputStream)
+        throws Exception {
         AudioFormat format = audioInputStream.getFormat();
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -209,12 +226,8 @@ public class BeatSlicer implements Receiver {
         }
         byte[] data = outputStream.toByteArray();
         DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
-        System.out.println("data "+data.length+" "+format+" "+info);
 
         for(int i=0; i<slices.length; ++i){
-//             AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(file);
-//             if(audioInputStream == null)
-//                 throw new IllegalArgumentException("invalid sound file "+file.getName());
 //             AudioFormat format = audioInputStream.getFormat();
 //             Clip clip = (Clip)AudioSystem.getLine(info);
 //             clip.open(audioInputStream);
