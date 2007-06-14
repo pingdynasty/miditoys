@@ -9,6 +9,7 @@ public class MidiSync implements Runnable, Transmitter {
     private Receiver receiver; 
     private ShortMessage syncMessage;
     private long latency = 4; // assume 4ms latency by default
+    private boolean enabled = true;
 
     public MidiSync(int bpm){
         setBPM(bpm);
@@ -20,11 +21,24 @@ public class MidiSync implements Runnable, Transmitter {
         }
     }
 
+    public void disable(){
+        stop();
+        enabled = false;
+    }
+
+    public void enable(){
+        enabled = true;
+    }
+
+    public int getBPM(){
+        return bpm;
+    }
+
     public void setBPM(int bpm){
         if(bpm < 1)
             throw new IllegalArgumentException("BPM must be greater than 0");
         this.bpm = bpm;
-        if(running)
+        if(scheduler != null)
             scheduler.interrupt();
     }
 
@@ -42,21 +56,26 @@ public class MidiSync implements Runnable, Transmitter {
 
     public void close(){
         stop();
-        if(receiver != null)
-            receiver.close();
         receiver = null;
     }
 
+    public boolean isOpen(){
+        return receiver != null;
+    }
+
     public void start(){
-        running = true;
-        scheduler = new Thread(this);
-        scheduler.setDaemon(true);
-        scheduler.start();
+        if(enabled && !running){
+            running = true;
+            scheduler = new Thread(this);
+            scheduler.setDaemon(true);
+            scheduler.start();
+        }
     }
 
     public void stop(){
         running = false;
-        scheduler.interrupt();
+        if(scheduler != null)
+            scheduler.interrupt();
     }
 
     public void run(){
