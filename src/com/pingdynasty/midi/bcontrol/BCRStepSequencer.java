@@ -38,7 +38,7 @@ public class BCRStepSequencer extends JPanel {
     private int width = 8;
     private JLabel statusbar;
     private JSlider slider;
-    private EventHandler eventHandler = new EventHandler();
+    private EventHandler eventHandler;
 
     // MIDI handlers
     private ReceiverPlayer midiOutput;
@@ -96,7 +96,7 @@ public class BCRStepSequencer extends JPanel {
     }
 
     public class EventHandler implements Control.Callback {
-        private int mode = MODE_A;
+        private int mode = -1;
         private static final int MODE_A = 0;
         private static final int MODE_B = 1;
         private static final int MODE_C = 2;
@@ -112,21 +112,33 @@ public class BCRStepSequencer extends JPanel {
                 // update reassignable encoders
                 switch(mode){
                 case MODE_A :
-                    for(int i=0; i<width; ++i)
+                    for(int i=0; i<width; ++i){
                         cc_controls[i+81].setValue(sequencer.getStep(i).getVelocity());
-                    for(int i=0; i<width; ++i)
+                        cc_controls[i+81].setDescription("velocity");
+                    }
+                    for(int i=0; i<width; ++i){
                         cc_controls[i+89].setValue(sequencer.getStep(i).getDuration());
-                    for(int i=0; i<width; ++i)
+                        cc_controls[i+89].setDescription("duration");
+                    }
+                    for(int i=0; i<width; ++i){
                         cc_controls[i+97].setValue(sequencer.getStep(i).getDelay());
+                        cc_controls[i+97].setDescription("delay");
+                    }
                     status("mode A");
                     break;
                 case MODE_B :
-                    for(int i=0; i<width; ++i)
+                    for(int i=0; i<width; ++i){
                         cc_controls[i+81].setValue(sequencer.getStep(i).getModulation());
-                    for(int i=0; i<width; ++i)
+                        cc_controls[i+81].setDescription("modulation");
+                    }
+                    for(int i=0; i<width; ++i){
                         cc_controls[i+89].setValue(sequencer.getStep(i).getBend());
-                    for(int i=0; i<width; ++i)
+                        cc_controls[i+89].setDescription("pitch bend");
+                    }
+                    for(int i=0; i<width; ++i){
                         cc_controls[i+97].setValue(0);
+                        cc_controls[i+97].setDescription("not in use");
+                    }
                     status("mode B");
                     break;
                 }
@@ -138,8 +150,8 @@ public class BCRStepSequencer extends JPanel {
         }
 
         public void action(int command, int channel, int data1, int data2){
-//             status("action: "+command+" channel "+channel+
-//                    " data1 "+data1+" data2 "+data2);
+            status("action: "+command+" channel "+channel+
+                   " data1 "+data1+" data2 "+data2);
             if(data1 >= 1 && data1 <= 8){
                 // push encoder turned
                 sequencer.getStep(data1 - 1).setNote(data2);
@@ -181,18 +193,31 @@ public class BCRStepSequencer extends JPanel {
             }else if(data1 == 116){
                 // learn button
                 if(data2 < 64){
-                    status("MIDI sync off");
-                    midiInput.setMidiSync(false);
+//                     status("external MIDI sync off");
+                    // get sync device, device.close()
+                    MidiDevice device = configuration.getMidiSync();
+                    if(device != null)
+                        device.close();
+                    sequencer.enableInternalSync();
+                    midiInput.resetMidiSync();
                     slider.setEnabled(true);
-                    sequencer.setPeriod(60000 / slider.getValue());
                 }else{
-                    status("MIDI sync on");
-                    midiInput.setMidiSync(true);
+//                     status("external MIDI sync on");
+                    sequencer.disableInternalSync();
+                    // get sync device, device.open(), device.setReceiver(sequencer);
+                    MidiDevice device = configuration.getMidiSync();
+                    if(device != null){
+                        try{
+                            device.open();
+                            device.getTransmitter().setReceiver(sequencer);
+                            midiInput.setMidiSync(device);
+                        }catch(MidiUnavailableException exc){exc.printStackTrace();}
+                    }
                     slider.setEnabled(false);
                 }
             }else{
-                if(data1 >= 81 && data1 <= 104)
-                    status("value "+data2);
+                if(cc_controls[data1] != null)
+                    status(cc_controls[data1].getToolTip());
                 switch(mode){
                 case MODE_A :
                     if(data1 >= 81 && data1 <= 88){
@@ -261,14 +286,17 @@ public class BCRStepSequencer extends JPanel {
                 break;
             }
             case ShortMessage.CONTROL_CHANGE: {
+                assert msg.getData1() > cc_controls.length;
+                assert cc_controls[msg.getData1()] != null;
                 cc_controls[msg.getData1()].send(msg, -1);
-            }
-            case ShortMessage.NOTE_ON:
-            case ShortMessage.NOTE_OFF:
-            case ShortMessage.PITCH_BEND:
                 break;
-            default:
-                status("midi control <"+msg+"><"+msg.getStatus()+">");
+            }
+//             case ShortMessage.NOTE_ON:
+//             case ShortMessage.NOTE_OFF:
+//             case ShortMessage.PITCH_BEND:
+//                 break;
+//             default:
+//                 status("midi control <"+msg+"><"+msg.getStatus()+">");
             }
         }
 
@@ -281,7 +309,9 @@ public class BCRStepSequencer extends JPanel {
     public BCRStepSequencer(){
         super(new BorderLayout());
         midiOutput = new SchedulingPlayer(null);
+//         midiOutput = new ReceiverPlayer((Receiver)null);
         sequencer = new StepSequencer(midiOutput, width);
+        eventHandler = new EventHandler();
         midiInput = new StepSequencerArpeggio(sequencer);
         midiControl = new ControlSurfaceHandler();
 
@@ -338,7 +368,7 @@ public class BCRStepSequencer extends JPanel {
         // first row of simple encoders (below buttons)
         for(int i=0; i<width; ++i){
             MidiControl control = 
-                new RotaryEncoder(33+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 80,
+                new RotaryEncoder(33+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 0,
                                   "step "+(1+i)+" velocity/modulation");
             list.add(control);
             rows.add(control.getComponent());
@@ -347,7 +377,7 @@ public class BCRStepSequencer extends JPanel {
         // second row of simple encoders
         for(int i=0; i<width; ++i){
             MidiControl control = 
-                new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 80,
+                new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 0,
                                   "step "+(1+i)+" duration/bend");
             list.add(control);
             rows.add(control.getComponent());
@@ -382,7 +412,7 @@ public class BCRStepSequencer extends JPanel {
 
         // store/learn/edit/exit
         toggles = new ToggleButton[4];
-        String[] tooltips = new String[]{"start/stop", "MIDI sync", "not in use", "not in use"};
+        String[] tooltips = new String[]{"start/stop", "external MIDI sync", "not in use", "not in use"};
         for(int i=0; i<4; ++i){
             toggles[i] = new ToggleButton(53+i, ShortMessage.CONTROL_CHANGE, channel, 115+i, 0, tooltips[i]);
             list.add(toggles[i]);
@@ -404,7 +434,7 @@ public class BCRStepSequencer extends JPanel {
         tooltips = new String[]{"mode A", "mode B", "not in use", "not in use"};
         for(int i=0; i<4; ++i){
             toggles[i] = new ToggleButton(49+i, ShortMessage.CONTROL_CHANGE, channel, 105+i, 
-                                          eventHandler.getMode() == i ? 127 : 0, tooltips[i]);
+                                          i == 0 ? 127 : 0, tooltips[i]);
             list.add(toggles[i]);
         }
         addFourButtons(buttonarea, toggles);
@@ -422,11 +452,11 @@ public class BCRStepSequencer extends JPanel {
         for(int i=0; i<controls.length; ++i)
             controls[i].setCallback(eventHandler);
 
+        eventHandler.setMode(eventHandler.MODE_A);
+
         // BPM control
-        slider = new JSlider(JSlider.HORIZONTAL, 20, 380, 
-                             60000/sequencer.getPeriod());
-        //Turn on labels at major tick marks.
-        slider.setMajorTickSpacing(60);
+        slider = new JSlider(JSlider.HORIZONTAL, 20, 240, sequencer.getBPM());
+        slider.setMajorTickSpacing(40);
         slider.setMinorTickSpacing(10);
         slider.setPaintTicks(true);
         slider.setPaintLabels(true);
@@ -435,7 +465,7 @@ public class BCRStepSequencer extends JPanel {
                     JSlider source = (JSlider)event.getSource();
 //                     if(!source.getValueIsAdjusting()){
                         int bpm = (int)source.getValue();
-                        sequencer.setPeriod(60000 / bpm);
+                        sequencer.setBPM(bpm);
 //                     }
                 }
             });
@@ -478,7 +508,7 @@ public class BCRStepSequencer extends JPanel {
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             });
-        configuration.getFrame(); // runs configuration initialisation
+        configuration.init(); // runs configuration initialisation
         updateMidiDevices();
     }
 
