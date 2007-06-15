@@ -15,16 +15,15 @@ public class ToggleButton extends MidiControl
     protected int code;
     protected AbstractButton button;
 
-    protected ToggleButton(int command, int channel, int data1, int data2){
-        super(command, channel, data1, data2);
+    protected ToggleButton(int command, int channel, int data1, int data2, String description){
+        super(command, channel, data1, data2, description);
     }
 
     public ToggleButton(int code, int command, int channel, int data1, int data2,
                         String description){
-        super(command, channel, data1, data2);
+        super(command, channel, data1, data2, description);
         this.code = code;
         button = new BControlButton();
-//         button = new JToggleButton();
         if(description != null)
             button.setToolTipText(description);
         button.setSelected(data2 == on);
@@ -33,6 +32,10 @@ public class ToggleButton extends MidiControl
 
     public int getCode(){
         return code;
+    }
+
+    public String getToolTip(){
+        return getDescription() + (data2 == on ? " on" : " off");
     }
 
     public void actionPerformed(ActionEvent event) {
@@ -68,6 +71,8 @@ public class ToggleButton extends MidiControl
     }
 
     public void updateGraphicalControl(){
+        button.requestFocusInWindow();
+//         button.setToolTipText(getToolTip());
         button.setSelected(data2 == on);
         button.repaint();
     }

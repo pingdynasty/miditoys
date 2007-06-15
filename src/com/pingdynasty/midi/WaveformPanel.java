@@ -38,8 +38,6 @@ public class WaveformPanel extends JPanel {
         startMark = 0;
         endMark = 0;
         displayData = new float[2][width];
-//         setForeground(Color.GREEN);
-//         setBackground(Color.BLACK);
     }
 
     public void setData(byte[] data, AudioFormat format){

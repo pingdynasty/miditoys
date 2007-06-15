@@ -11,7 +11,7 @@ public class TriggerButton extends ToggleButton implements ChangeListener {
 
     public TriggerButton(int code, int command, int channel, int data1, int data2,
                         String description){
-        super(command, channel, data1, data2);
+        super(command, channel, data1, data2, description);
         this.code = code;
         button = new BControlButton();
         if(description != null)
@@ -44,6 +44,7 @@ public class TriggerButton extends ToggleButton implements ChangeListener {
     }
 
     public void updateGraphicalControl(){
+        button.requestFocusInWindow();
         button.getModel().setPressed(data2 == on);
         button.repaint();
     }

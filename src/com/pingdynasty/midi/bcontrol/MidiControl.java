@@ -14,15 +14,29 @@ public abstract class MidiControl implements Control, Receiver {
     protected int channel;
     protected int data1;
     protected int data2;
+    protected String description;
 
     protected ShortMessage msg;
 
-    public MidiControl(int command, int channel, int data1, int data2){
+    public MidiControl(int command, int channel, int data1, int data2, String description){
         this.command = command;
         this.channel = channel;
         this.data1 = data1;
         this.data2 = data2;
+        this.description = description;
         msg = new ShortMessage();
+    }
+
+    public void setDescription(String description){
+        this.description = description;
+    }
+
+    public String getDescription(){
+        return description;
+    }
+
+    public String getToolTip(){
+        return description + " " + getValue();
     }
 
     public void setCallback(Callback callback){
