@@ -7,6 +7,8 @@ public class Step {
     private int modulation = 0;
     private int bend = 64;
     private int delay = 0;
+    private int lastNote;
+    private int noteOffTick;
 
     public Step(){}
 
@@ -32,6 +34,10 @@ public class Step {
         return duration;
     }
 
+    public int getDurationTicks(){
+        return duration * 24 / 127;
+    }
+
     public int getModulation(){
         return modulation;
     }
@@ -42,6 +48,10 @@ public class Step {
 
     public int getDelay(){
         return delay;
+    }
+
+    public int getDelayTicks(){
+        return delay * 24 / 127;
     }
 
     public void setNote(int note){
@@ -66,5 +76,18 @@ public class Step {
 
     public void setDelay(int delay){
         this.delay = delay;
+    }
+
+    public int getLastNote(){
+        return lastNote;
+    }
+
+    public void setNoteOffTick(int tick){
+        this.noteOffTick = tick;
+        lastNote = note;
+    }
+
+    public int getNoteOffTick(){
+        return noteOffTick;
     }
 }
