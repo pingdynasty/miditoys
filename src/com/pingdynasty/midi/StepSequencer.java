@@ -87,43 +87,6 @@ public class StepSequencer implements Receiver {
 //             return steps[0];
 //         return steps[++index];
 //     }
-
-    /**
-     * Play one iteration (blocking call)
-     */
-//     public void play(){
-//         long now; // = System.currentTimeMillis();
-//         progress.setValue(0);
-//         for(int i=0; i<steps.length; ++i){
-//             now = System.currentTimeMillis();
-// //             System.out.println("diff: "+(now-next));
-//             // todo: dispatch to player to play note at given time (system ms)
-//             // this will allow delays past the next step
-//             // a delay of 128 is one whole note
-//             int delay = steps[i].getDelay() * period / 128;
-//             if(delay > MARGIN)
-//                 try{
-//                     Thread.sleep(delay);
-//                 }catch(InterruptedException exc){
-//                     return;
-//                 }
-//             progress.setValue(i*24);
-//             play(steps[i]);
-//             // set the delivery time for next step
-//             next = now + period - (now - next);
-//             try{
-//                 while(now < next){
-// //                     System.out.println("sleep "+period+"/24="+(period/24));
-//                     Thread.sleep(period / 24);
-//                     now = System.currentTimeMillis() + MARGIN;
-//                     progress.setValue(progress.getValue() + 1);
-//                 }
-//             }catch(InterruptedException exc){
-//                 return;
-//             }
-//         }
-//     }
-
     public void send(MidiMessage msg, long time){
         if(msg instanceof ShortMessage){
             try{
@@ -136,29 +99,8 @@ public class StepSequencer implements Receiver {
         }
     }
 
-//     public void play(Step[] on, Step[] off){
-//         for(int i=0; i<on.length; ++i)
-//             noteon(on[i]);
-//         for(int i=0; i<off.length; ++i)
-//             noteoff(off[i]);
-//     }
-
-//     public void tick(){
-//         for(int i=0, n=noteon[tick].size(); i < n; i++){
-//             step = (Step)list.get(i);
-//             noteon(step);
-//         }
-//         for(int i=0, n=noteoff[tick].size(); i < n; i++){
-//             step = (Step)list.get(i);
-//             noteoff(step);
-//         }
-//         if(++tick == steps.length * 24)
-//             tick = 0;
-//     }
-
     public void noteon(Step step){
-        System.out.println("noteon  "+step.getNote()+" \t"+tick);
-//         noteon[step.getNote()] = true;
+//         System.out.println("noteon  "+step.getNote()+" \t"+tick);
         try{
             player.modulate(step.getModulation());
             player.bend(step.getBend());
@@ -170,7 +112,7 @@ public class StepSequencer implements Receiver {
     }
 
     public void noteoff(Step step){
-        System.out.println("noteoff "+step.getLastNote()+" \t"+tick);
+//         System.out.println("noteoff "+step.getLastNote()+" \t"+tick);
         try{
             player.noteoff(step.getLastNote());
         }catch(InvalidMidiDataException exc){
@@ -240,8 +182,6 @@ public class StepSequencer implements Receiver {
             int duration = (step.getDuration() * 60000 / sync.getBPM()) / 64;
             if(duration > 0){
                 player.setDuration(duration);
-//             player.setDuration((step.getDuration() * period) / 16);
-//             System.out.println(NoteParser.getStringNote(step.getNote())+" duration: "+(step.getDuration() * period) / 16 +" velocity: "+step.getVelocity());
                 player.setVelocity(step.getVelocity());
                 player.play(step.getNote());
             }
@@ -259,12 +199,13 @@ public class StepSequencer implements Receiver {
     }
 
     /**
-     * Start endless play (until stop is called). Plays in separate thread.
+     * Start endless play (until stop is called).
      */
     public void start(){
         tick = 0;
         started = true;
         sync.start();
+        tick();
     }
 
     /**
