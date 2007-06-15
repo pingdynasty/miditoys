@@ -96,9 +96,6 @@ public class StepSequencerArpeggio implements Receiver {
             }catch(Exception exc){
                 exc.printStackTrace();
             }
-        }else{
-            System.out.println("midi message "+msg);
-            return;
         }
     }
 
@@ -107,26 +104,21 @@ public class StepSequencerArpeggio implements Receiver {
         switch(msg.getStatus()){
         case ShortMessage.START: {
             // this should send a start callback etc to BCR
-            System.out.println("arp start");
-//             timer.reset();
             sequencer.start();
             break;
         }
         case ShortMessage.STOP: {
             // this should send a stop callback etc to BCR
-            System.out.println("arp stop");
             sequencer.stop();
             break;
         }
             // these should send note on/off messages to BCR
             // todo: move Receiver to BCRStepSequencer, call arp.noteon()/noteoff()
         case ShortMessage.NOTE_ON:{
-            System.out.println("arp note on <"+msg.getData1()+"><"+msg.getData2());
             noteon(msg.getData1(), msg.getData2());
             break;
         }
         case ShortMessage.NOTE_OFF:{
-            System.out.println("arp note off <"+msg.getData1()+"><"+msg.getData2());
             noteoff(msg.getData1());
             break;
         }
@@ -137,9 +129,6 @@ public class StepSequencerArpeggio implements Receiver {
 //                 player.tick();
 //             break;
 //             }
-        default:
-            System.out.println("arp midi in <"+msg.getStatus()+"><"+msg.getCommand()+"><"+
-                               msg.getData1()+"><"+msg.getData2()+">");
         }
     }
 
