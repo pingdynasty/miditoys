@@ -47,14 +47,15 @@ public class BControlButton extends JButton {
         // center position
         int x = getWidth() / 2 - 18;
 	int y = getHeight() / 2 - 12;
-
-// 	if(hasFocus())
-// 	    g.setColor(DEFAULT_FOCUS_COLOR);
-// 	else
-// 	    g.setColor(Color.white);
+        // icon size is 36x25
 
         // clear the space
-        g.clearRect(x, y, 36, 25);
+        g.clearRect(x-1, y-1, 38, 27);
+
+	if(hasFocus()){
+	    g.setColor(DEFAULT_FOCUS_COLOR);
+            g.fillOval(x, y, 36, 25);
+        }
 
         if(model.isPressed())
             this.getPressedIcon().paintIcon(this, g, x, y);
@@ -62,5 +63,6 @@ public class BControlButton extends JButton {
             this.getSelectedIcon().paintIcon(this, g, x, y);
         else
             this.getIcon().paintIcon(this, g, x, y);
+
     }
 }
