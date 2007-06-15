@@ -99,6 +99,7 @@
     <antcall target="jar"/>
     <antcall target="pong"/>
     <antcall target="bcr-steps"/>
+    <antcall target="bcr-beats"/>
   </target>
 
   <target name="clean" depends="init" description="Clean up the build">
@@ -123,6 +124,29 @@
         <path refid="lib.path"/>
         <pathelement location="${build.classes.dir}"/>
 	<pathelement location="${java.home}/../Classes/jsse.jar"/>
+	<pathelement location="${java.home}/../Classes/classes.jar"/>
+      </classpath>
+    </pack>
+  </target>
+
+  <target name="bcr-beats" depends="bcr-beats.jar"/>
+
+  <target name="bcr-beats.jar" depends="readme, compile">
+    <taskdef name="pack" classname="org.sadun.util.ant.Pack">
+      <classpath refid="lib.path"/>
+    </taskdef>
+    <pack classes="com.pingdynasty.midi.bcontrol.BCRBeatSlicer"
+          targetJar="${build.dir}/bcr-beats.jar"
+          manifestMainClass="com.pingdynasty.midi.bcontrol.BCRBeatSlicer"
+          includePkg="com.pingdynasty.">
+      <additionalclass name="com.pingdynasty.midi.bcontrol.BCRBeatSlicerApplet"/>
+      <additionalfileset dir="${proj.dir}/docs" includes="licence.txt"/>
+      <additionalfileset dir="${build.dir}" includes="readme.txt"/>
+      <additionalfileset dir="${src.properties.dir}" includes="bcr-beats/**/*,bcontrol/**/*,com/pingdynasty/midi/KeyboardMapper*.properties"/>
+      <classpath>
+        <path refid="lib.path"/>
+        <pathelement location="${build.classes.dir}"/>
+        <pathelement location="${java.home}/../Classes/jsse.jar"/>
 	<pathelement location="${java.home}/../Classes/classes.jar"/>
       </classpath>
     </pack>
