@@ -5,56 +5,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import javax.sound.midi.*;
 
 public class StepSequencerArpeggio implements Receiver {
 
-    private Timer timer = new Timer(); // for midi sync messages
-
     private StepSequencer sequencer;
     private Transmitter transmitter;
     private StepSequencerPlayer[] players = new StepSequencerPlayer[128];
-
-    private final int capacity = 4; // max polyphonic players
+    private final int capacity = 6; // max polyphonic players / voices
     private List resources;
     private Set taken;
     private int pos;
-
-    public class Timer {
-        boolean syncing = false;
-//         boolean timing = false; // true after first sync message is received
-        int timing = 0; // number of ticks we've received so far
-        long tick;
-        public void start(){
-            System.out.println("starting midi sync");
-            syncing = true;
-            timing = 0;
-        }
-        public void reset(){
-            timing = 0;
-        }
-        public void update(){
-            if(!syncing)
-                return;
-            switch(timing++){
-            case 0:
-                tick = System.currentTimeMillis();
-                break;
-            case 24:
-                long now = System.currentTimeMillis();
-                int period = (int)(now - tick);
-                sequencer.setPeriod(period);
-                System.out.println("period: "+period+" bpm: "+60000/period);
-                timing = 0;
-                break;
-            default:
-            }
-        }
-        public void stop(){
-            System.out.println("stopping midi sync");
-            syncing = false;
-        }
-    }
 
     public StepSequencerArpeggio(StepSequencer sequencer){
         this.sequencer = sequencer;
@@ -62,8 +24,10 @@ public class StepSequencerArpeggio implements Receiver {
         taken = Collections.synchronizedSet(new HashSet());
         pos = 0;
         // create Arpeggio players
-        for(int i=0; i<capacity; ++i)
-            resources.add(new StepSequencerPlayer(sequencer));
+        for(int i=0; i<capacity; ++i){
+            StepSequencerPlayer player = new StepSequencerPlayer(sequencer);
+            resources.add(player);
+        }
     }
 
     protected synchronized int nextIndex(){
@@ -112,7 +76,7 @@ public class StepSequencerArpeggio implements Receiver {
         if(players[note] == null)
             players[note] = getPlayer();
         if(players[note] != null){
-            players[note].setPeriod(sequencer.getPeriod());
+            players[note].setBPM(sequencer.getBPM());
             players[note].start(note, velocity);
         }
     }
@@ -123,15 +87,6 @@ public class StepSequencerArpeggio implements Receiver {
             release(players[note]);
             players[note] = null;
         }
-    }
-
-    public void setTransmitter(Transmitter transmitter){
-        if(this.transmitter == transmitter)
-            return;
-        if(this.transmitter != null)
-            this.transmitter.close();
-        this.transmitter = transmitter;
-        transmitter.setReceiver(this);
     }
 
     public void send(MidiMessage msg, long time){
@@ -153,7 +108,7 @@ public class StepSequencerArpeggio implements Receiver {
         case ShortMessage.START: {
             // this should send a start callback etc to BCR
             System.out.println("arp start");
-            timer.reset();
+//             timer.reset();
             sequencer.start();
             break;
         }
@@ -175,10 +130,13 @@ public class StepSequencerArpeggio implements Receiver {
             noteoff(msg.getData1());
             break;
         }
-        case ShortMessage.TIMING_CLOCK: {
-            timer.update();
-            break;
-            }
+//         case ShortMessage.TIMING_CLOCK: {
+//             Iterator it = taken.iterator();
+//             for(StepSequencerPlayer player = (StepSequencerPlayer)it.next(); 
+//                 it.hasNext(); player = (StepSequencerPlayer)it.next())
+//                 player.tick();
+//             break;
+//             }
         default:
             System.out.println("arp midi in <"+msg.getStatus()+"><"+msg.getCommand()+"><"+
                                msg.getData1()+"><"+msg.getData2()+">");
@@ -190,10 +148,33 @@ public class StepSequencerArpeggio implements Receiver {
             transmitter.close();
     }
 
-    public void setMidiSync(boolean doSync){
-        if(doSync)
-            timer.start();
-        else
-            timer.stop();
+    public void setTransmitter(Transmitter transmitter){
+        if(this.transmitter == transmitter)
+            return;
+        if(this.transmitter != null)
+            this.transmitter.close();
+        this.transmitter = transmitter;
+        transmitter.setReceiver(this);
+    }
+
+    public void setMidiSync(MidiDevice device)
+        throws MidiUnavailableException{
+        Iterator it = resources.iterator();
+        for(StepSequencerPlayer player = (StepSequencerPlayer)it.next(); 
+            it.hasNext(); player = (StepSequencerPlayer)it.next()){
+            player.disableInternalSync();
+//             try{
+                Transmitter transmitter = device.getTransmitter();
+                transmitter.setReceiver(player);
+//             }catch(MidiUnavailableException exc){exc.printStackTrace();}
+        }
+    }
+
+    public void resetMidiSync(){
+        Iterator it = resources.iterator();
+        for(StepSequencerPlayer player = (StepSequencerPlayer)it.next(); 
+            it.hasNext(); player = (StepSequencerPlayer)it.next()){
+            player.enableInternalSync();
+        }        
     }
 }
