@@ -49,7 +49,7 @@ public class WaveformPanel extends JPanel {
         int samplesPerPixel = frames / width / channels;
         int bytesPerSample = format.getFrameSize() / channels;
         boolean bigEndian = format.isBigEndian();
-        float max = 0, min = 0;
+        float max = 0;
         for(int i=0; i<width; ++i){
             for(int j=0; j<samplesPerPixel; ++j){
                 for(int k=0; k<channels; ++k){
@@ -93,15 +93,12 @@ public class WaveformPanel extends JPanel {
                 for(int k=0; k<channels; ++k){
                     if(displayData[k][i] > max)
                         max = displayData[k][i];
-                    else if(displayData[k][i] < min)
-                        min = displayData[k][i];
                 }
             }
         }
-        System.out.println("max/min "+max+"/"+min);
         for(int k=0; k<channels; ++k)
             for(int i=0; i<width; ++i)
-                displayData[k][i] =  (displayData[k][i] - min) / (max - min);
+                displayData[k][i] =  displayData[k][i] / max;
         // normalize to range 0.0 - 1.0
         repaint();
     }
