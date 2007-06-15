@@ -20,17 +20,24 @@ public class StepSequencerPlayer extends StepSequencer {
         return value;
     }
 
-    /**
-     * Play one step (blocking call).
-     */
-    public void play(Step step){
+    public void noteon(Step step){
+        System.out.println("arp noteon  "+step.getNote());
         // define a 'normal' step, use global +- deviation from norm
         try{
-            player.setDuration(((range(global.getDuration() + step.getDuration() - norm.getDuration())) * period) / 64);
+//             player.setDuration(((range(global.getDuration() + step.getDuration() - norm.getDuration())) * period) / 64);
             player.setVelocity(range(global.getVelocity() + step.getVelocity() - norm.getVelocity()));
             player.modulate(range(global.getModulation() + step.getModulation() - norm.getModulation()));
             player.bend(range(global.getBend() + step.getBend() - norm.getBend()));
-            player.play(range(global.getNote() + step.getNote() - norm.getNote()));
+            player.noteon(range(global.getNote() + step.getNote() - norm.getNote()));
+        }catch(InvalidMidiDataException exc){
+            exc.printStackTrace();
+        }
+    }
+
+    public void noteoff(Step step){
+        System.out.println("arp noteoff "+step.getNote());
+        try{
+            player.noteoff(range(global.getNote() + step.getLastNote() - norm.getNote()));
         }catch(InvalidMidiDataException exc){
             exc.printStackTrace();
         }
