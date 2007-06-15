@@ -13,12 +13,13 @@ public class BCRStepSequencerConfiguration extends DevicePanel  {
     private final static String midiControlOutputName = "Control output";
     private final static String midiInputName = "MIDI input";
     private final static String midiOutputName = "MIDI output";
+    private final static String midiSyncName = "MIDI sync";
 
     private int channel = 0; // Java channel 0 is MIDI channel 1
     private boolean doSysex = true;
 
     public BCRStepSequencerConfiguration(){
-        super(new String[]{midiInputName, midiControlInputName},  
+        super(new String[]{midiInputName, midiSyncName, midiControlInputName},  
               new String[]{midiOutputName, midiControlOutputName});
     }
 
@@ -28,6 +29,10 @@ public class BCRStepSequencerConfiguration extends DevicePanel  {
 
     public boolean doSysex(){
         return doSysex;
+    }
+
+    public MidiDevice getMidiSync(){
+        return getDevice(midiSyncName);
     }
 
     public MidiDevice getMidiInput(){
@@ -46,9 +51,8 @@ public class BCRStepSequencerConfiguration extends DevicePanel  {
         return getDevice(midiControlOutputName);
     }
 
-    public JPanel getPanel()
-        throws MidiUnavailableException{
-
+    public void init()
+        throws MidiUnavailableException {
         // initialise MIDI out
         MidiDevice device = DeviceLocator.getDevice(Synthesizer.class);
         setDevice(midiOutputName, device);
@@ -58,7 +62,17 @@ public class BCRStepSequencerConfiguration extends DevicePanel  {
         setDevice(midiControlInputName, device);
         device = DeviceLocator.getDevice("Port 1 (MidiOUT:3)");
         setDevice(midiControlOutputName, device);
+    }
 
+//     public JComponent getMiscPanel()
+//         throws MidiUnavailableException {
+//         Box content = Box.createHorizontalBox();
+// ...
+//         return content;
+//     }
+
+    public JPanel getPanel()
+        throws MidiUnavailableException{
         JPanel panel = super.getPanel();
 
         // doSysex configuration
@@ -70,7 +84,6 @@ public class BCRStepSequencerConfiguration extends DevicePanel  {
             };
         AbstractButton button = new JCheckBox(action);
         button.setSelected(doSysex);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
         combo.add(new JLabel("send Sysex MIDI messages:"));
         combo.add(button);
         panel.add(combo);
