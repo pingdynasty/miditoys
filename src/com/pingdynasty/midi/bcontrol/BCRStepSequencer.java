@@ -10,7 +10,6 @@ import com.pingdynasty.midi.*;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import javax.swing.text.html.HTMLDocument;
 import javax.swing.event.*;
 
 // todo:
@@ -45,6 +44,16 @@ public class BCRStepSequencer extends JPanel {
     private StepSequencerArpeggio midiInput;
     private ControlSurfaceHandler midiControl;
     private BCRStepSequencerConfiguration configuration;
+
+    public class ToolTipFocusAdapter extends FocusAdapter {
+        private int i;
+        public ToolTipFocusAdapter(int i){
+            this.i = i;
+        }
+        public void focusGained(FocusEvent e){
+            status(controls[i].getToolTip());
+        }
+    }
 
     public class AboutFrame extends JFrame {
         public AboutFrame(){
@@ -150,8 +159,8 @@ public class BCRStepSequencer extends JPanel {
         }
 
         public void action(int command, int channel, int data1, int data2){
-            status("action: "+command+" channel "+channel+
-                   " data1 "+data1+" data2 "+data2);
+//             status("action: "+command+" channel "+channel+
+//                    " data1 "+data1+" data2 "+data2);
             if(data1 >= 1 && data1 <= 8){
                 // push encoder turned
                 sequencer.getStep(data1 - 1).setNote(data2);
@@ -368,7 +377,7 @@ public class BCRStepSequencer extends JPanel {
         // first row of simple encoders (below buttons)
         for(int i=0; i<width; ++i){
             MidiControl control = 
-                new RotaryEncoder(33+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 0,
+                new RotaryEncoder(33+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 80,
                                   "step "+(1+i)+" velocity/modulation");
             list.add(control);
             rows.add(control.getComponent());
@@ -377,7 +386,7 @@ public class BCRStepSequencer extends JPanel {
         // second row of simple encoders
         for(int i=0; i<width; ++i){
             MidiControl control = 
-                new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 0,
+                new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 80,
                                   "step "+(1+i)+" duration/bend");
             list.add(control);
             rows.add(control.getComponent());
@@ -449,9 +458,10 @@ public class BCRStepSequencer extends JPanel {
             if(controls[i].getCommand() == ShortMessage.CONTROL_CHANGE)
                 cc_controls[controls[i].getData1()] = controls[i];
 
-        for(int i=0; i<controls.length; ++i)
+        for(int i=0; i<controls.length; ++i){
             controls[i].setCallback(eventHandler);
-
+            controls[i].getComponent().addFocusListener(new ToolTipFocusAdapter(i));
+        }
         eventHandler.setMode(eventHandler.MODE_A);
 
         // BPM control
@@ -469,14 +479,11 @@ public class BCRStepSequencer extends JPanel {
 //                     }
                 }
             });
+        slider.setToolTipText("beats per minute");
         this.add(slider, BorderLayout.NORTH);
     }
 
     private void addFourButtons(JComponent component, MidiControl[] controls){
-//         JPanel panel = new JPanel(new GridLayout(0, 2));
-//         for(int i=0; i<controls.length; ++i)
-//             panel.add(controls[i].getComponent());
-//         component.add(panel);
         Box box = new Box(BoxLayout.Y_AXIS);
         Box row = new Box(BoxLayout.X_AXIS);
         row.add(controls[0].getComponent());
@@ -488,13 +495,6 @@ public class BCRStepSequencer extends JPanel {
             row.add(controls[3].getComponent());
         }
         box.add(row);
-        component.add(box);
-    }
-
-    private void addTwoButtons(JComponent component, MidiControl high, MidiControl low){
-        Box box = new Box(BoxLayout.Y_AXIS);
-        box.add(high.getComponent());
-        box.add(low.getComponent());
         component.add(box);
     }
 
