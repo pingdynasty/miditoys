@@ -30,6 +30,8 @@ public class HarmonicOscillator {
 //     int GlauberFlag=1;
     int Nstate = 16;
 
+    // todo: find out discrepancies between Nstate, controls, and HeightConstant
+
     double dt = 0.001 * 30;
     double t = 1;
     double wtx;
@@ -228,7 +230,7 @@ public class HarmonicOscillator {
     //  Amplitude controls start
 
     // Normalize amplitudes
-    public void normalize(){
+    public void normalizeAmplitudes(){
         double arySum;   
         double aryFact;
 //         if (GlauberFlag==0)
@@ -278,14 +280,17 @@ public class HarmonicOscillator {
         // CONTROLS.L_Superp.setText("--");                  //
 
         for(int i=0;i<controlvalues.length;++i){
-            if(controlvalues[i] <= 100)
+            if(controlvalues[i] == 99) // todo: find out why this is coded this way
                 rawCn[i] = 0;
             else
-                rawCn[i] = 100.0d - (double)controlvalues[i] / 100.0d;
+                rawCn[i] = (double)(100 - controlvalues[i] / 100);
+//                 rawCn[i] = 100.0d - (double)controlvalues[i] / 100.0d;
+//                    if (CONTROLS.AmplitScroll[whichstate].getValue()==99) rawCn[whichstate]=0;
+//                    else
 //                    rawCn[whichstate]=(double)(100-CONTROLS.AmplitScroll[whichstate].getValue())/100;
         }
 
-        normalize();
+        normalizeAmplitudes();
 //         CONTROLS.EnergScroll.setValue( (int)( 100-(100/10)*(AverageEnerg-EnergyConstant))  );
     }
 
@@ -301,19 +306,23 @@ public class HarmonicOscillator {
         // CONTROLS.L_Glaub.setText(" Glauber State ");      // GlauberFlag == 1
         // CONTROLS.L_Superp.setText("--");                  //
 
-        for(int i=0; i<controls; ++i){
+        for(int i=0; i<controls; ++i)
             rawCn[i] = 0.0;
-            aryCn[i] = 0.0;
-        }
         rawCn[Nvalue] = 1.0;
 
-        normalize();
+        for(int i=0; i<Nstate; ++i)
+            aryCn[i] = 0.0;
 
-        for(int i=0; i<controlvalues.length; ++i){
+        normalizeAmplitudes();
+
+        for(int i=0; i<controls; ++i){
             rawCn[i] = 100.0d * aryCn[i];
             controlvalues[i] = 100 - (int)rawCn[i];
 //                 CONTROLS.AmplitScroll[whichstate].setValue(100-(int)rawCn[whichstate]);
         }
+
+// 	   CONTROLS.EnergScroll.setValue( (int)( 100-(100/10)*(AverageEnerg-EnergyConstant) )  );
+
     }
 
     //    Setting of amplitudes for Glauber State by energy selector scroller
@@ -335,13 +344,12 @@ public class HarmonicOscillator {
         AverageEnerg = EnergyConstant+0.0001+(10.0-0.1*(double)Nvalue);  // SETENERGY
         Xx = Math.sqrt(AverageEnerg-EnergyConstant);
 
-        for(int ist=0; ist<Nstate; ist++){
+        for(int i=0; i<Nstate; ++i){
             //  Matlab values
             //  for N=2:10,fac(N)=fac(N-1)*(N-1);end
             //  for N=0:9,coef(N+1)=x^N/sqrt(fac(N+1))*exp(-0.5*x^2);end
-            Xx2=0.5*Math.pow(Xx,2);
-            aryCn[ist]=Math.pow(Xx,ist)/Math.sqrt(nfact[ist])
-                *Math.exp(-Xx2);
+            Xx2 = 0.5d * Math.pow(Xx, 2);
+            aryCn[i] = Math.pow(Xx,i) / Math.sqrt(nfact[i]) * Math.exp(-Xx2);
         }
 
         for(int i=0; i<controls; i++)
@@ -415,26 +423,16 @@ public class HarmonicOscillator {
     }
 
     public double[] calculate() {  
-        int x,y,sx,sy;
-
 //         int EnerPos = (int)(AverageEnerg*ScaleParab);  // Convert energy to position
 
         PSI(t,0,0);
-        x=0; 
-        y=(int)(wtx);
 
         //
         //	Drawing the line of the wavefunction in samples points
-        //
-        
         values = new double[samples];
         values[0] = wtx;
         for(int i=1; i<samples; ++i){
-            sx=x; sy=y;
             PSI(t, (i) / HalfSize - HALFd, i);
-            x=i; 
-            y=(int)(wtx);
-            //             MyGr.drawLine(sx,samples-EnerPos-sy,x,samples-EnerPos-y);
             values[i] = wtx;
         }
 
