@@ -20,13 +20,14 @@ package com.pingdynasty.midi;
 
 */
 
-import javax.swing.JFrame;
+import java.awt.Dimension;
+import javax.swing.*;
 
 public class HarmonicOscillator {
 
     private int samples;
 
-    int GlauberFlag=1;
+//     int GlauberFlag=1;
     int Nstate = 16;
 
     double dt = 0.001 * 30;
@@ -40,6 +41,7 @@ public class HarmonicOscillator {
     static final int  HeightConstant = 30; // frequently used constant
     static final int controls = 10;
     int[] controlvalues;
+    int energyControl;
 
     double[] aryCn = new double[HeightConstant];  //   MOVED
     double[] rawCn = new double[controls];
@@ -127,7 +129,7 @@ public class HarmonicOscillator {
         // 		  StraightLines[2][j]=(int)((Xdiff/2)+Math.sqrt((j-0.5) / 0.5)*HalfSize +20);
         //     }
 
-        GlauberFlag=1;
+//         GlauberFlag=1;
         setGlauberState((int)( (100/10)*(1.8*1.8 )  )); // See the init of EnergScroll
     }
 
@@ -196,6 +198,24 @@ public class HarmonicOscillator {
         wtx=Scale*(Re*Re+Im*Im);
     }
 
+    public int getEnergy(){
+        return energyControl;
+    }
+
+    public void setEnergy(int energyControl){
+        this.energyControl = energyControl;
+        setGlauberState(energyControl);
+    }
+
+    public int getControls(){
+        return controlvalues.length;
+    }
+
+    public int getControl(int index){
+        assert index < controlvalues.length;
+        return controlvalues[index];
+    }
+
     public void setControl(int index, int value){
         System.out.println("control "+index+": "+value);
         assert index < controlvalues.length;
@@ -226,10 +246,10 @@ public class HarmonicOscillator {
 //                 CONTROLS.L_Superp.setText(" Single State");   // GlauberFlag == 0
 //                 CONTROLS.L_Glaub.setText("--");                   //
 //             }
-        if(GlauberFlag<1){
-            for(int i=0;i<Nstate;i++)
-                aryCn[i]=0.0;
-        }
+//         if(GlauberFlag<1){
+//             for(int i=0;i<Nstate;i++)
+//                 aryCn[i]=0.0;
+//         }
         arySum=(double)0.0001;
         for(int i=0;i<controls;i++){
             arySum = arySum + rawCn[i] * rawCn[i];
@@ -244,23 +264,25 @@ public class HarmonicOscillator {
         AverageEnerg = EnergyConstant;
         for(int i=0; i<controls; i++)
             AverageEnerg = AverageEnerg + ((double)i) * aryCn[i] * aryCn[i];
+        energyControl = (int)(100-(100/10)*(AverageEnerg-EnergyConstant));
     }
 
     // Setting of amplitudes by scrollers
     public void updateControlValues(){
         double arySum;   
         double aryFact;
-        GlauberFlag=0;
+//         GlauberFlag=0;
         // CONTROLS.L_Superp.setText(" Superposed State");   // GlauberFlag == 0
         // CONTROLS.L_Glaub.setText("--");                   //
         // CONTROLS.L_Glaub.setText(" Glauber State ");      // GlauberFlag == 1
         // CONTROLS.L_Superp.setText("--");                  //
 
         for(int i=0;i<controlvalues.length;++i){
-//             if(controlvalues[i] == 99)
-//                 rawCn[i] = 0;
-//             else
-            rawCn[i] = 100.0d - controlvalues[i] / 100.0d;
+            if(controlvalues[i] <= 100)
+                rawCn[i] = 0;
+            else
+                rawCn[i] = 100.0d - (double)controlvalues[i] / 100.0d;
+//                    rawCn[whichstate]=(double)(100-CONTROLS.AmplitScroll[whichstate].getValue())/100;
         }
 
         normalize();
@@ -270,16 +292,19 @@ public class HarmonicOscillator {
     //    Setting of amplitudes for a single state by buttons
     public void setSingleState(int Nvalue){
         System.out.println("single state "+Nvalue);
-        double arySum;   double aryFact;
+        double arySum;
+        double aryFact;
 
-        GlauberFlag=-1;
+//         GlauberFlag=-1;
         // CONTROLS.L_Superp.setText(" Single State");   // GlauberFlag == 0
         // CONTROLS.L_Glaub.setText("--");                   //
         // CONTROLS.L_Glaub.setText(" Glauber State ");      // GlauberFlag == 1
         // CONTROLS.L_Superp.setText("--");                  //
 
-        for(int i=0; i<controls; ++i)
+        for(int i=0; i<controls; ++i){
             rawCn[i] = 0.0;
+            aryCn[i] = 0.0;
+        }
         rawCn[Nvalue] = 1.0;
 
         normalize();
@@ -289,28 +314,28 @@ public class HarmonicOscillator {
             controlvalues[i] = 100 - (int)rawCn[i];
 //                 CONTROLS.AmplitScroll[whichstate].setValue(100-(int)rawCn[whichstate]);
         }
-
-//         CONTROLS.EnergScroll.setValue( (int)( 100-(100/10)*(AverageEnerg-EnergyConstant) )  );
     }
 
     //    Setting of amplitudes for Glauber State by energy selector scroller
     public void setGlauberState(int Nvalue){
         System.out.println("glauber state "+Nvalue);
+        energyControl = Nvalue;
+
         double arySum;   
         double aryFact; 
         double Xx; 
         double Xx2;
 
-        GlauberFlag=1;
+//         GlauberFlag = 1;
         // CONTROLS.L_Superp.setText(" Superposed State");   // GlauberFlag == 0
         // CONTROLS.L_Glaub.setText("--");                   //
 //         CONTROLS.L_Glaub.setText(" Glauber State ");          // GlauberFlag == 1
 //         CONTROLS.L_Superp.setText("--");                      //
 
-        AverageEnerg=EnergyConstant+0.0001+(10.0-0.1*(double)Nvalue );  // SETENERGY
-        Xx=Math.sqrt(AverageEnerg-EnergyConstant);
+        AverageEnerg = EnergyConstant+0.0001+(10.0-0.1*(double)Nvalue);  // SETENERGY
+        Xx = Math.sqrt(AverageEnerg-EnergyConstant);
 
-        for(int ist=0;ist<Nstate;ist++){
+        for(int ist=0; ist<Nstate; ist++){
             //  Matlab values
             //  for N=2:10,fac(N)=fac(N-1)*(N-1);end
             //  for N=0:9,coef(N+1)=x^N/sqrt(fac(N+1))*exp(-0.5*x^2);end
@@ -319,13 +344,12 @@ public class HarmonicOscillator {
                 *Math.exp(-Xx2);
         }
 
-        for(int i=0;i<controls;i++)
+        for(int i=0; i<controls; i++)
             rawCn[i]=aryCn[i];
 
-        for(int i=0; i<controlvalues.length; ++i){
+        for(int i=0; i<controls; ++i){
             rawCn[i]=100*aryCn[i];
             controlvalues[i] = 100 - (int)rawCn[i];
-//             CONTROLS.AmplitScroll[whichstate].setValue(100-(int)rawCn[whichstate]);
         }
 
     }
@@ -438,49 +462,68 @@ public class HarmonicOscillator {
         int width = 512;
         int height = 200;
 
+//         Box content = Box.createHorizontalBox();
+        Box content = Box.createVerticalBox();
+        Dimension dim = new Dimension(width, height);
+
         HarmonicOscillator osc = new HarmonicOscillator(width);
 //         osc.dump();
+        HarmonicOscillatorControlPanel control = 
+            new HarmonicOscillatorControlPanel(osc);
+        control.setPreferredSize(dim);
+        control.setMinimumSize(dim);
+//         control.setMaximumSize(dim);
 
+//         control.setSize(width, height);
         OscillatorPanel panel = new OscillatorPanel(width, height);
+//         panel.setSize(width, height);
+        content.add(control);
+        content.add(panel);
 
         panel.setData(osc.calculate());
 
         JFrame frame = new JFrame("harmonic oscillator");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(width, height);
-        frame.setContentPane(panel);
+        frame.setSize(width, height * 2);
+        frame.setContentPane(content);
         frame.setVisible(true);
 
-        for(int i=0; i<500; ++i){
+        for(;;){
             Thread.sleep(10);
             osc.increment();
             panel.setData(osc.calculate());
         }
-        osc.setControl(9, 80);
-        for(int i=0; i<500; ++i){
-            Thread.sleep(10);
-            osc.increment();
-            panel.setData(osc.calculate());
-        }
-        osc.setControl(5, 99);
-        osc.setControl(4, 0);
-        for(int i=0; i<500; ++i){
-            Thread.sleep(10);
-            osc.increment();
-            panel.setData(osc.calculate());
-        }
-        osc.setGlauberState(3);
-        for(int i=0; i<500; ++i){
-            Thread.sleep(10);
-            osc.increment();
-            panel.setData(osc.calculate());
-        }
-        osc.setSingleState(3);
-        for(int i=0; i<500; ++i){
-            Thread.sleep(10);
-            osc.increment();
-            panel.setData(osc.calculate());
-        }
+
+//         for(int i=0; i<500; ++i){
+//             Thread.sleep(10);
+//             osc.increment();
+//             panel.setData(osc.calculate());
+//         }
+//         osc.setControl(9, 80);
+//         for(int i=0; i<500; ++i){
+//             Thread.sleep(10);
+//             osc.increment();
+//             panel.setData(osc.calculate());
+//         }
+//         osc.setControl(5, 99);
+//         osc.setControl(4, 0);
+//         for(int i=0; i<500; ++i){
+//             Thread.sleep(10);
+//             osc.increment();
+//             panel.setData(osc.calculate());
+//         }
+//         osc.setGlauberState(3);
+//         for(int i=0; i<500; ++i){
+//             Thread.sleep(10);
+//             osc.increment();
+//             panel.setData(osc.calculate());
+//         }
+//         osc.setSingleState(3);
+//         for(int i=0; i<500; ++i){
+//             Thread.sleep(10);
+//             osc.increment();
+//             panel.setData(osc.calculate());
+//         }
 
 //         double[] values = osc.calculate();
 //         for(int i=0; i<values.length; i+=2)

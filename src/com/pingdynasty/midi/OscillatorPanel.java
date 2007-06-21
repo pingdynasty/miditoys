@@ -16,7 +16,7 @@ class OscillatorPanel extends JPanel {
 //         this.width = width;
         Dimension dim = new Dimension(width, height);
         setMinimumSize(dim);
-        setMaximumSize(dim);
+//         setMaximumSize(dim);
         setPreferredSize(dim);
         displayData = new float[width];
     }
