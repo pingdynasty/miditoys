@@ -21,6 +21,16 @@ class OscillatorPanel extends JPanel {
         displayData = new float[width];
     }
 
+    public void setNormalizedData(double[] data){
+        int samplesPerPixel = data.length / displayData.length;
+        for(int i=0; i<displayData.length; ++i){
+            for(int j=0; j<samplesPerPixel; ++j)
+                displayData[i] += data[i*samplesPerPixel+j];
+            displayData[i] /= (double)samplesPerPixel; // arithmetic mean
+        }
+        repaint();
+    }
+
     public void setData(double[] data){
         int samplesPerPixel = data.length / displayData.length;
         float max = 0;
