@@ -175,13 +175,14 @@ public class BCRStepSequencer extends JPanel {
                 // arbitrary velocity: 80
                 int note = data1 - 12;
                 int velocity = 80;
-                if(data2 < 64)
+                if(data2 < 64){
                     midiInput.noteoff(note);
-                else
+                }else{
                     midiInput.noteon(note, velocity);
+                    status(NoteParser.getStringNote(note)+" arpeggio");
+                }
                 // note: in order to pass on channel information, we need to do
                 // midiOutput.setChannel(channel);
-                status(NoteParser.getStringNote(note)+" arpeggio");
             }else if(data1 >= 105 && data1 <= 108){
                 // mode buttons - four buttons in bottom right corner
                 setMode(data1 - 105);
