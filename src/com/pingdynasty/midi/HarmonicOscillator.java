@@ -27,10 +27,13 @@ public class HarmonicOscillator {
 
     private int samples;
 
-//     int GlauberFlag=1;
-    int Nstate = 16;
-
     // todo: find out discrepancies between Nstate, controls, and HeightConstant
+    static final int controls = 10; // 10
+    static final int Nstate = 10; // 16
+    static final int  HeightConstant = 10; // 30
+    static final double EnergyConstant = 0.5d; // increasing constant moves waveform up
+    int[] controlvalues;
+    int energyControl;
 
     double dt = 0.001 * 30;
     double t = 1;
@@ -39,14 +42,9 @@ public class HarmonicOscillator {
     double[] values;
 
     double AverageEnerg;
-    static final double EnergyConstant = 0.5d; // increasing constant moves waveform up
-    static final int  HeightConstant = 30; // frequently used constant
-    static final int controls = 10;
-    int[] controlvalues;
-    int energyControl;
 
     double[] aryCn = new double[HeightConstant];  //   MOVED
-    double[] rawCn = new double[controls];
+    double[] rawCn = new double[HeightConstant];
     double[] alfan = new double[HeightConstant];
     double[] nfact = new double[HeightConstant];
 
@@ -131,7 +129,6 @@ public class HarmonicOscillator {
         // 		  StraightLines[2][j]=(int)((Xdiff/2)+Math.sqrt((j-0.5) / 0.5)*HalfSize +20);
         //     }
 
-//         GlauberFlag=1;
         setGlauberState((int)( (100/10)*(1.8*1.8 )  )); // See the init of EnergScroll
     }
 
@@ -231,33 +228,12 @@ public class HarmonicOscillator {
 
     // Normalize amplitudes
     public void normalizeAmplitudes(){
-        double arySum;   
-        double aryFact;
-//         if (GlauberFlag==0)
-//             {
-//                 CONTROLS.L_Superp.setText(" Superposed State");   // GlauberFlag == 0
-//                 CONTROLS.L_Glaub.setText("--");                   //   //
-//             }
-//         if (GlauberFlag==1)
-//             {
-//                 CONTROLS.L_Glaub.setText(" Glauber State ");      // GlauberFlag == 1
-//                 CONTROLS.L_Superp.setText("--");                  //
-//             }
-//         if (GlauberFlag==-1)
-//             {
-//                 CONTROLS.L_Superp.setText(" Single State");   // GlauberFlag == 0
-//                 CONTROLS.L_Glaub.setText("--");                   //
-//             }
-//         if(GlauberFlag<1){
-//             for(int i=0;i<Nstate;i++)
-//                 aryCn[i]=0.0;
-//         }
-        arySum=(double)0.0001;
-        for(int i=0;i<controls;i++){
+        double arySum = 0.0001d;
+        for(int i=0;i<Nstate;i++)
             arySum = arySum + rawCn[i] * rawCn[i];
-        }
-        aryFact = (double)(1.00)/Math.sqrt(arySum);
-        for(int i=0;i<controls;i++){
+        double aryFact  = 1.0d / Math.sqrt(arySum);
+
+        for(int i=0;i<Nstate;i++){
             aryCn[i] = rawCn[i] * aryFact;
             rawCn[i] = rawCn[i] * aryFact;
         }
@@ -265,7 +241,7 @@ public class HarmonicOscillator {
         // Evaluate AverageEnerg
         AverageEnerg = EnergyConstant;
         for(int i=0; i<controls; i++)
-            AverageEnerg = AverageEnerg + ((double)i) * aryCn[i] * aryCn[i];
+            AverageEnerg += ((double)i) * aryCn[i] * aryCn[i];
         energyControl = (int)(100-(100/10)*(AverageEnerg-EnergyConstant));
     }
 
@@ -280,11 +256,10 @@ public class HarmonicOscillator {
         // CONTROLS.L_Superp.setText("--");                  //
 
         for(int i=0;i<controlvalues.length;++i){
-            if(controlvalues[i] == 99) // todo: find out why this is coded this way
+            if(controlvalues[i] >= 99) // todo: find out why this is coded this way
                 rawCn[i] = 0;
             else
                 rawCn[i] = (double)(100 - controlvalues[i] / 100);
-//                 rawCn[i] = 100.0d - (double)controlvalues[i] / 100.0d;
 //                    if (CONTROLS.AmplitScroll[whichstate].getValue()==99) rawCn[whichstate]=0;
 //                    else
 //                    rawCn[whichstate]=(double)(100-CONTROLS.AmplitScroll[whichstate].getValue())/100;
