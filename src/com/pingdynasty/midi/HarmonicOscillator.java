@@ -20,8 +20,10 @@ package com.pingdynasty.midi;
 
 */
 
-import java.awt.Dimension;
+import java.awt.*;
+import java.awt.event.*;
 import javax.swing.*;
+import javax.swing.event.*;
 
 public class HarmonicOscillator {
 
@@ -37,7 +39,6 @@ public class HarmonicOscillator {
 
     double dt = 0.001 * 30;
     double t = 1;
-    double wtx;
 
     double[] values;
 
@@ -183,7 +184,7 @@ public class HarmonicOscillator {
     //
     //    Constructing the Wavefunction for a given  time
     //    and the constant alfan[n+1]
-    public void PSI(double t, double x, int xx){  
+    public double PSI(double t, double x, int xx){  
         double Cn;
         double Re = 0;
         double Im = 0;
@@ -194,7 +195,7 @@ public class HarmonicOscillator {
                 Im += Math.sin((i-1+0.5)*t)*Cn*PsiArray[xx+1][i];  //  PSI_n_form(x,i-1); // *PsiArray[xx+1][i];
             }
         }
-        wtx=Scale*(Re*Re+Im*Im);
+        return Scale*(Re*Re+Im*Im);
     }
 
     public int getEnergy(){
@@ -269,7 +270,7 @@ public class HarmonicOscillator {
 //         CONTROLS.EnergScroll.setValue( (int)( 100-(100/10)*(AverageEnerg-EnergyConstant))  );
     }
 
-    //    Setting of amplitudes for a single state by buttons
+    // Setting of amplitudes for a single state
     public void setSingleState(int Nvalue){
         System.out.println("single state "+Nvalue);
         double arySum;
@@ -339,79 +340,33 @@ public class HarmonicOscillator {
 
     //  Amplitude controls end
 
-    jfftw.real.Plan fft;
-    java.io.ByteArrayOutputStream out;
-    //     java.io.FileOutputStream out;
-    double scale = 0.01d;
-
-    public void initfft(){
-        //         fft = new jfftw.real.Plan(samples);
-        fft = new jfftw.real.Plan(samples, jfftw.real.Plan.BACKWARD
-                                  //                                   | jfftw.real.Plan.COMPLEX_TO_REAL
-                                  | jfftw.real.Plan.REAL_TO_COMPLEX 
-                                  | jfftw.real.Plan.IN_PLACE
-                                  );
-        try{
-            //             out = new java.io.FileOutputStream("glauber.out");
-            out = new java.io.ByteArrayOutputStream();
-        }catch(Exception exc){exc.printStackTrace();}
-    }
-
-    public void fft(double[] values){
-        try{
-            values = fft.transform(values);
-            for(int i=0; i<values.length; ++i)
-                out.write((int)(values[i]*scale));
-            //             int max = 0, min = 0, value;
-            //             for(int i=0; i<values.length; ++i){
-            //                 value = (int)(values[i]*scale);
-            //                 out.write(value);
-            //                 if(value > max)
-            //                     max = value;
-            //                 else if(value < min)
-            //                     min = value;
-            //             }
-            //             System.out.println("max "+max+" min "+min);
-            out.flush();
-        }catch(Exception exc){exc.printStackTrace();}
-    }
-
-    public void closefft(){
-        try{
-            float sampleRate = 8000.0f;
-            //8000,11025,16000,22050,44100
-            javax.sound.sampled.AudioFormat format = 
-                new javax.sound.sampled.AudioFormat(sampleRate, 8, 1, true, true);
-            // float sampleRate, float sampleSizeInBits, int channels, 
-            // boolean signed, boolean bigEndian
-            byte[] data = out.toByteArray();
-            int length = data.length / 8;
-            System.out.println("format "+format);
-            System.out.println("frame size "+format.getFrameSize());
-            System.out.println("data "+data.length+" samples "+length);
-            java.io.ByteArrayInputStream bytestream = 
-                new java.io.ByteArrayInputStream(data);
-            javax.sound.sampled.AudioInputStream stream = 
-                new javax.sound.sampled.AudioInputStream(bytestream, format, length);
-            javax.sound.sampled.AudioSystem.write(stream, javax.sound.sampled.AudioFileFormat.Type.WAVE, new java.io.File("glauber.wav"));
-        }catch(Exception exc){exc.printStackTrace();}
-    }
-
     public double[] calculate() {  
-//         int EnerPos = (int)(AverageEnerg*ScaleParab);  // Convert energy to position
-
-        PSI(t,0,0);
-
-        //
-        //	Drawing the line of the wavefunction in samples points
+        
+        // calculating the wavefunction in sample points
         values = new double[samples];
-        values[0] = wtx;
-        for(int i=1; i<samples; ++i){
-            PSI(t, (i) / HalfSize - HALFd, i);
-            values[i] = wtx;
-        }
+        // calculate first value
+        values[0] = PSI(t,0,0);;
+        for(int i=1; i<samples; ++i)
+            values[i] = PSI(t, (i) / HalfSize - HALFd, i);
 
-//         fft(values);
+        return values;
+    }
+
+    public double[] calculateNormalized() {  
+        values = new double[samples];
+        values[0] = PSI(t,0,0);
+        double max = values[0];
+        double min = values[0];
+        for(int i=1; i<samples; ++i){
+            values[i] = PSI(t, (i) / HalfSize - HALFd, i);
+            if(values[i] > max)
+                max = values[i];
+            if(values[i] < min)
+                min = values[i];
+        }
+        for(int i=0; i<values.length; ++i)
+            values[i] = (values[i] - min) / (max - min);
+
         return values;
     }
 
@@ -432,28 +387,44 @@ public class HarmonicOscillator {
 
     public static void main(String[] args)
         throws Exception {
-        int width = 512;
+        int samples = 2048;
+        int width = samples / 4;
         int height = 200;
 
 //         Box content = Box.createHorizontalBox();
         Box content = Box.createVerticalBox();
         Dimension dim = new Dimension(width, height);
 
-        HarmonicOscillator osc = new HarmonicOscillator(width);
+        HarmonicOscillator osc = new HarmonicOscillator(samples);
 //         osc.dump();
         HarmonicOscillatorControlPanel control = 
             new HarmonicOscillatorControlPanel(osc);
         control.setPreferredSize(dim);
         control.setMinimumSize(dim);
-//         control.setMaximumSize(dim);
 
-//         control.setSize(width, height);
         OscillatorPanel panel = new OscillatorPanel(width, height);
-//         panel.setSize(width, height);
         content.add(control);
         content.add(panel);
 
-        panel.setData(osc.calculate());
+//         panel.setData(osc.calculate());
+//         panel.setData(osc.calculateNormalized());
+
+        final FFT fft = new FFT(samples);
+        fft.initfft();
+        JButton button = new JButton("save");
+        button.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent event){
+                    fft.closefft();
+                }
+            });
+        content.add(button);
+        button = new JButton("reset");
+        button.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent event){
+                    fft.reset();
+                }
+            });
+        content.add(button);
 
         JFrame frame = new JFrame("harmonic oscillator");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -462,9 +433,12 @@ public class HarmonicOscillator {
         frame.setVisible(true);
 
         for(;;){
+            double[] values = osc.calculateNormalized();
+//             panel.setNormalizedData(values);
+            panel.setData(values);
+            fft.fft(values);
             Thread.sleep(10);
             osc.increment();
-            panel.setData(osc.calculate());
         }
 
 //         for(int i=0; i<500; ++i){
@@ -504,3 +478,74 @@ public class HarmonicOscillator {
     }
 }
 
+class FFT {
+
+    private int samples;
+    jfftw.real.Plan fft;
+    java.io.ByteArrayOutputStream out;
+    //     java.io.FileOutputStream out;
+    double scale = 1.0d;
+
+    public FFT(int samples){
+        this.samples = samples;
+    }
+
+    public void initfft(){
+        //         fft = new jfftw.real.Plan(samples);
+        fft = new jfftw.real.Plan(samples, jfftw.real.Plan.BACKWARD
+                                  //                                   | jfftw.real.Plan.COMPLEX_TO_REAL
+                                  | jfftw.real.Plan.REAL_TO_COMPLEX 
+                                  | jfftw.real.Plan.IN_PLACE
+                                  );
+        try{
+            //             out = new java.io.FileOutputStream("glauber.out");
+            out = new java.io.ByteArrayOutputStream();
+        }catch(Exception exc){exc.printStackTrace();}
+    }
+
+    public void fft(double[] values){
+        try{
+            values = fft.transform(values);
+            for(int i=0; i<values.length; ++i)
+                out.write((int)(values[i]*scale));
+            //             int max = 0, min = 0, value;
+            //             for(int i=0; i<values.length; ++i){
+            //                 value = (int)(values[i]*scale);
+            //                 out.write(value);
+            //                 if(value > max)
+            //                     max = value;
+            //                 else if(value < min)
+            //                     min = value;
+            //             }
+            //             System.out.println("max "+max+" min "+min);
+            out.flush();
+        }catch(Exception exc){exc.printStackTrace();}
+    }
+
+    public void reset(){
+        out.reset();
+    }
+
+    public void closefft(){
+        try{
+            float sampleRate = 8000.0f;
+            //8000,11025,16000,22050,44100
+            javax.sound.sampled.AudioFormat format = 
+                new javax.sound.sampled.AudioFormat(sampleRate, 8, 1, true, true);
+            // float sampleRate, float sampleSizeInBits, int channels, 
+            // boolean signed, boolean bigEndian
+            byte[] data = out.toByteArray();
+            int length = data.length / 8;
+            System.out.println("format "+format);
+            System.out.println("frame size "+format.getFrameSize());
+            System.out.println("data "+data.length+" samples "+length);
+            java.io.ByteArrayInputStream bytestream = 
+                new java.io.ByteArrayInputStream(data);
+            javax.sound.sampled.AudioInputStream stream = 
+                new javax.sound.sampled.AudioInputStream(bytestream, format, length);
+            javax.sound.sampled.AudioSystem.write(stream, javax.sound.sampled.AudioFileFormat.Type.WAVE, new java.io.File("glauber.wav"));
+        }catch(Exception exc){exc.printStackTrace();}
+    }
+
+
+}
