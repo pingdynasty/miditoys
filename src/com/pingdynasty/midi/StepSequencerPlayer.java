@@ -21,7 +21,6 @@ public class StepSequencerPlayer extends StepSequencer {
     }
 
     public void noteon(Step step){
-        System.out.println("arp noteon  "+step.getNote());
         // define a 'normal' step, use global +- deviation from norm
         try{
 //             player.setDuration(((range(global.getDuration() + step.getDuration() - norm.getDuration())) * period) / 64);
@@ -35,7 +34,6 @@ public class StepSequencerPlayer extends StepSequencer {
     }
 
     public void noteoff(Step step){
-        System.out.println("arp noteoff "+step.getNote());
         try{
             player.noteoff(range(global.getNote() + step.getLastNote() - norm.getNote()));
         }catch(InvalidMidiDataException exc){
