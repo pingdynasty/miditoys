@@ -50,11 +50,12 @@ public class BControlButton extends JButton {
         // icon size is 36x25
 
         // clear the space
-        g.clearRect(x-1, y-1, 38, 27);
+//         g.clearRect(x-1, y-1, 38, 27);
+        g.clearRect(x, y, 36, 25);
 
 	if(hasFocus()){
 	    g.setColor(DEFAULT_FOCUS_COLOR);
-            g.fillOval(x, y, 36, 25);
+            g.fillRoundRect(x, y, 35, 24, 10, 10);
         }
 
         if(model.isPressed())
