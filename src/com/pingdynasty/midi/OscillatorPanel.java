@@ -63,7 +63,7 @@ public class OscillatorPanel extends JPanel {
 
         int height = getHeight();
         g.setColor(Color.gray);
-        g.drawRoundRect(1, 1, getWidth() - 2, height - 2, 15, 15);
+        g.drawRoundRect(0, 0, displayData.length, height, 15, 15);
         g.setColor(DEFAULT_FOCUS_COLOR);
 
         int x = 0;
