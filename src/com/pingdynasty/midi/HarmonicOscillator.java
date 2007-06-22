@@ -57,7 +57,7 @@ public class HarmonicOscillator {
     int energyControl;
 
     double dt = 0.001 * 30;
-    double t = 1;
+    double t = 1.0d;
 
     double[] values;
 
@@ -139,7 +139,6 @@ public class HarmonicOscillator {
 
         setGlauberState((int)( (100/10)*(1.8*1.8 )  )); // See the init of EnergScroll
     }
-
 
     //
     //  Mathematical Functions 
@@ -264,10 +263,10 @@ public class HarmonicOscillator {
         // CONTROLS.L_Superp.setText("--");                  //
 
         for(int i=0;i<controlvalues.length;++i){
-            if(controlvalues[i] >= 99) // todo: find out why this is coded this way
+            if(controlvalues[i] == 100) // todo: find out why this is coded this way
                 rawCn[i] = 0;
             else
-                rawCn[i] = (double)(100 - controlvalues[i] / 100);
+                rawCn[i] = (double)(100 - controlvalues[i]) / 100;
 //                    if (CONTROLS.AmplitScroll[whichstate].getValue()==99) rawCn[whichstate]=0;
 //                    else
 //                    rawCn[whichstate]=(double)(100-CONTROLS.AmplitScroll[whichstate].getValue())/100;
@@ -392,6 +391,11 @@ public class HarmonicOscillator {
                 System.out.println("PsiArray["+lpoint+"]["+jquant+"]"+PsiArray[lpoint][jquant]);
     }
 
+    public void setTimeDelta(double dt){
+        System.out.println("timedelta: "+dt);
+        this.dt = dt;
+    }
+
     public static void main(String[] args)
         throws Exception {
 //         int samples = 4096;
@@ -405,7 +409,7 @@ public class HarmonicOscillator {
         Box content = Box.createVerticalBox();
         Dimension dim = new Dimension(width, height);
 
-        HarmonicOscillator osc = new HarmonicOscillator(samples);
+        final HarmonicOscillator osc = new HarmonicOscillator(samples);
 //         osc.dump();
         HarmonicOscillatorControlPanel control = 
             new HarmonicOscillatorControlPanel(osc);
@@ -421,23 +425,6 @@ public class HarmonicOscillator {
 
         Box controls = Box.createHorizontalBox();
         content.add(controls);
-
-//         final FFT fft = new FFT(samples);
-//         fft.initfft();
-//         JButton button = new JButton("save");
-//         button.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent event){
-//                     fft.closefft();
-//                 }
-//             });
-//         controls.add(button);
-//         button = new JButton("reset");
-//         button.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent event){
-//                     fft.reset();
-//                 }
-//             });
-//         controls.add(button);
 
         final AudioOutput output = new AudioOutput(samples);
         JSlider slider = new JSlider(JSlider.VERTICAL, 0, 127, 63); // hopefully midways is good
@@ -458,6 +445,15 @@ public class HarmonicOscillator {
                 }
             });
         controls.add(slider);
+        slider = new JSlider(JSlider.VERTICAL, 0, 180, 30);
+        slider.addChangeListener(new ChangeListener(){
+                public void stateChanged(ChangeEvent event) {
+                    JSlider source = (JSlider)event.getSource();
+                    int value = (int)source.getValue();
+                    osc.setTimeDelta(0.001 * value);
+                }
+            });
+        controls.add(slider);
 
         JFrame frame = new JFrame("harmonic oscillator");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -465,7 +461,8 @@ public class HarmonicOscillator {
         frame.setContentPane(content);
         frame.setVisible(true);
 
-        for(int i=0;;++i){
+        for(;;){
+//         for(int i=0;;++i){
             //             double[] values = osc.calculateNormalized();
             double[] values = osc.calculate();
             //             panel.setNormalizedData(values);
@@ -482,7 +479,7 @@ class AudioOutput {
 
     FloatControl samplerateControl;
 //     double scale = 255.0d;
-    double scale = 1.0d; // 
+    double scale = 100.0d; // 
     SourceDataLine line;
 
     byte[] databuffer;
@@ -491,7 +488,7 @@ class AudioOutput {
         throws Exception{
 //         float sampleRate = 8000.0f;
 //         float sampleRate = 11025.0f;
-        float sampleRate = 16000.0f;
+        float sampleRate = 44100.0f;
         //8000,11025,16000,22050,44100
         AudioFormat format = 
             new AudioFormat(sampleRate, 8, 1, true, true);
@@ -518,70 +515,6 @@ class AudioOutput {
 
     public void setSampleRate(int samplerate){
         samplerateControl.setValue(((float)samplerate) * (samplerateControl.getMaximum() - samplerateControl.getMinimum()) / 127.0f + samplerateControl.getMinimum());
+        System.out.println("samplerate: "+samplerateControl.getValue());
     }
-}
-
-class FFT {
-
-    private int samples;
-    jfftw.real.Plan fft;
-    java.io.ByteArrayOutputStream out;
-    //     java.io.FileOutputStream out;
-    double scale = 200.0d;
-
-    public FFT(int samples){
-        this.samples = samples;
-    }
-
-    public void initfft(){
-        //         fft = new jfftw.real.Plan(samples);
-        fft = new jfftw.real.Plan(samples, 
-//                                   jfftw.real.Plan.BACKWARD
-                                  jfftw.real.Plan.FORWARD
-//                                   | jfftw.real.Plan.COMPLEX_TO_REAL
-//                                   | jfftw.real.Plan.REAL_TO_COMPLEX 
-//                                   | jfftw.real.Plan.IN_PLACE
-                                  );
-        try{
-            //             out = new java.io.FileOutputStream("glauber.out");
-            out = new java.io.ByteArrayOutputStream();
-        }catch(Exception exc){exc.printStackTrace();}
-    }
-
-    public double[] fft(double[] values){
-        try{
-            values = fft.transform(values);
-            for(int i=0; i<values.length; ++i)
-                out.write((int)(values[i]*scale));
-            out.flush();
-        }catch(Exception exc){exc.printStackTrace();}
-        return values;
-    }
-
-    public void reset(){
-        out.reset();
-    }
-
-    public void closefft(){
-        try{
-            float sampleRate = 8000.0f;
-            //8000,11025,16000,22050,44100
-            AudioFormat format = new AudioFormat(sampleRate, 8, 1, false, true);
-                
-            // float sampleRate, float sampleSizeInBits, int channels, 
-            // boolean signed, boolean bigEndian
-            byte[] data = out.toByteArray();
-            int length = data.length / 8;
-            System.out.println("format "+format);
-            System.out.println("frame size "+format.getFrameSize());
-            System.out.println("data "+data.length+" samples "+length);
-            java.io.ByteArrayInputStream bytestream = 
-                new java.io.ByteArrayInputStream(data);
-            AudioInputStream stream = 
-                new AudioInputStream(bytestream, format, length);
-            AudioSystem.write(stream, AudioFileFormat.Type.WAVE, new java.io.File("glauber.wav"));
-        }catch(Exception exc){exc.printStackTrace();}
-    }
-
-
 }
