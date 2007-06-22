@@ -7,7 +7,7 @@ import java.awt.Graphics;
 import javax.swing.JPanel;
 import javax.swing.JFrame;
 
-class OscillatorPanel extends JPanel {
+public class OscillatorPanel extends JPanel {
     private float[] displayData;
 
     private final static Color DEFAULT_FOCUS_COLOR = new Color(0x8080ff);
@@ -22,9 +22,10 @@ class OscillatorPanel extends JPanel {
     }
 
     public void setNormalizedData(double[] data){
-        int samplesPerPixel = data.length / displayData.length;
+        int samplesPerPixel = data.length > displayData.length ?
+            data.length / displayData.length : 1;
         for(int i=0; i<displayData.length; ++i){
-            for(int j=0; j<samplesPerPixel; ++j)
+            for(int j=0; j<samplesPerPixel && i*samplesPerPixel+j < data.length; ++j)
                 displayData[i] += data[i*samplesPerPixel+j];
             displayData[i] /= (double)samplesPerPixel; // arithmetic mean
         }
@@ -32,11 +33,12 @@ class OscillatorPanel extends JPanel {
     }
 
     public void setData(double[] data){
-        int samplesPerPixel = data.length / displayData.length;
+        int samplesPerPixel = data.length > displayData.length ?
+            data.length / displayData.length : 1;
         float max = 0;
         float min = 0;
         for(int i=0; i<displayData.length; ++i){
-            for(int j=0; j<samplesPerPixel; ++j)
+            for(int j=0; j<samplesPerPixel && j < data.length - i*samplesPerPixel; ++j)
                 displayData[i] += data[i*samplesPerPixel+j];
 //                 displayData[i] += Math.abs(data[i*samplesPerPixel+j]);
 //             displayData[i] /= samplesPerPixel; // arithmetic mean
@@ -58,10 +60,12 @@ class OscillatorPanel extends JPanel {
 
     public void paintComponent(Graphics g){
         super.paintComponent(g);
-        g.setColor(Color.gray);
-        g.setColor(DEFAULT_FOCUS_COLOR);
 
         int height = getHeight();
+        g.setColor(Color.gray);
+        g.drawRoundRect(1, 1, getWidth() - 2, height - 2, 15, 15);
+        g.setColor(DEFAULT_FOCUS_COLOR);
+
         int x = 0;
         int y = height - (int)(displayData[0] * height);
         int sx, sy;
