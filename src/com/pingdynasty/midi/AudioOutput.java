@@ -133,7 +133,7 @@ public class AudioOutput {
         int iSample;
         for(int i=0; i<databuffer.length; i+=4){
             // 32 bit signed little endian
-            iSample = quantize32(values[i / 4]*scale);
+            iSample = quantize32(values[i/4]*scale);
             databuffer[i+3] = (byte) (iSample >> 24);
             databuffer[i+2] = (byte) ((iSample >>> 16) & 0xFF);
             databuffer[i+1] = (byte) ((iSample >>> 8) & 0xFF);
@@ -145,13 +145,13 @@ public class AudioOutput {
         scale *= 2;
         switch(mode){
         case PCM32SL:
-            this.scale = scale * (twoPower31 / 127.0d);
+            this.scale = scale * twoPower31 / 127.0d;
             break;
         case PCM16SL:
-            this.scale = scale * (twoPower15 / 127.0d);
+            this.scale = scale * twoPower15 / 127.0d;
             break;
         case PCM8SL:
-            this.scale = scale * (twoPower7 / 127.0d);
+            this.scale = scale * twoPower7 / 127.0d;
             break;
         }
         System.out.println("scale: "+this.scale);

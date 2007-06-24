@@ -43,7 +43,8 @@ public class BCRHarmonicOscillator extends JPanel {
         public void run(){
             while(running){
                 double[] values = osc.calculate();
-                view.setData(values);
+//                 view.setData(values);
+                view.setAndScaleData(values);
                 output.write(values);
                 if(output.clipping())
                     status("clipping!");
@@ -195,6 +196,7 @@ public class BCRHarmonicOscillator extends JPanel {
                 }
                 case 99:{
                     output.setScaleFactor(data2);
+                    view.setScaleFactor(data2);
                     status("scale factor "+data2);
                     break;
                 }
@@ -289,7 +291,7 @@ public class BCRHarmonicOscillator extends JPanel {
         int width = 8; // number of controls
         osc = new HarmonicOscillator(samples, width);
         view = new OscillatorPanel(512); // todo fix sizes
-        view.setData(osc.calculate());
+        view.setAndScaleData(osc.calculate());
         view.setMinimumSize(new Dimension(512, 100));
         view.setPreferredSize(new Dimension(512, 200));
         output = new AudioOutput(samples);
@@ -607,7 +609,7 @@ public class BCRHarmonicOscillator extends JPanel {
 
     public static void main(String[] args)
         throws Exception {
-        int samples = 1024;
+        int samples = 512;
         BCRHarmonicOscillator osc = new BCRHarmonicOscillator(samples);
         osc.initialiseMidiDevices();
 
