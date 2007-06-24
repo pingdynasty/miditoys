@@ -49,7 +49,12 @@ public class AudioOutput {
         DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
         line = (SourceDataLine)AudioSystem.getLine(info);
         line.open(format, databuffer.length);
-        samplerateControl = (FloatControl)line.getControl(FloatControl.Type.SAMPLE_RATE);
+        Control[] controls = line.getControls();
+        for(int i=0; i<controls.length; ++i)
+            System.out.println("control: "+controls[i].getType());
+        try{
+            samplerateControl = (FloatControl)line.getControl(FloatControl.Type.SAMPLE_RATE);
+        }catch(Exception exc){exc.printStackTrace();}
         line.start();
     }
 
