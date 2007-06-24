@@ -20,19 +20,12 @@ package com.pingdynasty.midi;
 
 */
 
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import javax.swing.event.*;
-
-import javax.sound.sampled.*;
-
 public class HarmonicOscillator {
 
     private int samples;
 
     // todo: find out discrepancies between Nstate, controls, and HeightConstant
-    static final int controls = 10; // 10
+    static final int controls = 8; // 10
     static final int Nstate = controls; // 16
     static final int  HeightConstant = controls; // 30
 //     static final double EnergyConstant = 0.5d; // increasing constant moves waveform up
@@ -66,26 +59,30 @@ public class HarmonicOscillator {
     public HarmonicOscillator(int samples){
         this.samples = samples;
         // increasing HALFd moves center of waveform to the right
-        HALFd = controls / 2; // 5.0d, samples / 10
+        HALFd = controls / 2.0d; // 5.0d, samples / 10
         //     int HalfSize= samples / 10;
         // increasing HalfSize moves center of waveform to the right
         HalfSize = samples / controls; // 21, samples / 10
-
-        PsiArray = new double[samples+1][HeightConstant];
 
         // start values
         controlvalues = new int[controls];
 //         controlvalues = {20, 36, 45, 47, 42, 34, 25, 17, 11, 6};
 
         //   Fill the coefficient array used in functions PSI_n_form()
-
         for(int j=0;j<HeightConstant;j++)
-            alfan[j]=fan(j);
+            alfan[j] = fan(j);
         
         nfact[0] = 1.0d;
         for(int j=1;j<HeightConstant;j++)
-            nfact[j]=nfact[j-1]*(double)j;
+            nfact[j] = nfact[j-1]*(double)j;
 
+        initialisePSIArray();
+        setGlauberState(74); // See the init of EnergScroll
+    }
+
+
+    public void initialisePSIArray(){
+        PsiArray = new double[samples+1][HeightConstant];
         double exp, x;
         for(int lpoint=0; lpoint < samples; ++lpoint){
             x = ((double)lpoint) / HalfSize - HALFd;
@@ -95,7 +92,6 @@ public class HarmonicOscillator {
         }
 
 //         setGlauberState((int)( (100/10)*(1.8*1.8 )  )); // See the init of EnergScroll
-        setGlauberState(74); // See the init of EnergScroll
     }
 
     //
@@ -151,6 +147,30 @@ public class HarmonicOscillator {
             }
         }
         return Scale*(Re*Re+Im*Im);
+    }
+
+    // HALFd = controls / 2.0
+    public double getHalfDepth(){
+        return HALFd;
+    }
+
+    // HalfDepth controls the horizontal position of the waveform
+    // less means further to the left
+    public void setHalfDepth(double halfd){
+        this.HALFd = halfd;
+        initialisePSIArray();
+    }
+
+    // HalfSize = samples / controls
+    // HalfSize controls the width of the waveform
+    // less means narrower band, higher frequency sound
+    public int getHalfSize(){
+        return HalfSize;
+    }
+
+    public void setHalfSize(int halfsize){
+        this.HalfSize = halfsize;
+        initialisePSIArray();
     }
 
     public int getEnergy(){
@@ -312,124 +332,9 @@ public class HarmonicOscillator {
                 System.out.println("PsiArray["+lpoint+"]["+jquant+"]"+PsiArray[lpoint][jquant]);
     }
 
-    public void setTimeDelta(double dt){
-        System.out.println("timedelta: "+dt);
+    // Set the time delta value. Should be small, 0.001 - 0.100.
+    public void setTimeStep(double dt){
+        System.out.println("dt: "+dt);
         this.dt = dt;
-    }
-
-    public static void main(String[] args)
-        throws Exception {
-//         int samples = 4096;
-        int samples = 512;
-        int width = 512;
-        int height = 200;
-
-        Box content = Box.createVerticalBox();
-        Dimension dim = new Dimension(width, height);
-
-        final HarmonicOscillator osc = new HarmonicOscillator(samples);
-//         osc.dump();
-        HarmonicOscillatorControlPanel control = 
-            new HarmonicOscillatorControlPanel(osc);
-        control.setPreferredSize(dim);
-        control.setMinimumSize(dim);
-
-        OscillatorPanel panel = new OscillatorPanel(width, height);
-        content.add(control);
-        content.add(panel);
-
-        Box controls = Box.createHorizontalBox();
-        content.add(controls);
-
-        final AudioOutput output = new AudioOutput(samples);
-        JSlider slider = new JSlider(JSlider.VERTICAL, 0, 127, 63); // hopefully midways is good
-        slider.addChangeListener(new ChangeListener(){
-                public void stateChanged(ChangeEvent event) {
-                    JSlider source = (JSlider)event.getSource();
-                    int value = (int)source.getValue();
-                    output.setSampleRate(value);
-                }
-            });
-        controls.add(slider);
-        slider = new JSlider(JSlider.VERTICAL, 0, 255, 100);
-        slider.addChangeListener(new ChangeListener(){
-                public void stateChanged(ChangeEvent event) {
-                    JSlider source = (JSlider)event.getSource();
-                    double value = (double)source.getValue();
-                    output.setScale(value);
-                }
-            });
-        controls.add(slider);
-        slider = new JSlider(JSlider.VERTICAL, 0, 180, 30);
-        slider.addChangeListener(new ChangeListener(){
-                public void stateChanged(ChangeEvent event) {
-                    JSlider source = (JSlider)event.getSource();
-                    int value = (int)source.getValue();
-                    osc.setTimeDelta(0.001 * value);
-                }
-            });
-        controls.add(slider);
-
-        JFrame frame = new JFrame("harmonic oscillator");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(width, height * 3 + 60);
-        frame.setContentPane(content);
-        frame.setVisible(true);
-
-        for(;;){
-//         for(int i=0;;++i){
-            //             double[] values = osc.calculateNormalized();
-            double[] values = osc.calculate();
-            //             panel.setNormalizedData(values);
-//             if(i % 10 == 0)
-                panel.setData(values);
-            output.write(values);
-//             Thread.sleep(10);
-            osc.increment();
-        }
-    }
-}
-
-class AudioOutput {
-
-    FloatControl samplerateControl;
-//     double scale = 255.0d;
-    double scale = 100.0d; // 
-    SourceDataLine line;
-
-    byte[] databuffer;
-
-    public AudioOutput(int samples)
-        throws Exception{
-//         float sampleRate = 8000.0f;
-//         float sampleRate = 11025.0f;
-        float sampleRate = 22050.0f;
-        //8000,11025,16000,22050,44100
-        AudioFormat format = 
-            new AudioFormat(sampleRate, 8, 1, true, true);
-        DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
-        line = (SourceDataLine)AudioSystem.getLine(info);
-        line.open(format, samples * 10);
-        samplerateControl = (FloatControl)line.getControl(FloatControl.Type.SAMPLE_RATE);
-        line.start();
-        databuffer = new byte[samples];
-    }
-
-    public void write(double[] values){
-        line.drain();
-        for(int i=0; i<databuffer.length; ++i)
-            databuffer[i] = (byte)(values[i]*scale);
-//             line.write((int)(values[i]*scale));
-        line.write(databuffer, 0, databuffer.length);
-    }
-
-    public void setScale(double scale){
-        System.out.println("scale: "+scale);
-        this.scale = scale;
-    }
-
-    public void setSampleRate(int samplerate){
-        samplerateControl.setValue(((float)samplerate) * (samplerateControl.getMaximum() - samplerateControl.getMinimum()) / 127.0f + samplerateControl.getMinimum());
-        System.out.println("samplerate: "+samplerateControl.getValue());
     }
 }

@@ -12,12 +12,7 @@ public class OscillatorPanel extends JPanel {
 
     private final static Color DEFAULT_FOCUS_COLOR = new Color(0x8080ff);
 
-    public OscillatorPanel(int width, int height){
-//         this.width = width;
-        Dimension dim = new Dimension(width, height);
-        setMinimumSize(dim);
-//         setMaximumSize(dim);
-        setPreferredSize(dim);
+    public OscillatorPanel(int width){
         displayData = new float[width];
     }
 
