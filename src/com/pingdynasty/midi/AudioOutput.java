@@ -4,58 +4,48 @@ import javax.sound.sampled.*;
 
 public class AudioOutput {
 
-    private FloatControl samplerateControl;
     private double scale;
-    private SourceDataLine line;
-
-    private byte[] databuffer;
     private int mode;
     private boolean clipping;
+    protected byte[] databuffer;
 
-    private static final int PCM8SL = 1;
-    private static final int PCM16SL = 2;
-    private static final int PCM24SL = 3;
-    private static final int PCM32SL = 4;
+    public static final int PCM8S = 1;
+    public static final int PCM16SL = 2;
+    public static final int PCM24SL = 3;
+    public static final int PCM32SL = 4;
     private static final double twoPower7 = 128.0d;
     private static final double twoPower15 = 32768.0d;
     private static final double twoPower23 = 8388608.0d;
     private static final double twoPower31 = 2147483648.0d;
 
-    public AudioOutput(int samples)
+    public AudioOutput(int samples, int mode)
         throws Exception{
-        this.mode = PCM16SL;
-        int bitsPerSample;
+        assert mode == PCM8S || mode == PCM16SL || mode == PCM32SL;
+        this.mode = mode;
         switch(mode) {
         case PCM32SL:
             databuffer = new byte[samples * 4];
-            bitsPerSample = 32;
             break;
         case PCM16SL:
             databuffer = new byte[samples * 2];
-            bitsPerSample = 16;
             break;
-        case PCM8SL:
+        case PCM8S:
         default:
             databuffer = new byte[samples];
-            bitsPerSample = 8;
         }
         setScaleFactor(63);
-        float sampleRate = 22050.0f;
-        //8000,11025,16000,22050,44100
-        AudioFormat format = 
-            new AudioFormat(sampleRate, bitsPerSample, 1, true, false);
-//              new AudioFormat(sampleRate, 8, 1, true, true);
-        System.out.println("format: "+format);
-        DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
-        line = (SourceDataLine)AudioSystem.getLine(info);
-        line.open(format, databuffer.length);
-        Control[] controls = line.getControls();
-        for(int i=0; i<controls.length; ++i)
-            System.out.println("control: "+controls[i].getType());
-        try{
-            samplerateControl = (FloatControl)line.getControl(FloatControl.Type.SAMPLE_RATE);
-        }catch(Exception exc){exc.printStackTrace();}
-        line.start();
+    }
+
+    public AudioFormat getAudioFormat(float sampleRate){
+        switch(mode) {
+        case PCM32SL:
+            return new AudioFormat(sampleRate, 32, 1, true, false);
+        case PCM16SL:
+            return new AudioFormat(sampleRate, 16, 1, true, false);
+        case PCM8S:
+        default:
+            return new AudioFormat(sampleRate, 8, 1, true, false);
+        }
     }
 
     public boolean clipping(){
@@ -96,28 +86,26 @@ public class AudioOutput {
 
     public void write(double[] values){
         clipping = false;
-        line.drain();
         switch(mode){
         case PCM32SL:
-            write32SL(values);
+            write32bitSignedLittleEndian(values);
             break;
         case PCM16SL:
-            write16SL(values);
+            write16bitSignedLittleEndian(values);
             break;
-        case PCM8SL:
-            write8SL(values);
+        case PCM8S:
+            write8bitLittleEndian(values);
             break;
         }
-        line.write(databuffer, 0, databuffer.length);
     }
 
-    public void write8SL(double[] values){
+    public void write8bitLittleEndian(double[] values){
         assert values.length == databuffer.length;
         for(int i=0; i<databuffer.length; i++)
             databuffer[i] = (byte)(quantize8(values[i]*scale));
     }
 
-    public void write16SL(double[] values){
+    public void write16bitSignedLittleEndian(double[] values){
         assert values.length * 2 == databuffer.length;
         int iSample;
         for(int i=0; i<databuffer.length; i+=2){
@@ -128,7 +116,7 @@ public class AudioOutput {
         }
     }
 
-    public void write32SL(double[] values){
+    public void write32bitSignedLittleEndian(double[] values){
         assert values.length * 4 == databuffer.length;
         int iSample;
         for(int i=0; i<databuffer.length; i+=4){
@@ -150,18 +138,10 @@ public class AudioOutput {
         case PCM16SL:
             this.scale = scale * twoPower15 / 127.0d;
             break;
-        case PCM8SL:
+        case PCM8S:
             this.scale = scale * twoPower7 / 127.0d;
             break;
         }
         System.out.println("scale: "+this.scale);
-    }
-
-    public float getSampleRate(){
-        return samplerateControl.getValue();
-    }
-
-    public void setSampleRate(int samplerate){
-        samplerateControl.setValue(((float)samplerate) * (samplerateControl.getMaximum() - samplerateControl.getMinimum()) / 127.0f + samplerateControl.getMinimum());
     }
 }

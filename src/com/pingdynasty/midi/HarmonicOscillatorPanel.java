@@ -10,7 +10,7 @@ public class HarmonicOscillatorPanel extends JPanel {
     private HarmonicOscillator osc;
     private HarmonicOscillatorControlPanel control;
     private OscillatorPanel view;
-    private AudioOutput output;
+    private AudioLineOutput output;
 
     public HarmonicOscillatorPanel(int samples, int controls, int width, int height)
         throws Exception {
@@ -19,7 +19,8 @@ public class HarmonicOscillatorPanel extends JPanel {
         osc = new HarmonicOscillator(samples, controls);
         control = new HarmonicOscillatorControlPanel(osc);
         view = new OscillatorPanel(width);
-        output = new AudioOutput(samples);
+        output = new AudioLineOutput(samples, AudioOutput.PCM16SL);
+        output.openLine(22050.0f);
 
         Box controlbox = Box.createHorizontalBox();
         JSlider slider = new JSlider(JSlider.VERTICAL, 0, 127, 63); // hopefully midways is good

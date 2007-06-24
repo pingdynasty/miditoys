@@ -17,7 +17,8 @@ public class BCRHarmonicOscillator extends JPanel {
 
     private HarmonicOscillator osc;
     private OscillatorPanel view;
-    private AudioOutput output;
+    private AudioLineOutput output;
+    private AudioFileOutput fileoutput;
 
     private MidiControl[] controls;
     private MidiControl[] cc_controls; // quick index for CC controls
@@ -48,6 +49,8 @@ public class BCRHarmonicOscillator extends JPanel {
                 output.write(values);
                 if(output.clipping())
                     status("clipping!");
+                if(fileoutput != null)
+                    fileoutput.write(values);
                 osc.increment();
             }
         }
@@ -173,8 +176,21 @@ public class BCRHarmonicOscillator extends JPanel {
                     runner.start();
                     status("start");
                 }
-            }else if(data1 == 116){
-                // learn button
+            }else if(data1 == 117){
+                if(data2 > 63){
+                    try{
+                        if(fileoutput == null)
+                            fileoutput = new AudioFileOutput(512, AudioOutput.PCM32SL);
+                        else fileoutput.reset();
+                    }catch(Exception exc){exc.printStackTrace();}
+                }
+            }else if(data1 == 118){
+                if(data2 > 63){
+                    try{
+                        if(fileoutput != null)
+                            fileoutput.write(22050f, new File("harms.wav"));
+                    }catch(Exception exc){exc.printStackTrace();}
+                }
             }else{
 //                 if(data1 >= 81 && data1 <= 88){
 //                     // top row simple encoder (below buttons)
@@ -294,7 +310,8 @@ public class BCRHarmonicOscillator extends JPanel {
         view.setAndScaleData(osc.calculate());
         view.setMinimumSize(new Dimension(512, 100));
         view.setPreferredSize(new Dimension(512, 200));
-        output = new AudioOutput(samples);
+        output = new AudioLineOutput(samples, AudioOutput.PCM16SL);
+        output.openLine(22050.0f);
         runner = new Runner();
         eventHandler = new EventHandler();
         midiControl = new ControlSurfaceHandler();
@@ -418,7 +435,7 @@ public class BCRHarmonicOscillator extends JPanel {
 
         // store/learn/edit/exit
         toggles = new ToggleButton[4];
-        String[] tooltips = new String[]{"start/stop", "not in use", "not in use", "not in use"};
+        String[] tooltips = new String[]{"start/stop", "not in use", "start/reset file saving", "save file"};
         for(int i=0; i<4; ++i){
             toggles[i] = new ToggleButton(53+i, ShortMessage.CONTROL_CHANGE, channel, 115+i, 0, tooltips[i]);
             list.add(toggles[i]);
