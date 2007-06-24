@@ -187,15 +187,15 @@ public class HarmonicOscillator {
     }
 
     public int getControl(int index){
-        // assert index < controlvalues.length;
+        assert index < controlvalues.length;
         return controlvalues[index];
     }
 
     public void setControl(int index, int value){
         System.out.println("control "+index+": "+value);
-        // assert index < controlvalues.length;
-        // assert value <= 100;
-        // assert value >= 0;
+        assert index < controlvalues.length;
+        assert value <= 100;
+        assert value >= 0;
         controlvalues[index] = value;
         updateControlValues();
     }
