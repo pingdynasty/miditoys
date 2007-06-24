@@ -6,7 +6,12 @@ import javax.sound.midi.*;
 
 public class BCRSysexMessage extends SysexMessage {
 
-    int index;
+    public static final byte[] HEADER_DATA = new byte[]{
+        0x00, 0x20, 0x32, // Behringer manufacturer's code
+        0x7F, 0x7F, 0x20, // header, space
+    };
+
+    private int index;
 
     public BCRSysexMessage(int index){
         super();
@@ -33,15 +38,11 @@ public class BCRSysexMessage extends SysexMessage {
     public void setMessage(String message)
         throws InvalidMidiDataException {
         ByteBuffer buf = ByteBuffer.allocate(message.length() + 8);
-        byte[] data = new byte[]{
-            0x00, 0x20, 0x32, // Behringer manufacturer's code
-            0x7F, 0x7F, 0x20, // header, space
-        };
-        buf.put(data);
+        buf.put(HEADER_DATA);
         putInteger(buf, index);
         for(int i=0; i<message.length(); ++i)
             buf.put((byte)message.charAt(i));
-        data = buf.array();
+        byte[] data = buf.array();
         super.setMessage(SysexMessage.SYSTEM_EXCLUSIVE, data, data.length);
 //             (byte)0xf0, // status byte (System Exclusive Message)
 //         return new SysexMessage(data);
