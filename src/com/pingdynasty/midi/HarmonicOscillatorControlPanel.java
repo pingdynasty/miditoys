@@ -51,7 +51,7 @@ public class HarmonicOscillatorControlPanel extends JPanel {
         Box row = Box.createHorizontalBox();
         Box[] columns = new Box[controls];
 
-        Dimension dim = new Dimension(30, 20);
+        Dimension dim = new Dimension(40, 20);
         for(int i=0; i<controls; ++i){
             columns[i] = Box.createVerticalBox();
 //             // create text label
@@ -64,12 +64,12 @@ public class HarmonicOscillatorControlPanel extends JPanel {
             states[i].addActionListener(new SingleStateActionListener(i));
             columns[i].add(states[i]);
             // create amplitude slider
-            amplitudes[i] = new JSlider(JSlider.VERTICAL, 0, 100, osc.getControl(i));
+            amplitudes[i] = new JSlider(JSlider.VERTICAL, 0, 127, osc.getControl(i));
             amplitudes[i].addChangeListener(new AmplitudeChangeListener(i));
             columns[i].add(amplitudes[i]);
             row.add(columns[i]);
         }
-        energy = new JSlider(JSlider.VERTICAL, 0, 100, osc.getEnergy());
+        energy = new JSlider(JSlider.VERTICAL, 0, 127, osc.getEnergy());
         energy.addChangeListener(new ChangeListener(){
                 public void stateChanged(ChangeEvent event) {
                     if(!synchronising){

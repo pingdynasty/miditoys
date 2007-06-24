@@ -25,48 +25,49 @@ public class HarmonicOscillator {
     private int samples;
 
     // todo: find out discrepancies between Nstate, controls, and HeightConstant
-    static final int controls = 8; // 10
-    static final int Nstate = controls; // 16
-    static final int  HeightConstant = controls; // 30
-//     static final double EnergyConstant = 0.5d; // increasing constant moves waveform up
-    static final double EnergyConstant = 5d; // increasing constant moves waveform up
+    private int controls; // 10
+    private int Nstate; // 16
+    private int  HeightConstant; // 30
 
-    double HALFd;
-    int HalfSize;
-    //      double NormFact;
+    private double HALFd;
+    private int HalfSize;
 
-//     static final double Scale = 104.0;//21.0;
-//     static final double Scale = 21.0d;
-    static final double Scale = 1.0d;
+    private static final double EnergyConstant = 0.5d; // increasing constant moves waveform up
+    private static final double MAX_VALUE = 127.0d;
 
-    int[] controlvalues;
-    int energyControl;
+    private int[] controlvalues;
+    private int energyControl;
 
-    double dt = 0.001 * 30;
-    double t = 1.0d;
+    private double dt = 0.001 * 30;
+    private double t = 1.0d;
 
-    double[] values;
+    private double[] values;
+    private double AverageEnerg;
 
-    double AverageEnerg;
+    private double[] aryCn;
+    private double[] rawCn;
+    private double[] alfan;
+    private double[] nfact;
+    private double[][] PsiArray;
 
-    double[] aryCn = new double[HeightConstant];  //   MOVED
-    double[] rawCn = new double[HeightConstant];
-    double[] alfan = new double[HeightConstant];
-    double[] nfact = new double[HeightConstant];
-
-    double[][] PsiArray;
-
-    public HarmonicOscillator(int samples){
+    public HarmonicOscillator(int samples, int controls){
         this.samples = samples;
+        this.controls = controls;
+
+        Nstate = controls;
+        HeightConstant = controls;
+        aryCn = new double[HeightConstant];
+        rawCn = new double[HeightConstant];
+        alfan = new double[HeightConstant];
+        nfact = new double[HeightConstant];
+
         // increasing HALFd moves center of waveform to the right
         HALFd = controls / 2.0d; // 5.0d, samples / 10
         //     int HalfSize= samples / 10;
         // increasing HalfSize moves center of waveform to the right
         HalfSize = samples / controls; // 21, samples / 10
 
-        // start values
         controlvalues = new int[controls];
-//         controlvalues = {20, 36, 45, 47, 42, 34, 25, 17, 11, 6};
 
         //   Fill the coefficient array used in functions PSI_n_form()
         for(int j=0;j<HeightConstant;j++)
@@ -76,27 +77,24 @@ public class HarmonicOscillator {
         for(int j=1;j<HeightConstant;j++)
             nfact[j] = nfact[j-1]*(double)j;
 
+        PsiArray = new double[samples+1][HeightConstant];
         initialisePSIArray();
-        setGlauberState(74); // See the init of EnergScroll
+        setGlauberState(63); // initialises control values
     }
 
 
     public void initialisePSIArray(){
-        PsiArray = new double[samples+1][HeightConstant];
         double exp, x;
-        for(int lpoint=0; lpoint < samples; ++lpoint){
+        for(int lpoint=0; lpoint <= samples; ++lpoint){
             x = ((double)lpoint) / HalfSize - HALFd;
             exp = Math.exp(-x * x / 2.0);
             for(int jquant=0; jquant < Nstate; jquant++)
                 PsiArray[lpoint][jquant] = PSI_n_form(x, jquant, exp);                    
         }
-
-//         setGlauberState((int)( (100/10)*(1.8*1.8 )  )); // See the init of EnergScroll
     }
 
     //
     //  Mathematical Functions 
-
     //
     //    Constant factors used in alfan[] filled above
     //    fan(i) = 1/ (  sqrt( n!  2^i sqrt( Pi ) )
@@ -142,11 +140,11 @@ public class HarmonicOscillator {
         for(int i=0;i<Nstate;i++){
             Cn = aryCn[i];
             if(Cn>0.0){
-                Re += Math.cos((i-1+0.5)*t)*Cn*PsiArray[xx+1][i];
-                Im += Math.sin((i-1+0.5)*t)*Cn*PsiArray[xx+1][i];
+                Re += Math.cos((i-0.5)*t)*Cn*PsiArray[xx+1][i];
+                Im += Math.sin((i-0.5)*t)*Cn*PsiArray[xx+1][i];
             }
         }
-        return Scale*(Re*Re+Im*Im);
+        return Re*Re + Im*Im;
     }
 
     // HALFd = controls / 2.0
@@ -194,7 +192,7 @@ public class HarmonicOscillator {
     public void setControl(int index, int value){
         System.out.println("control "+index+": "+value);
         assert index < controlvalues.length;
-        assert value <= 100;
+        assert value <= MAX_VALUE;
         assert value >= 0;
         controlvalues[index] = value;
         updateControlValues();
@@ -218,7 +216,7 @@ public class HarmonicOscillator {
         AverageEnerg = EnergyConstant;
         for(int i=0; i<controls; i++)
             AverageEnerg += ((double)i) * aryCn[i] * aryCn[i];
-        energyControl = (int)(100-(100/10)*(AverageEnerg-EnergyConstant));
+        energyControl = (int)(10 * (AverageEnerg - EnergyConstant));
     }
 
     // Setting of amplitudes by scrollers
@@ -227,10 +225,10 @@ public class HarmonicOscillator {
         double aryFact;
 
         for(int i=0;i<controlvalues.length;++i){
-            if(controlvalues[i] == 100) // todo: find out why this is coded this way
-                rawCn[i] = 0;
-            else
-                rawCn[i] = (double)(100 - controlvalues[i]) / 100;
+//             if(controlvalues[i] == MAX_CONTROL_VALUE)
+//                 rawCn[i] = 0;
+//             else
+            rawCn[i] = (double)controlvalues[i] / MAX_VALUE;
         }
 
         normalizeAmplitudes();
@@ -252,8 +250,8 @@ public class HarmonicOscillator {
         normalizeAmplitudes();
 
         for(int i=0; i<controls; ++i){
-            rawCn[i] = 100.0d * aryCn[i];
-            controlvalues[i] = 100 - (int)rawCn[i];
+            rawCn[i] = MAX_VALUE * aryCn[i];
+            controlvalues[i] = (int)rawCn[i];
         }
 
     }
@@ -263,12 +261,12 @@ public class HarmonicOscillator {
         System.out.println("glauber state "+Nvalue);
         energyControl = Nvalue;
 
-        double arySum;   
-        double aryFact; 
-        double Xx; 
+        double arySum;
+        double aryFact;
+        double Xx;
         double Xx2;
 
-        AverageEnerg = EnergyConstant+0.0001+(10.0-0.1*(double)Nvalue);  // SETENERGY
+        AverageEnerg = EnergyConstant + 0.0001 + (10.0-0.1 * (double)Nvalue);  // SETENERGY
         Xx = Math.sqrt(AverageEnerg-EnergyConstant);
 
         for(int i=0; i<Nstate; ++i){
@@ -283,8 +281,8 @@ public class HarmonicOscillator {
             rawCn[i]=aryCn[i];
 
         for(int i=0; i<controls; ++i){
-            rawCn[i]=100*aryCn[i];
-            controlvalues[i] = 100 - (int)rawCn[i];
+            rawCn[i] = MAX_VALUE * aryCn[i];
+            controlvalues[i] = (int)rawCn[i];
         }
 
     }
@@ -293,9 +291,9 @@ public class HarmonicOscillator {
         // calculating the wavefunction in sample points
         values = new double[samples];
         // calculate first value
-        values[0] = PSI(t,0,0);;
+        values[0] = PSI(t,0,0);
         for(int i=1; i<samples; ++i)
-            values[i] = PSI(t, (i) / HalfSize - HALFd, i);
+            values[i] = PSI(t, i / HalfSize - HALFd, i);
         return values;
     }
 
@@ -305,7 +303,7 @@ public class HarmonicOscillator {
         double max = values[0];
         double min = values[0];
         for(int i=1; i<samples; ++i){
-            values[i] = PSI(t, (i) / HalfSize - HALFd, i);
+            values[i] = PSI(t, i / HalfSize - HALFd, i);
             if(values[i] > max)
                 max = values[i];
             if(values[i] < min)

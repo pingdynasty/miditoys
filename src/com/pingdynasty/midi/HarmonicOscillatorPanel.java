@@ -12,16 +12,16 @@ public class HarmonicOscillatorPanel extends JPanel {
     private OscillatorPanel view;
     private AudioOutput output;
 
-    public HarmonicOscillatorPanel(int samples, int width, int height)
+    public HarmonicOscillatorPanel(int samples, int controls, int width, int height)
         throws Exception {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
-        osc = new HarmonicOscillator(samples);
+        osc = new HarmonicOscillator(samples, controls);
         control = new HarmonicOscillatorControlPanel(osc);
         view = new OscillatorPanel(width);
         output = new AudioOutput(samples);
 
-        Box controls = Box.createHorizontalBox();
+        Box controlbox = Box.createHorizontalBox();
         JSlider slider = new JSlider(JSlider.VERTICAL, 0, 127, 63); // hopefully midways is good
         slider.addChangeListener(new ChangeListener(){
                 public void stateChanged(ChangeEvent event) {
@@ -30,16 +30,16 @@ public class HarmonicOscillatorPanel extends JPanel {
                     output.setSampleRate(value);
                 }
             });
-        controls.add(slider);
-        slider = new JSlider(JSlider.VERTICAL, 0, 255, 100);
+        controlbox.add(slider);
+        slider = new JSlider(JSlider.VERTICAL, 0, 127, 63);
         slider.addChangeListener(new ChangeListener(){
                 public void stateChanged(ChangeEvent event) {
                     JSlider source = (JSlider)event.getSource();
-                    double value = (double)source.getValue();
+                    int value = (int)source.getValue();
                     output.setScaleFactor(value);
                 }
             });
-        controls.add(slider);
+        controlbox.add(slider);
         slider = new JSlider(JSlider.VERTICAL, 0, 180, 30);
         slider.addChangeListener(new ChangeListener(){
                 public void stateChanged(ChangeEvent event) {
@@ -48,11 +48,11 @@ public class HarmonicOscillatorPanel extends JPanel {
                     osc.setTimeStep(0.001 * value);
                 }
             });
-        controls.add(slider);
+        controlbox.add(slider);
 
         add(control);
         add(view);
-        add(controls);
+        add(controlbox);
 
         Dimension dim = new Dimension(width, height);
         setPreferredSize(dim);
@@ -63,8 +63,8 @@ public class HarmonicOscillatorPanel extends JPanel {
         control.setMinimumSize(dim);
         view.setPreferredSize(dim);
         view.setMinimumSize(dim);
-        controls.setPreferredSize(dim);
-        controls.setMinimumSize(dim);
+        controlbox.setPreferredSize(dim);
+        controlbox.setMinimumSize(dim);
     }
 
     public void tick(){
@@ -82,9 +82,10 @@ public class HarmonicOscillatorPanel extends JPanel {
         throws Exception {
         //         int samples = 4096;
         int samples = 512;
+        int controls = 10;
         int width = 512;
         int height = 200;
-        HarmonicOscillatorPanel panel = new HarmonicOscillatorPanel(samples, width, height);
+        HarmonicOscillatorPanel panel = new HarmonicOscillatorPanel(samples, controls, width, height);
 
         JFrame frame = new JFrame("harmonic oscillator");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
