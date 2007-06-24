@@ -100,6 +100,7 @@
     <antcall target="pong"/>
     <antcall target="bcr-steps"/>
     <antcall target="bcr-beats"/>
+    <antcall target="bcr-harms"/>
   </target>
 
   <target name="clean" depends="init" description="Clean up the build">
@@ -143,6 +144,29 @@
       <additionalfileset dir="${proj.dir}/docs" includes="licence.txt"/>
       <additionalfileset dir="${build.dir}" includes="readme.txt"/>
       <additionalfileset dir="${src.properties.dir}" includes="bcr-beats/**/*,bcontrol/**/*,com/pingdynasty/midi/KeyboardMapper*.properties"/>
+      <classpath>
+        <path refid="lib.path"/>
+        <pathelement location="${build.classes.dir}"/>
+        <pathelement location="${java.home}/../Classes/jsse.jar"/>
+	<pathelement location="${java.home}/../Classes/classes.jar"/>
+      </classpath>
+    </pack>
+  </target>
+
+  <target name="bcr-harms" depends="bcr-harms.jar"/>
+
+  <target name="bcr-harms.jar" depends="readme, compile">
+    <taskdef name="pack" classname="org.sadun.util.ant.Pack">
+      <classpath refid="lib.path"/>
+    </taskdef>
+    <pack classes="com.pingdynasty.midi.bcontrol.BCRHarmonicOscillator"
+          targetJar="${build.dir}/bcr-harms.jar"
+          manifestMainClass="com.pingdynasty.midi.bcontrol.BCRHarmonicOscillator"
+          includePkg="com.pingdynasty.">
+<!--       <additionalclass name="com.pingdynasty.midi.bcontrol.BCRHarmonicOscillatorApplet"/> -->
+      <additionalfileset dir="${proj.dir}/docs" includes="licence.txt"/>
+      <additionalfileset dir="${build.dir}" includes="readme.txt"/>
+      <additionalfileset dir="${src.properties.dir}" includes="bcr-beats/**/*,bcontrol/**/*"/>
       <classpath>
         <path refid="lib.path"/>
         <pathelement location="${build.classes.dir}"/>
