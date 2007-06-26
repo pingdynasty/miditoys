@@ -71,7 +71,7 @@ public class ToggleButton extends MidiControl
     }
 
     public void updateGraphicalControl(){
-        button.requestFocusInWindow();
+//         button.requestFocusInWindow();
 //         button.setToolTipText(getToolTip());
         button.setSelected(data2 == on);
         button.repaint();

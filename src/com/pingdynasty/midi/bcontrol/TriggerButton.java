@@ -44,7 +44,7 @@ public class TriggerButton extends ToggleButton implements ChangeListener {
     }
 
     public void updateGraphicalControl(){
-        button.requestFocusInWindow();
+//         button.requestFocusInWindow();
         button.getModel().setPressed(data2 == on);
         button.repaint();
     }
