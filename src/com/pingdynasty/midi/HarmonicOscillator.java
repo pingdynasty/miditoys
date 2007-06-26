@@ -147,6 +147,10 @@ public class HarmonicOscillator {
         return Re*Re + Im*Im;
     }
 
+    public double[] getData(){
+        return values;
+    }
+
     // HALFd = controls / 2.0
     public double getHalfDepth(){
         return HALFd;
@@ -204,48 +208,36 @@ public class HarmonicOscillator {
     public void normalizeAmplitudes(){
         double arySum = 0.0001d;
         for(int i=0;i<Nstate;i++)
-            arySum = arySum + rawCn[i] * rawCn[i];
+            arySum += rawCn[i] * rawCn[i];
         double aryFact  = 1.0d / Math.sqrt(arySum);
 
         for(int i=0;i<Nstate;i++){
             aryCn[i] = rawCn[i] * aryFact;
-            rawCn[i] = rawCn[i] * aryFact;
+            rawCn[i] = aryCn[i];
         }
 
         // Evaluate AverageEnerg
         AverageEnerg = EnergyConstant;
         for(int i=0; i<controls; i++)
             AverageEnerg += ((double)i) * aryCn[i] * aryCn[i];
-        energyControl = (int)(10 * (AverageEnerg - EnergyConstant));
+        energyControl = (int)((MAX_VALUE / 10.0d) * (AverageEnerg - EnergyConstant));
     }
 
     // Setting of amplitudes by scrollers
     public void updateControlValues(){
-        double arySum;   
-        double aryFact;
-
-        for(int i=0;i<controlvalues.length;++i){
-//             if(controlvalues[i] == MAX_CONTROL_VALUE)
-//                 rawCn[i] = 0;
-//             else
-            rawCn[i] = (double)controlvalues[i] / MAX_VALUE;
-        }
+        for(int i=0;i<controlvalues.length;++i)
+            rawCn[i] = ((double)controlvalues[i]) / MAX_VALUE;
 
         normalizeAmplitudes();
     }
 
     // Setting of amplitudes for a single state
     public void setSingleState(int Nvalue){
+        assert Nvalue < controlvalues.length;
         System.out.println("single state "+Nvalue);
-        double arySum;
-        double aryFact;
-
         for(int i=0; i<controls; ++i)
             rawCn[i] = 0.0;
         rawCn[Nvalue] = 1.0;
-
-        for(int i=0; i<Nstate; ++i)
-            aryCn[i] = 0.0;
 
         normalizeAmplitudes();
 
@@ -261,13 +253,11 @@ public class HarmonicOscillator {
         System.out.println("glauber state "+Nvalue);
         energyControl = Nvalue;
 
-        double arySum;
-        double aryFact;
-        double Xx;
-        double Xx2;
+//         AverageEnerg=EnergyConstant+0.0001+(10.0-0.1*(double)Nvalue );  // SETENERGY
+        AverageEnerg = EnergyConstant + 10.0d * Nvalue / MAX_VALUE;  // SETENERGY
 
-        AverageEnerg = EnergyConstant + 0.0001 + (10.0-0.1 * (double)Nvalue);  // SETENERGY
-        Xx = Math.sqrt(AverageEnerg-EnergyConstant);
+        double Xx = Math.sqrt(AverageEnerg-EnergyConstant);
+        double Xx2;
 
         for(int i=0; i<Nstate; ++i){
             //  Matlab values
@@ -277,8 +267,8 @@ public class HarmonicOscillator {
             aryCn[i] = Math.pow(Xx,i) / Math.sqrt(nfact[i]) * Math.exp(-Xx2);
         }
 
-        for(int i=0; i<controls; i++)
-            rawCn[i]=aryCn[i];
+//         for(int i=0; i<controls; i++)
+//             rawCn[i] = aryCn[i];
 
         for(int i=0; i<controls; ++i){
             rawCn[i] = MAX_VALUE * aryCn[i];

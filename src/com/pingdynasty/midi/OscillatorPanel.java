@@ -44,11 +44,13 @@ public class OscillatorPanel extends JPanel {
                 displayData[i] = (float)(scale * data[i]);
         }else if(data.length > displayData.length){
             int samplesPerPixel = data.length / displayData.length;
-            for(int i=0; i<displayData.length; ++i){
-                for(int j=0; j<samplesPerPixel; ++j)
-                    displayData[i] += (float)(scale * data[i*samplesPerPixel+j]);
-                displayData[i] /= (float)samplesPerPixel; // arithmetic mean
-            }
+//             for(int i=0; i<displayData.length; ++i){
+//                 for(int j=0; j<samplesPerPixel; ++j)
+//                     displayData[i] += (float)(scale * data[i*samplesPerPixel+j]);
+//                 displayData[i] /= (float)samplesPerPixel; // arithmetic mean
+//             }
+            for(int i=0; i<displayData.length; ++i)
+                displayData[i] = (float)(scale * data[i*samplesPerPixel]);
         }else{
             // displayData.length > data.length
             int pixelsPerSample = displayData.length / data.length;
@@ -93,25 +95,30 @@ public class OscillatorPanel extends JPanel {
 // 	    g2d.addRenderingHints(AALIAS);
 // 	}
 
-        int height = getHeight() - 2;
+        int height = getHeight();
+        int offset = (getWidth() - displayData.length) / 2;
+
+        // draw frame
+        g.setColor(Color.gray);
+        g.drawRoundRect(offset, 1, displayData.length, height-2, 10, 10);
+
+        height -= 2;
 
         // draw clipping limit line
         g.setColor(CLIP_LIMIT_COLOR);
         int clip = (int)(height - (0.9f * height));
-        g.drawLine(0, clip, displayData.length, clip);
+        g.drawLine(offset, clip, displayData.length+offset, clip);
         g.setColor(DEFAULT_FOCUS_COLOR);
 
-        int x = 0;
+        int x = offset;
         int y = height - (int)(displayData[0] * height) + 1;
         int sx, sy;
         for(int i=1; i<displayData.length; ++i){
             sx = x;
             sy = y;
-            x = i;
+            x = i+offset;
             y =  height - (int)(displayData[i] * height) + 1;
             g.drawLine(sx, sy, x, y);
         }
-        g.setColor(Color.gray);
-        g.drawRoundRect(0, 0, displayData.length, height+2, 10, 10);
     }
 }
