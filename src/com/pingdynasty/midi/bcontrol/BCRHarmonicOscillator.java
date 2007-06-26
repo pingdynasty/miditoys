@@ -16,8 +16,6 @@ import com.pingdynasty.midi.*;
 
 // todo:
 // - write control update method that sets control values from osc and output settings.
-// - fix half depth / half size params. get proper oscilloscope names.
-// - change half size so that it works the same with large and small sample widths.
 // - add volume control.
 // - check for sample rate, volume, master gain controls before adding them in.
 // - make display update frequency configurable
@@ -255,19 +253,13 @@ public class BCRHarmonicOscillator extends JPanel {
                     break;
                 }
                 case 101:{
-                    // HALFd = controls / 2.0 : max 8, min 0
-                    double value = (data2 / 127.0d) * 8.0d;
-                    osc.setHalfDepth(value);
-                    status("half depth "+osc.getHalfDepth());
+                    osc.setDistance(data2);
+                    status("distance "+osc.getDistance());
                     break;
                 }
                 case 102:{
-                    // HalfSize = samples / controls
-                    // max = samples / controls * 2;
-                    // min = 1;
-                    int value = data2 + 1;
-                    osc.setHalfSize(value);
-                    status("half size "+osc.getHalfSize());
+                    osc.setWavelength(data2);
+                    status("wavelength "+osc.getWavelength());
                     break;
                 }
                 }
@@ -294,13 +286,11 @@ public class BCRHarmonicOscillator extends JPanel {
 //             System.out.println("short message "+msg.getStatus()+" "+msg.getData1()+" "+msg.getData2());
             switch(msg.getStatus()){
             case ShortMessage.START: {
-                runner.start();
-                status("start");
+                start();
                 break;
             }
             case ShortMessage.STOP: {
-                runner.stop();
-                status("stop");
+                stop();
                 break;
             }
             case ShortMessage.CONTROL_CHANGE: {
@@ -427,10 +417,10 @@ public class BCRHarmonicOscillator extends JPanel {
         control = new RotaryEncoder(52, ShortMessage.CONTROL_CHANGE, channel, 100, 74, "set glauber state");
         list.add(control);
         rows.add(control.getComponent());
-        control = new RotaryEncoder(53, ShortMessage.CONTROL_CHANGE, channel, 101, 63, "set half depth");
+        control = new RotaryEncoder(53, ShortMessage.CONTROL_CHANGE, channel, 101, osc.getDistance(), "set distance");
         list.add(control);
         rows.add(control.getComponent());
-        control = new RotaryEncoder(54, ShortMessage.CONTROL_CHANGE, channel, 102, 63, "set half size");
+        control = new RotaryEncoder(54, ShortMessage.CONTROL_CHANGE, channel, 102, osc.getWavelength(), "set wavelength");
         list.add(control);
         rows.add(control.getComponent());
         control = new RotaryEncoder(55, ShortMessage.CONTROL_CHANGE, channel, 103, 0, "not in use");
@@ -448,7 +438,6 @@ public class BCRHarmonicOscillator extends JPanel {
         JLabel label = new JLabel(ResourceLocator.getIcon("bcr-harms/icon.png"));
         label.setHorizontalAlignment(SwingConstants.LEFT);
         buttonarea.add(label);
-        buttonarea.add(buttonarea.createVerticalStrut(100));
         buttonarea.add(buttonarea.createVerticalStrut(200));
 
         // encoder buttons
@@ -582,6 +571,22 @@ public class BCRHarmonicOscillator extends JPanel {
         statusbar.setText(msg);
     }
 
+    public void start(){
+        try{
+            cc_controls[115].setValue(127);
+        }catch(Exception exc){exc.printStackTrace();}
+        runner.start();
+        status("start");
+    }
+
+    public void stop(){
+        runner.stop();
+        try{
+            cc_controls[115].setValue(0);
+        }catch(Exception exc){exc.printStackTrace();}
+        status("stop");
+    }
+
     public void sendSysexMessages(Receiver receiver)
         throws InvalidMidiDataException {
         List list = new ArrayList();
@@ -619,6 +624,7 @@ public class BCRHarmonicOscillator extends JPanel {
         action = new AbstractAction("setup"){
                 public void actionPerformed(ActionEvent event) {
                     try{
+                        stop();
                         configuration.open();
                     }catch(Exception exc){exc.printStackTrace();}
                 }

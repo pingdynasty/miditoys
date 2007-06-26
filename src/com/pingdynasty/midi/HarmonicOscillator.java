@@ -151,27 +151,29 @@ public class HarmonicOscillator {
         return values;
     }
 
-    // HALFd = controls / 2.0
-    public double getHalfDepth(){
-        return HALFd;
+    public int getDistance(){
+        return (int)(HALFd * MAX_VALUE / controls);
     }
 
-    // HalfDepth controls the horizontal position of the waveform
+    // HALFd controls the horizontal position of the waveform
     // less means further to the left
-    public void setHalfDepth(double halfd){
-        this.HALFd = halfd;
+    public void setDistance(int distance){
+        // HALFd = controls / 2.0;
+        this.HALFd = (distance * controls) / (MAX_VALUE);
         initialisePSIArray();
     }
 
-    // HalfSize = samples / controls
     // HalfSize controls the width of the waveform
     // less means narrower band, higher frequency sound
-    public int getHalfSize(){
-        return HalfSize;
+    public int getWavelength(){
+        return (int)(HalfSize * 4.0d * MAX_VALUE / values.length);
     }
 
-    public void setHalfSize(int halfsize){
-        this.HalfSize = halfsize;
+    public void setWavelength(int wavelength){
+        // HalfSize = samples / controls
+        this.HalfSize = (int)((wavelength * values.length) / (4.0d * MAX_VALUE));
+        if(HalfSize == 0)
+            HalfSize = 1;
         initialisePSIArray();
     }
 
