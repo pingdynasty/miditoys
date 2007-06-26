@@ -1,0 +1,35 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head><title>bcr beats help</title></head>
+  <body style="font-family: Tahoma">
+    <img src="bcr-beats.png" alt="bcr beats" >
+
+    <h1 id="usage">Usage Instructions</h1>
+
+    <h2>General controls</h2>
+    <p>At the top of the screen is a BPM slider which lets you control the loop tempo. You can also set the application to listen for MIDI sync on the MIDI input bus. The button to turn MIDI sync on and off is the third one from the top, on the far right (all controls have tool tips).</p>
+    <p>The button to the left of the MIDI sync button is the stop/start button. When the beat slicer is started, any looping slices will play over and over. The tempo can be adjusted with the BPM slider at the top of the screen, or using MIDI sync.</p>
+    <p>You will see that there are a few more buttons below and above the start/stop and the MIDI sync buttons. Most of these are not (yet) used, they merely mimic the layout of the Behringer BCR2000.</p>
+    <p>To use the program you will need to load a sample, by choosing <i>load sample</i> in the bcr beats menu. With a sample loaded, the waveform will be displayed as one or two channels of audio data above the first row of knobs.</p>
+    <p>Slices can be played in several ways. If you have a MIDI instrument connected, you can play slices using MIDI notes 60 and up (middle C, or C4). You can also play slices with the computer keyboard, using a virtual keyboard set up with middle C on the Z key (on QWERTY keyboards). The two rows of buttons on the control surface can also be used, as explained below.</p>
+
+    <h2>Slice controls</h2>
+    <p>The sample is by default split into eight equal sized slices. Each slice is controlled by one column of knobs and buttons.</p>
+    <p>The top row of push encoders (knobs) controls the start position of each of the eight slices. By turning the knobs (on the screen or on your configured MIDI device) you can change move the slice within the sample, the waveform display will highlight the currently selected segment</p>
+    <p>Hint: On the BCR2000, pressing the push encoders lets you listen to each slice individually. The slice will play for as long as you hold the push encoder down, or until it reaches the end position.</p>
+    <p>Below the knobs there are two rows of eight buttons. The top row is used to play a slice once from the start position to the end, the second turns looping on and off. If you loop a slice then press the start button (or use MIDI sync), the slice is repeated on each beat.</p>
+    <p>Below the buttons there are three more rows of knobs. These knobs work in different modes, the mode is controlled by the four buttons in the lower right corner. The four buttons ccorrespond to modes A, B, C and D (though currently only modes A and B are used). Pressing a mode button will change the controls, and update the values on the screen and on the controller.</p>
+
+    <h3>Mode A</h3>
+    <p>In mode A, the three rows of eight knobs each control a parameter for the eight slices. The top row controls the slice length, which lets you adjust the end position.</p>
+    <p>The second row controls master gain, i.e. the playback volume. A value of 108 corresponds to standard (0-level) gain.</p>
+    <p>The third row of knobs controls the relative pan (left-right positioning) of the signal. The signal may be mono; the pan setting affects how it is distributed by the mixer in a stereo mix. By default it is set to center position (value of 63).</p>
+
+    <h3>Mode B</h3>
+    <p>Pressing the second button in the group of four buttons in the bottom right corner switches the controls to mode B.</p>
+    <p>The first row of knobs below the buttons sets the sample rate. Sample rate affects the audio playback speed. Setting the sample rate to less than the recording rate will make the slice play back at a lower speed. Consequently, turning the sample rate up speeds up the sound. Changing the sample rate also affects the pitch of the sample.</p>
+
+    <p>See also:</p>
+    <p><a href="help-configuration.html">MIDI Configuration</a></p>
+    <p><a href="help.html">Licence and Credits</a></p>
+  </body>
+</html>
