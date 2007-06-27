@@ -645,7 +645,7 @@ public class BCRHarmonicOscillator extends JPanel {
         List list = new ArrayList();
         BCRSysexMessage.createMessage(list, "$rev R1");
         BCRSysexMessage.createMessage(list, "$preset");
-        BCRSysexMessage.createMessage(list, "  .name 'bcr oscillator          '");
+        BCRSysexMessage.createMessage(list, "  .name 'bcr harms               '");
         BCRSysexMessage.createMessage(list, "  .snapshot off");
         BCRSysexMessage.createMessage(list, "  .request off");
         BCRSysexMessage.createMessage(list, "  .egroups 1");
@@ -666,7 +666,7 @@ public class BCRHarmonicOscillator extends JPanel {
         JMenu menu;
         AbstractAction action;
 
-        menu = new JMenu("bcr oscillator");
+        menu = new JMenu("bcr harms");
         action  = new AbstractAction("about"){
                 public void actionPerformed(ActionEvent event) {
                     JFrame frame = new AboutFrame();
@@ -680,6 +680,22 @@ public class BCRHarmonicOscillator extends JPanel {
                         stop();
                         configuration.open();
                         cc_controls[117].setValue(127);
+                    }catch(Exception exc){exc.printStackTrace();}
+                }
+            };
+        menu.add(new JMenuItem(action));
+        action = new AbstractAction("start"){
+                public void actionPerformed(ActionEvent event) {
+                    try{
+                        start();
+                    }catch(Exception exc){exc.printStackTrace();}
+                }
+            };
+        menu.add(new JMenuItem(action));
+        action = new AbstractAction("stop"){
+                public void actionPerformed(ActionEvent event) {
+                    try{
+                        stop();
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             };
@@ -712,7 +728,7 @@ public class BCRHarmonicOscillator extends JPanel {
         BCRHarmonicOscillator osc = new BCRHarmonicOscillator();
 
         // create frame
-        JFrame frame = new JFrame("bcr oscillator");
+        JFrame frame = new JFrame("bcr harms");
         frame.setJMenuBar(osc.getMenuBar());
         frame.setSize(625, 650);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
