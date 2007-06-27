@@ -166,7 +166,7 @@
 <!--       <additionalclass name="com.pingdynasty.midi.bcontrol.BCRHarmonicOscillatorApplet"/> -->
       <additionalfileset dir="${proj.dir}/docs" includes="licence.txt"/>
       <additionalfileset dir="${build.dir}" includes="readme.txt"/>
-      <additionalfileset dir="${src.properties.dir}" includes="bcr-beats/**/*,bcontrol/**/*"/>
+      <additionalfileset dir="${src.properties.dir}" includes="bcr-harms/**/*,bcontrol/**/*"/>
       <classpath>
         <path refid="lib.path"/>
         <pathelement location="${build.classes.dir}"/>
