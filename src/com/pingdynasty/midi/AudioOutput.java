@@ -129,6 +129,18 @@ public class AudioOutput {
         }
     }
 
+    public int getScaleFactor(){
+        switch(mode){
+        case PCM32SL:
+            return (int)(scale / twoPower31 * 127.0d / 2.0d);
+        case PCM16SL:
+            return (int)(scale / twoPower15 * 127.0d / 2.0d);
+        case PCM8S:
+            return (int)(scale / twoPower7 * 127.0d / 2.0d);
+        }
+        return 0;
+    }
+
     public void setScaleFactor(int scale){
         scale *= 2;
         switch(mode){

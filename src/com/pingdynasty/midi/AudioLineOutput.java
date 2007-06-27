@@ -1,18 +1,21 @@
 package com.pingdynasty.midi;
 
+import java.util.List;
+import java.util.ArrayList;
 import javax.sound.sampled.*;
 
 public class AudioLineOutput extends AudioOutput {
 
-    private FloatControl samplerateControl;
+    private FloatControl[] controls;
     private SourceDataLine line;
+    private static final float MAX_VALUE = 127.0f;
 
     public AudioLineOutput(int samples, int mode)
         throws Exception{
         super(samples, mode);
     }
 
-    public void openLine(float sampleRate)
+    public void openLine(float sampleRate, int buffersize)
         throws Exception{
 //         sampleRate = 8000,11025,16000,22050,44100
         AudioFormat format = getAudioFormat(sampleRate);
@@ -22,15 +25,20 @@ public class AudioLineOutput extends AudioOutput {
         line = (SourceDataLine)AudioSystem.getLine(info);
         // setting the buffer to 4 times the data length
         // means that we may end up with audio 4 frames late
-        // todo: make buffer size configurable
-        line.open(format, databuffer.length * 4);
+        line.open(format, buffersize);
 
         AudioFormat[] formats = info.getFormats();
         for(int k=0; k<formats.length; ++k)
             System.out.println("format: "+formats[k]);
-        Control[] controls = line.getControls();
-        for(int i=0; i<controls.length; ++i)
-            System.out.println("control: "+controls[i].getType());
+        List list = new ArrayList();
+        Control[] cs = line.getControls();
+        for(int i=0; i<cs.length; ++i){
+            System.out.println("control: "+cs[i].getType());
+            if(cs[i] instanceof FloatControl)
+                list.add(cs[i]);
+        }
+        controls = new FloatControl[list.size()];
+        list.toArray(controls);
         Mixer.Info[] minfos = AudioSystem.getMixerInfo();
         for(int i=0; i<minfos.length; ++i){
             System.out.println("mixer: "+minfos[i]);
@@ -46,9 +54,6 @@ public class AudioLineOutput extends AudioOutput {
                 }
             }
         }
-        try{
-            samplerateControl = (FloatControl)line.getControl(FloatControl.Type.SAMPLE_RATE);
-        }catch(Exception exc){exc.printStackTrace();}
         line.start();
     }
 
@@ -58,11 +63,32 @@ public class AudioLineOutput extends AudioOutput {
         line.write(databuffer, 0, databuffer.length);
     }
 
-    public float getSampleRate(){
-        return samplerateControl.getValue();
+    public int getNumberOfControls(){
+        return controls.length;
     }
 
-    public void setSampleRate(int samplerate){
-        samplerateControl.setValue(((float)samplerate) * (samplerateControl.getMaximum() - samplerateControl.getMinimum()) / 127.0f + samplerateControl.getMinimum());
+    public String getControlName(int index){
+        if(index < controls.length)
+            return controls[index].getType().toString();
+        return null;
+    }
+
+    public String getControlValueString(int index){
+        if(index < controls.length)
+            return controls[index].getValue() + " " + controls[index].getUnits();
+        return null;
+    }
+
+    public int getControlValue(int index){
+        if(index < controls.length)
+            return (int)((controls[index].getValue() - controls[index].getMinimum()) / (controls[index].getMaximum() - controls[index].getMinimum()) * MAX_VALUE);
+        return 0;
+    }
+//                 scaled = ( norm * ( max - min ) ) + min
+//                 norm = ( scaled - min ) / ( max - min )
+
+    public void setControlValue(int index, int value){
+        if(index < controls.length)
+            controls[index].setValue((value / MAX_VALUE ) * (controls[index].getMaximum() - controls[index].getMinimum()) + controls[index].getMinimum());
     }
 }

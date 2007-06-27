@@ -166,12 +166,12 @@ public class HarmonicOscillator {
     // HalfSize controls the width of the waveform
     // less means narrower band, higher frequency sound
     public int getWavelength(){
-        return (int)(HalfSize * 4.0d * MAX_VALUE / values.length);
+        return (int)(HalfSize * 4.0d * MAX_VALUE / samples);
     }
 
     public void setWavelength(int wavelength){
         // HalfSize = samples / controls
-        this.HalfSize = (int)((wavelength * values.length) / (4.0d * MAX_VALUE));
+        this.HalfSize = (int)((wavelength * samples) / (4.0d * MAX_VALUE));
         if(HalfSize == 0)
             HalfSize = 1;
         initialisePSIArray();
@@ -320,6 +320,14 @@ public class HarmonicOscillator {
         for(int lpoint=0; lpoint < samples; ++lpoint)
             for(int jquant=0; jquant < Nstate; jquant++)
                 System.out.println("PsiArray["+lpoint+"]["+jquant+"]"+PsiArray[lpoint][jquant]);
+    }
+
+    public void setTimeStep(int value){
+        dt = value * 0.001d;
+    }
+
+    public int getTimeStep(){
+        return (int)(dt / 0.001d);
     }
 
     // Set the time delta value. Should be small, 0.001 - 0.100.

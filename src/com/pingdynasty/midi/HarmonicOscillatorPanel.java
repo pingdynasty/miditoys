@@ -20,19 +20,10 @@ public class HarmonicOscillatorPanel extends JPanel {
         control = new HarmonicOscillatorControlPanel(osc);
         view = new OscillatorPanel(width);
         output = new AudioLineOutput(samples, AudioOutput.PCM16SL);
-        output.openLine(22050.0f);
+        output.openLine(22050.0f, samples * 4);
 
         Box controlbox = Box.createHorizontalBox();
-        JSlider slider = new JSlider(JSlider.VERTICAL, 0, 127, 63); // hopefully midways is good
-        slider.addChangeListener(new ChangeListener(){
-                public void stateChanged(ChangeEvent event) {
-                    JSlider source = (JSlider)event.getSource();
-                    int value = (int)source.getValue();
-                    output.setSampleRate(value);
-                }
-            });
-        controlbox.add(slider);
-        slider = new JSlider(JSlider.VERTICAL, 0, 127, 63);
+        JSlider slider = new JSlider(JSlider.VERTICAL, 0, 127, 63);
         slider.addChangeListener(new ChangeListener(){
                 public void stateChanged(ChangeEvent event) {
                     JSlider source = (JSlider)event.getSource();

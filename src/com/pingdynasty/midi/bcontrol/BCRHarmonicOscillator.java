@@ -22,6 +22,7 @@ import com.pingdynasty.midi.*;
 // - make output buffer size configurable
 // - give visual clipping indication - flash a controller button
 // - change buttons and knobs to use spring layout 
+// - move scale factor to HarmonicOscillator so that the value carries over with presets
 // - write documentation.
 // - write applet version
 // - write vst plugin version
@@ -40,6 +41,11 @@ public class BCRHarmonicOscillator extends JPanel {
     private ControlSurfaceHandler midiControl;
     private BCRHarmonicOscillatorConfiguration configuration;
     private Runner runner;
+    private AudioControl[] audiocontrols;
+
+    class AudioControl {
+        
+    }
 
     class Runner implements Runnable {
         boolean running;
@@ -154,7 +160,7 @@ public class BCRHarmonicOscillator extends JPanel {
         public void updateEnergy(){
             synchronising = true;
             try{
-                cc_controls[100].setValue(osc.getEnergy());
+                cc_controls[97].setValue(osc.getEnergy());
             }catch(Exception exc){exc.printStackTrace();}
 //             System.out.println("e:\t"+osc.getEnergy());
             synchronising = false;
@@ -169,8 +175,8 @@ public class BCRHarmonicOscillator extends JPanel {
                 // push encoder turned
                 osc.setControl(data1 - 1, data2);
                 updateEnergy();
-                status("amplitude "+data1+": "+data2);
-            }else if(data1 >= 33 && data1 <= 40){
+                status("amplitude "+data1+" "+data2);
+//             }else if(data1 >= 33 && data1 <= 40){
                 // push encoder pressed
             }else if(data1 >= 65 && data1 <= 72){
                 // button row 1 pressed
@@ -179,7 +185,7 @@ public class BCRHarmonicOscillator extends JPanel {
                     update();
                     status("single state "+(data1 - 64));
                 }
-            }else if(data1 >= 73 && data1 <= 80){
+//             }else if(data1 >= 73 && data1 <= 80){
                 // button row 2 pressed
             }else if(data1 >= 111 && data1 <= 114){
                 // encoder group buttons
@@ -189,13 +195,15 @@ public class BCRHarmonicOscillator extends JPanel {
                     assert index >= 0;
                     osc = presets[index];
                     update();
+                    setControlValues();
+                    status("preset "+(index+1));
                 }
                 // turn other buttons off
                 for(int i=111; i<=114; ++i)
                     try{
                         cc_controls[i].setValue(data1 == i ? 127 : 0);
                     }catch(Exception exc){exc.printStackTrace();}
-            }else if(data1 >= 105 && data1 <= 108){
+//             }else if(data1 >= 105 && data1 <= 108){
                 // mode buttons - four buttons in bottom right corner
             }else if(data1 == 115){
                 // store button
@@ -207,6 +215,14 @@ public class BCRHarmonicOscillator extends JPanel {
                     status("start");
                 }
             }else if(data1 == 117){
+                // edit button
+                if(data2 > 63){
+                    try{
+                        stop();
+                        configuration.open();
+                    }catch(Exception exc){exc.printStackTrace();}
+                }
+//             }else if(data1 == 116){
 //                 if(data2 > 63){
 //                     try{
 //                         if(fileoutput == null)
@@ -214,56 +230,57 @@ public class BCRHarmonicOscillator extends JPanel {
 //                         else fileoutput.reset();
 //                     }catch(Exception exc){exc.printStackTrace();}
 //                 }
-            }else if(data1 == 118){
+//             }else if(data1 == 118){
 //                 if(data2 > 63){
 //                     try{
 //                         if(fileoutput != null)
 //                             fileoutput.write(22050f, new File("harms.wav"));
 //                     }catch(Exception exc){exc.printStackTrace();}
 //                 }
-            }else{
+
 //                 if(data1 >= 81 && data1 <= 88){
 //                     // top row simple encoder (below buttons)
 //                 }else if(data1 >= 89 && data1 <= 96){
-//                     // second row simple encoder
-//                 }else if(data1 >= 97 && data1 <= 104){
+            }else if(data1 >= 89 && data1 <= 96){
+                    // second row simple encoder
+                int index = data1 - 89;
+                if(index < output.getNumberOfControls()){
+                    output.setControlValue(index, data2);
+                    status(output.getControlName(index)+" "+
+                           output.getControlValueString(index));
+                }
+            }else{
                 switch(data1){
                     // third row simple encoder
                 case 97:{
+                    osc.setGlauberState(data2);
+                    updateAmplitudes();
+                    status("Glauber state "+osc.getEnergy());
+                    break;
+                }
+                case 98:{
+                    osc.setWavelength(data2);
+                    status("wavelength "+osc.getWavelength());
+                    break;
+                }
+                case 99:{
+                    osc.setDistance(data2);
+                    status("distance "+osc.getDistance());
+                    break;
+                }
+                case 100:{
                     double dt = 0.001d * data2;
                     osc.setTimeStep(dt);
                     status("time step "+dt);
                     break;
                 }
-                case 98:{
-                    output.setSampleRate(data2);
-                    status("sample rate "+output.getSampleRate());
-                    break;
-                }
-                case 99:{
+                case 101:{
                     output.setScaleFactor(data2);
                     view.setScaleFactor(data2);
                     status("scale factor "+data2);
                     break;
                 }
-                case 100:{
-                    osc.setEnergy(data2);
-                    updateAmplitudes();
-                    status("glauber state "+data2);
-                    break;
                 }
-                case 101:{
-                    osc.setDistance(data2);
-                    status("distance "+osc.getDistance());
-                    break;
-                }
-                case 102:{
-                    osc.setWavelength(data2);
-                    status("wavelength "+osc.getWavelength());
-                    break;
-                }
-                }
-//                 }
             }
         }
     }
@@ -317,6 +334,15 @@ public class BCRHarmonicOscillator extends JPanel {
                 public void actionPerformed(ActionEvent e){
                     try{
                         init();
+                        setControlValues();
+                        cc_controls[117].setValue(0);
+                    }catch(Exception exc){exc.printStackTrace();}
+                }
+            });
+        configuration.setCancelAction(new AbstractAction(){
+                public void actionPerformed(ActionEvent e){
+                    try{
+                        cc_controls[117].setValue(0);
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             });
@@ -374,8 +400,8 @@ public class BCRHarmonicOscillator extends JPanel {
             rows.add(button.getComponent());
         }
         for(int i=0; i<8; ++i){
-            ToggleButton button = 
-                new ToggleButton(41+i, ShortMessage.CONTROL_CHANGE, channel, 73+i, 0,
+            TriggerButton button = 
+                new TriggerButton(41+i, ShortMessage.CONTROL_CHANGE, channel, 73+i, 0,
                                  "not in use");
 //             TriggerButton trigger = 
 //                 new TriggerButton(41+i, ShortMessage.CONTROL_CHANGE, channel, 73+i, 0,
@@ -396,31 +422,39 @@ public class BCRHarmonicOscillator extends JPanel {
         }
 
         // second row of simple encoders
-        for(int i=0; i<8; ++i){
+        int numberOfControls = output.getNumberOfControls();
+        if(numberOfControls > 8)
+            numberOfControls = 8;
+        for(int i=0; i<numberOfControls; ++i){
+            MidiControl control = new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, output.getControlValue(i), output.getControlName(i));
+            list.add(control);
+            rows.add(control.getComponent());
+        }
+        for(int i=numberOfControls; i<8; ++i){
             MidiControl control = 
-                new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 
-                                  0, "not in use");
+                new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 0, "not in use");
             list.add(control);
             rows.add(control.getComponent());
         }
 
         // third row of simple encoders
-        MidiControl control = new RotaryEncoder(49, ShortMessage.CONTROL_CHANGE, channel, 97, 63, "set time step");
+        MidiControl control;
+        control = new RotaryEncoder(49, ShortMessage.CONTROL_CHANGE, channel, 97, 0, "Glauber state");
         list.add(control);
         rows.add(control.getComponent());
-        control = new RotaryEncoder(50, ShortMessage.CONTROL_CHANGE, channel, 98, 63, "set sample rate");
+        control = new RotaryEncoder(50, ShortMessage.CONTROL_CHANGE, channel, 98, 0, "wavelength");
         list.add(control);
         rows.add(control.getComponent());
-        control = new RotaryEncoder(51, ShortMessage.CONTROL_CHANGE, channel, 99, 63, "set scale factor");
+        control = new RotaryEncoder(51, ShortMessage.CONTROL_CHANGE, channel, 99, 0, "distance");
         list.add(control);
         rows.add(control.getComponent());
-        control = new RotaryEncoder(52, ShortMessage.CONTROL_CHANGE, channel, 100, 74, "set glauber state");
+        control = new RotaryEncoder(52, ShortMessage.CONTROL_CHANGE, channel, 100, 0, "time step");
         list.add(control);
         rows.add(control.getComponent());
-        control = new RotaryEncoder(53, ShortMessage.CONTROL_CHANGE, channel, 101, osc.getDistance(), "set distance");
+        control = new RotaryEncoder(53, ShortMessage.CONTROL_CHANGE, channel, 101, 0, "scale factor");
         list.add(control);
         rows.add(control.getComponent());
-        control = new RotaryEncoder(54, ShortMessage.CONTROL_CHANGE, channel, 102, osc.getWavelength(), "set wavelength");
+        control = new RotaryEncoder(54, ShortMessage.CONTROL_CHANGE, channel, 102, 0, "not in use");
         list.add(control);
         rows.add(control.getComponent());
         control = new RotaryEncoder(55, ShortMessage.CONTROL_CHANGE, channel, 103, 0, "not in use");
@@ -450,12 +484,14 @@ public class BCRHarmonicOscillator extends JPanel {
         buttonarea.add(buttonarea.createVerticalStrut(20));
 
         // store/learn/edit/exit
-        toggles = new ToggleButton[4];
-        String[] tooltips = new String[]{"start/stop", "not in use", "not in use", "not in use"};
-        for(int i=0; i<4; ++i){
-            toggles[i] = new ToggleButton(53+i, ShortMessage.CONTROL_CHANGE, channel, 115+i, 0, tooltips[i]);
+        toggles = new ToggleButton[]{
+            new ToggleButton(53, ShortMessage.CONTROL_CHANGE, channel, 115, 0, "start/stop"),
+            new TriggerButton(54, ShortMessage.CONTROL_CHANGE, channel, 116, 0, "not in use"),
+            new ToggleButton(55, ShortMessage.CONTROL_CHANGE, channel, 117, 0, "setup"),
+            new TriggerButton(56, ShortMessage.CONTROL_CHANGE, channel, 118, 0, "not in use")
+        };
+        for(int i=0; i<4; ++i)
             list.add(toggles[i]);
-        }
         addFourButtons(buttonarea, toggles);
         buttonarea.add(buttonarea.createVerticalStrut(20));
 
@@ -470,10 +506,10 @@ public class BCRHarmonicOscillator extends JPanel {
 
         // four simple buttons bottom right
         toggles = new ToggleButton[4];
-        tooltips = new String[]{"not in use", "not in use", "not in use", "not in use"};
+        String[] tooltips = new String[]{"not in use", "not in use", "not in use", "not in use"};
         for(int i=0; i<4; ++i){
-            toggles[i] = new ToggleButton(49+i, ShortMessage.CONTROL_CHANGE, channel, 105+i, 
-                                          0, tooltips[i]);
+            toggles[i] = new TriggerButton(49+i, ShortMessage.CONTROL_CHANGE, channel, 105+i, 
+                                           0, tooltips[i]);
             list.add(toggles[i]);
         }
         addFourButtons(buttonarea, toggles);
@@ -492,6 +528,8 @@ public class BCRHarmonicOscillator extends JPanel {
             controls[i].setCallback(eventHandler);
             controls[i].getComponent().addFocusListener(new ToolTipFocusAdapter(i));
         }
+
+        setControlValues();
     }
 
     private void addFourButtons(JComponent component, MidiControl[] controls){
@@ -528,11 +566,12 @@ public class BCRHarmonicOscillator extends JPanel {
         int width = 8; // number of controls
         int sampleWidth = configuration.getSampleWidth();
         float outputFrequency = configuration.getOutputFrequency();
+        int buffersize = configuration.getBufferSize();
         for(int i=0; i<presets.length; ++i)
             presets[i] = new HarmonicOscillator(sampleWidth, width);
         osc = presets[0];
         output = new AudioLineOutput(sampleWidth, AudioOutput.PCM16SL);
-        output.openLine(outputFrequency);
+        output.openLine(outputFrequency, buffersize);
 
         // update MIDI devices from configuration settings
         MidiDevice device = configuration.getMidiInput();
@@ -564,6 +603,20 @@ public class BCRHarmonicOscillator extends JPanel {
                 }
             }catch(InvalidMidiDataException exc){exc.printStackTrace();}
         }
+    }
+
+    public void setControlValues(){
+        try{
+            // second row of simple knobs
+            for(int i=0; i<output.getNumberOfControls(); ++i)
+                cc_controls[89+i].setValue(output.getControlValue(i));
+            // third row of simple knobs
+            cc_controls[97].setValue(osc.getEnergy());
+            cc_controls[98].setValue(osc.getWavelength());
+            cc_controls[99].setValue(osc.getDistance());
+            cc_controls[100].setValue(osc.getTimeStep());
+            cc_controls[101].setValue(output.getScaleFactor());
+        }catch(InvalidMidiDataException exc){exc.printStackTrace();}
     }
 
     public void status(String msg){
@@ -626,6 +679,7 @@ public class BCRHarmonicOscillator extends JPanel {
                     try{
                         stop();
                         configuration.open();
+                        cc_controls[117].setValue(127);
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             };

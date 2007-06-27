@@ -20,6 +20,10 @@ public class OscillatorPanel extends JPanel {
         setScaleFactor(63);
     }
 
+    public int getScaleFactor(){
+        return (int)(scale / 2.0d * 127.0d);
+    }
+
     public void setScaleFactor(int scale){
         assert scale > 0;
         assert scale < 128;
