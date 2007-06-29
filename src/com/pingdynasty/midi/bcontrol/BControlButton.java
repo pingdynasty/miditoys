@@ -47,6 +47,8 @@ public class BControlButton extends JButton {
         // center position
         int x = getWidth() / 2 - 18;
         int y = getHeight() / 2 - 12;
+//         int x = (getWidth() - 18) / 2;
+//         int y = (getHeight() - 12) / 2;
         // icon size is 36x25
 
         // clear the space
