@@ -347,23 +347,21 @@ public class BCRHarmonicOscillator extends JPanel {
                 }
             });
 
-        configuration.init(); // runs configuration initialisation
-        init(); // initialise resources from configuration settings
-
-        view = new OscillatorPanel(512); // todo fix sizes
-        view.setAndScaleData(osc.calculate());
-        view.setMinimumSize(new Dimension(512, 100));
-        view.setPreferredSize(new Dimension(512, 200));
-
         // statusbar
         statusbar = new JLabel();
         statusbar.setHorizontalAlignment(SwingConstants.CENTER);
         this.add(statusbar, BorderLayout.SOUTH);
 
+//         configuration.init(); // runs configuration initialisation
+        init(); // initialise resources from configuration settings
+
         JPanel mainarea = new JPanel();
         mainarea.setLayout(new BoxLayout(mainarea, BoxLayout.Y_AXIS));
 
         // add oscillator graph
+        view = new OscillatorPanel(512); // todo fix sizes
+        view.setMinimumSize(new Dimension(512, 100));
+        view.setPreferredSize(new Dimension(512, 200));
         mainarea.add(view);
 
         JPanel rows = new JPanel();
@@ -377,7 +375,7 @@ public class BCRHarmonicOscillator extends JPanel {
         for(int i=0; i<8; ++i){
             MidiControl control = 
                 new RotaryEncoder(1+i, ShortMessage.CONTROL_CHANGE, channel, 1+i,
-                                  osc.getControl(i), "amplitude "+(1+i));
+                                  0, "amplitude "+(1+i));
             list.add(control);
             rows.add(control.getComponent());
 
@@ -529,7 +527,10 @@ public class BCRHarmonicOscillator extends JPanel {
             controls[i].getComponent().addFocusListener(new ToolTipFocusAdapter(i));
         }
 
+        configuration.init(); // runs configuration initialisation
+        init(); // initialise resources from configuration settings
         setControlValues();
+        view.setAndScaleData(osc.calculate());
     }
 
     private void addFourButtons(JComponent component, MidiControl[] controls){
@@ -606,6 +607,7 @@ public class BCRHarmonicOscillator extends JPanel {
     }
 
     public void setControlValues(){
+        eventHandler.update();
         try{
             // second row of simple knobs
             for(int i=0; i<output.getNumberOfControls(); ++i)
