@@ -163,7 +163,7 @@
           targetJar="${build.dir}/bcr-harms.jar"
           manifestMainClass="com.pingdynasty.midi.bcontrol.BCRHarmonicOscillator"
           includePkg="com.pingdynasty.">
-<!--       <additionalclass name="com.pingdynasty.midi.bcontrol.BCRHarmonicOscillatorApplet"/> -->
+      <additionalclass name="com.pingdynasty.midi.bcontrol.BCRHarmonicOscillatorApplet"/>
       <additionalfileset dir="${proj.dir}/docs" includes="licence.txt"/>
       <additionalfileset dir="${build.dir}" includes="readme.txt"/>
       <additionalfileset dir="${src.properties.dir}" includes="bcr-harms/**/*,bcontrol/**/*"/>
