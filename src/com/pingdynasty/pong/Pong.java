@@ -16,15 +16,15 @@ import com.pingdynasty.midi.*;
 // control bpm
 // ball bounces off middle of rhs pad and outside lhs pad
 // control velocity and note duration
-public class Pong extends JPanel implements Runnable  {
+public class Pong extends JPanel implements Receiver  {
 
-    public static final int GAME_END_SCORE = 11;	
-    public static final int SCREEN_WIDTH = 300;
-    public static final int SCREEN_HEIGHT = 300;
-    public static final long FRAME_DELAY = 20;
-    public static final int HORIZONTAL_SPEED = 6;
+//     public static final int GAME_END_SCORE = 11;	
+    public static final int SCREEN_WIDTH = 480;
+    public static final int SCREEN_HEIGHT = 480;
+    public static final int DEFAULT_BPM = 120;
 
-    private Thread animator;
+    private MidiSync internalSync; // internal midi sync/scheduling thread
+    private Transmitter externalSync;
     private Court court;
     private Ball ball;
     private LeftRacket leftRacket;
@@ -40,7 +40,7 @@ public class Pong extends JPanel implements Runnable  {
             this.speed = speed;
         }
         public void actionPerformed(ActionEvent event){
-            ball.speed.x = speed;
+            setBPM(speed);
         }
     }
 
@@ -67,6 +67,21 @@ public class Pong extends JPanel implements Runnable  {
             try{
                 midi.close();
                 initSound(device);
+            }catch(Exception exc){exc.printStackTrace();}
+        }
+    }
+
+    class SyncDeviceActionListener implements ActionListener {
+        private MidiDevice device;
+        public SyncDeviceActionListener(MidiDevice device){
+            this.device = device;
+        }
+        public void actionPerformed(ActionEvent event) {
+            try{
+                internalSync.disable();
+                device.open();
+                externalSync = device.getTransmitter();
+                externalSync.setReceiver(getMidiSyncReceiver());
             }catch(Exception exc){exc.printStackTrace();}
         }
     }
@@ -164,6 +179,8 @@ public class Pong extends JPanel implements Runnable  {
     }
 
     public Pong(){
+        internalSync = new MidiSync(DEFAULT_BPM);
+        internalSync.setReceiver(this);
         court = new Court();
         ball = new Ball();
         rightRacket = new RightRacket();
@@ -179,7 +196,10 @@ public class Pong extends JPanel implements Runnable  {
 //         getInputMap().put(KeyStroke.getKeyStroke("SPACE"), "start/stop game");
         getActionMap().put("start/stop game", new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
-                    started = !started;
+                    if(started)
+                        stop();
+                    else
+                        start();
                 }
             });
 //         addMouseMotionListener(new MouseMotionAdapter(){
@@ -191,34 +211,39 @@ public class Pong extends JPanel implements Runnable  {
                     requestFocusInWindow();
                 }
             });
-        ball.speed.x = HORIZONTAL_SPEED;
         ball.speed.y = 2;
-        animator = new Thread(this);
-        animator.start();
         setFocusable(true);
+        setBPM(DEFAULT_BPM);
+        internalSync.start(); // start sending ticks for racket movements
     }
 
-    public void run(){
-        while(running){
-            if(started){
-                // collision detection
-                if(ball.speed.x < 0)
-                    leftRacket.check(ball);
-                else
-                    rightRacket.check(ball);
-                court.check(ball);
-                // allow ball to move
-                ball.move();
-            }
-            // allow rackets to move
-            leftController.move();
-            rightController.move();
-            // update screen
-            repaint();
-            try{
-                Thread.sleep(FRAME_DELAY);
-            }catch(InterruptedException e){}
-	}
+    public void start(){
+        started = true;
+//         internalSync.start();
+        tick();
+    }
+
+    public void stop(){
+        started = false;
+//         internalSync.stop();
+    }
+
+    public void tick(){
+        if(started){
+            // collision detection
+            if(ball.speed.x < 0)
+                leftRacket.check(ball);
+            else
+                rightRacket.check(ball);
+            court.check(ball);
+            // allow ball to move
+            ball.move();
+        }
+        // allow rackets to move
+        leftController.move();
+        rightController.move();
+        // update screen
+        repaint();
     }
 
     public void paintComponent(Graphics g){
@@ -308,10 +333,6 @@ public class Pong extends JPanel implements Runnable  {
 
     public void destroy(){
         stop();
-    }
-
-    public void stop(){
-        running = false;
     }
 
     public JMenuBar getMenuBar(boolean includeDeviceMenu){
@@ -442,11 +463,11 @@ public class Pong extends JPanel implements Runnable  {
         menubar.add(menu);
 
         // speed menu
-        menu = new JMenu("Speed");
+        menu = new JMenu("BPM");
         group = new ButtonGroup();
-        for(int i=4; i<18; i+=2){
+        for(int i=60; i<200; i+=20){
             button = new JRadioButtonMenuItem(""+i);
-            if(i == HORIZONTAL_SPEED)
+            if(i == DEFAULT_BPM)
                 button.setSelected(true);
             button.addActionListener(new ChangeSpeedAction(i));
             group.add(button);
@@ -467,11 +488,85 @@ public class Pong extends JPanel implements Runnable  {
         }
         menubar.add(menu);
 
+        // midi sync
+        menu = new JMenu("Sync");
+        group = new ButtonGroup();
+        button = new JRadioButtonMenuItem(new AbstractAction("internal"){
+                public void actionPerformed(ActionEvent event){
+                    if(externalSync != null)
+                        externalSync.close();
+                    internalSync.enable();
+                }
+            });
+        button.setSelected(true);
+        group.add(button);
+        menu.add(button); 
+        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+        MidiDevice[] devices = new MidiDevice[info.length];
+        for(int i=0; i<info.length; ++i){
+            try{
+                devices[i] = MidiSystem.getMidiDevice(info[i]); 
+                if(devices[i] instanceof Transmitter){
+                    button = new JRadioButtonMenuItem(info[i].getName());
+                    button.addActionListener(new SyncDeviceActionListener(devices[i]));
+                    group.add(button);
+                    menu.add(button); 
+                }
+            }catch(MidiUnavailableException exc){
+                System.err.println(exc.getMessage());
+            }
+        }
+        menubar.add(menu);
+
         return menubar;
     }
 
     protected Component getComponent(){
         return this;
+    }
+
+    public void send(MidiMessage msg, long time){
+        if(msg instanceof ShortMessage){
+            try{
+                send((ShortMessage)msg, time);
+            }catch(Exception exc){
+                exc.printStackTrace();
+            }
+        }else{
+            return;
+        }
+    }
+
+    public void send(ShortMessage msg, long time)
+        throws InvalidMidiDataException {
+        switch(msg.getStatus()){
+        case ShortMessage.TIMING_CLOCK: {
+            tick();
+            break;
+        }
+        case ShortMessage.START: {
+            start();
+            break;
+        }
+        case ShortMessage.STOP: {
+            stop();
+            break;
+        }
+        }
+    }
+
+    public void close(){
+        stop();
+    }
+
+    public Receiver getMidiSyncReceiver(){
+        return this;
+    }
+
+    public void setBPM(int bpm){
+        ball.speed.x = court.width / 48;
+//         ball.speed.x = (court.width - court.x - 20 - ball.speed.x - ball.speed.x) / 48;
+        internalSync.setBPM(bpm);
     }
 
     public static final void main(String[] args)
