@@ -211,6 +211,28 @@
 <!--     </jar> -->
   </target>
 
+  <target name="harms.vst.mac" depends="compile, jar">
+    <property name="harms.vst.dir.mac" value="${build.dir}/harms-mac.vst"/>
+    <mkdir dir="${harms.vst.dir.mac}"/>
+    <copy todir="${harms.vst.dir.mac}/Contents/">
+      <fileset dir="${src.dir}/config" includes="PkgInfo"/>
+    </copy>
+    <copy tofile="${harms.vst.dir.mac}/Contents/Info.plist" 
+          file="${src.dir}/config/harms.Info.plist"/>
+    <copy tofile="${harms.vst.dir.mac}/Contents/MacOS/harms.jnilib" 
+          file="${proj.dir}/lib/native/macosx/libjvstwrapper.jnilib"/>
+    <copy tofile="${harms.vst.dir.mac}/Contents/Resources/harms.jnilib.ini" 
+          file="${src.dir}/config/harms.mac.ini"/>
+    <copy todir="${harms.vst.dir.mac}/Contents/Resources">
+      <fileset dir="${proj.dir}/lib" includes="jvaptools.jar, jVSTwRapper_bin.jar, jVSTsYstem_bin.jar"/>
+      <fileset dir="${build.dir}" includes="miditoys.jar"/>
+    </copy>
+    <zip destfile="${build.dir}/harms-vst-mac.zip" basedir="${build.dir}">
+      <include name="harms-mac.vst/**/*.*"/>
+    </zip>
+  </target>
+
+
   <target name="pong.vst" depends="pong.vst.mac, pong.vst.windows"/>
 
   <target name="pong.vst.mac" depends="pong.jar">
