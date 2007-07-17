@@ -7,21 +7,41 @@ import jvst.wrapper.valueobjects.*;
 
 public class HarmonicOscillatorPlugin extends VstPluginImpl {
 
+    public static final int UNIQUE_ID = '2' << 24 | '5' << 16 | '8' << 8 | '3';
     private HarmonicOscillator osc;
     private OscillatorPanel view;
-    private static final int CONTROLS = 16;
     private double scale = 1.0d;
 //     private double scaleconstant = 2.0d * 32768.0d / 127.0d;
 //     private double scaleconstant = 2.0d / 127.0d;
     private double scaleconstant = 2.0d;
     private boolean running = false;
     private int framepos;
+    private int mode = MUL_MODE;
+    private static final int CONTROLS = 16;
+    private static final String[] PARAMETER_NAMES = new String[]{
+        "mode",
+        "wavelength",
+        "distance",
+        "time step",
+        "scale",
+        "glauber state"
+    };
+    private static final int MUL_MODE = 0;
+    private static final int ADD_MODE = 1;
+    private static final int SUB_MODE = 2;
+    private static final int DIV_MODE = 3;
+    private static final String[] MODE_NAMES = new String[]{
+        "mul",
+        "add",
+        "sub",
+        "div"
+    };
 
 //     public native void setOutputSamplerate(float);
 
     public HarmonicOscillatorPlugin(long wrapper){
         super(wrapper);
-        System.out.println("harms plugin ctor");
+        System.out.println("harms effect plugin ctor");
         this.setProgram(0);
         this.setNumInputs(1);
         this.setNumOutputs(1);
@@ -31,7 +51,7 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
 //         this.canDoubleReplacing(true);
         this.canMono(true);
         this.isSynth(false);
-        this.setUniqueID(0xfefefe);
+        this.setUniqueID(UNIQUE_ID);
         this.suspend();
 
         osc = new HarmonicOscillator(getBlockSize() * 4, CONTROLS);
@@ -48,18 +68,18 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
     /* called from HarmonicOscillatorGUI.init() */
     public void setView(OscillatorPanel view){
         this.view = view;
-        setParameter(4, 0.5f); // set scale factor
+//         setParameter(4, 0.5f); // set scale factor
     }
 
     public void open() {
         super.open();
-        System.out.println("harms plugin opened");
+        System.out.println("harms effect plugin opened");
     }
 
     public void close() {
         super.close();
         //         osc.close();
-        System.out.println("harms plugin closed");
+        System.out.println("harms effect plugin closed");
     }
 
     public void resume() { 
@@ -77,9 +97,9 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
         return false; 
     }
 
-    public String getEffectName() { return "harms"; }
+    public String getEffectName() { return "harms effect"; }
     public String getVendorString() { return "http://mars.pingdynasty.com/software.oml"; }
-    public String getProductString() { return "harms"; }
+    public String getProductString() { return "harms effect"; }
 //     public int getNumPrograms() { return 1; }
 
     public int getPlugCategory(){
@@ -127,7 +147,7 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
     }
 
     public int getNumParams() { 
-        return 5 + CONTROLS; 
+        return PARAMETER_NAMES.length + CONTROLS; 
     }
 
 //     public String getParameterLabel(int index) {
@@ -138,20 +158,18 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
 //         return "display "+index;
 //     }
 
-    public String getParameterName(int index) {
+    public String getParameterDisplay(int index) {
         switch(index){
         case 0:
-            return "glauber state";
-        case 1:
-            return "wavelength";
-        case 2:
-            return "distance";
-        case 3:
-            return "time step";
-        case 4:
-            return "scale";
+            return MODE_NAMES[mode];
         }
-        return "amplitude "+(index - 4);
+        return "";
+    }
+
+    public String getParameterName(int index) {
+        if(index < PARAMETER_NAMES.length)
+            return PARAMETER_NAMES[index];
+        return "amplitude "+(index - PARAMETER_NAMES.length);
     }
 
     public void setParameter(int index, float value){
@@ -159,11 +177,14 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
         System.out.println("set parameter "+index+": "+value+"("+val+")");
         switch(index){
         case 0:
-            osc.setEnergy(val);
-            for(int i=0; i<CONTROLS; ++i)
-                setParameterAutomated(i+5, osc.getControl(i));
-//             sendParameterToHost();
-            updateDisplay(); // update params
+            if(value < 0.25)
+                mode = MUL_MODE;
+            else if(value < 0.50)
+                mode = ADD_MODE;
+            else if(value < 0.75)
+                mode = SUB_MODE;
+            else
+                mode = DIV_MODE;
             break;
         case 1:
             osc.setWavelength(val);
@@ -180,8 +201,15 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
             if(view != null)
                 view.setScaleFactor(val);
             break;
+        case 5:
+            osc.setEnergy(val);
+            for(int i=0; i<CONTROLS; ++i)
+                setParameterAutomated(i+PARAMETER_NAMES.length, osc.getControl(i));
+//             sendParameterToHost();
+            updateDisplay(); // update params
+            break;
         default:
-            osc.setControl(index - 5, val);
+            osc.setControl(index - PARAMETER_NAMES.length, val);
         }
     }
 
@@ -189,7 +217,7 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
         int val = 0;
         switch(index){
         case 0:
-            val = osc.getEnergy();
+            val = 127 / (MODE_NAMES.length - mode);
             break;
         case 1:
             val = osc.getWavelength();
@@ -201,10 +229,14 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
             val = osc.getTimeStep();
             break;
         case 4:
-//             return (float)(scale / 4.0d);
-            return (float)(scale / scaleconstant);
+//             return (float)(scale / scaleconstant);
+            val = (int)(scale / scaleconstant * 127.0d);
+            break;
+        case 5:
+            val = osc.getEnergy();
+            break;
         default:
-            val = osc.getControl(index - 5);
+            val = osc.getControl(index - PARAMETER_NAMES.length);
         }
 //         System.out.println("get parameter "+index+": "+(val / 127.0f));
         return val / 127.0f;
@@ -214,7 +246,7 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
         VSTPinProperties vpp = null;
         if(index == 0) {
             vpp = new VSTPinProperties();
-            vpp.setLabel("harms properties");
+            vpp.setLabel("harms effect input");
             vpp.setFlags(VSTPinProperties.VST_PIN_IS_ACTIVE);
         }
         return vpp;
@@ -224,7 +256,7 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
         VSTPinProperties vpp = null;
         if(index == 0) {
             vpp = new VSTPinProperties();
-            vpp.setLabel("harms properties");
+            vpp.setLabel("harms effect output");
             vpp.setFlags(VSTPinProperties.VST_PIN_IS_ACTIVE);
         }
         return vpp;
@@ -242,8 +274,31 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
             if(framepos == 0)
                 osc.calculate();
             double[] values = osc.getData();
-            for(int i=0; i<frames && framepos<values.length; ++i)
-                outputs[0][i] = (float)(values[framepos++] * scale) * inputs[0][i];
+            switch(mode){
+            case MUL_MODE :
+                for(int i=0; i<frames && framepos<values.length; ++i)
+                    outputs[0][i] = inputs[0][i] * (float)(values[framepos++] * scale);
+                break;
+            case ADD_MODE :
+                for(int i=0; i<frames && framepos<values.length; ++i)
+                    outputs[0][i] = inputs[0][i] + (float)(values[framepos++] * scale);
+                break;
+            case SUB_MODE :
+                for(int i=0; i<frames && framepos<values.length; ++i)
+                    outputs[0][i] = inputs[0][i] - (float)(values[framepos++] * scale);
+                break;
+            case DIV_MODE :
+                for(int i=0; i<frames && framepos<values.length; ++i)
+                    outputs[0][i] = inputs[0][i] + (float)(values[framepos++] * scale) / 2.0f;
+//                 for(int i=0; i<frames && framepos<values.length; ++i){
+//                     float value = (float)(values[framepos++] * scale);
+//                     if(value == 0)
+//                         outputs[0][i] = inputs[0][i];
+//                     else
+//                         outputs[0][i] = inputs[0][i] / value;
+//                 }
+                break;
+            }
             if(framepos == values.length){
                 framepos = 0;
                 osc.increment();
