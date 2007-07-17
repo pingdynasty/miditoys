@@ -9,7 +9,7 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
 
     private HarmonicOscillator osc;
     private OscillatorPanel view;
-    private static final int CONTROLS = 8;
+    private static final int CONTROLS = 16;
     private double scale = 1.0d;
 //     private double scaleconstant = 2.0d * 32768.0d / 127.0d;
 //     private double scaleconstant = 2.0d / 127.0d;
@@ -23,15 +23,15 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
         super(wrapper);
         System.out.println("harms plugin ctor");
         this.setProgram(0);
-        this.setNumInputs(0);
+        this.setNumInputs(1);
         this.setNumOutputs(1);
         //this.hasVu(false); //deprecated as of vst2.4
         //this.hasClip(false); //deprecated as of vst2.4
         this.canProcessReplacing(true);
 //         this.canDoubleReplacing(true);
         this.canMono(true);
-        this.isSynth(true);
-        this.setUniqueID(0xfafff);
+        this.isSynth(false);
+        this.setUniqueID(0xfefefe);
         this.suspend();
 
         osc = new HarmonicOscillator(getBlockSize() * 4, CONTROLS);
@@ -84,9 +84,9 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
 
     public int getPlugCategory(){
 //         return PLUG_CATEG_UNKNOWN;
-//         return PLUG_CATEG_EFFECT;
+        return PLUG_CATEG_EFFECT;
 //         return PLUG_CATEG_GENERATOR;
-        return PLUG_CATEG_SYNTH;
+//         return PLUG_CATEG_SYNTH;
     }
 
     public int canDo(String feature){
@@ -156,12 +156,14 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
 
     public void setParameter(int index, float value){
         int val = (int)(value * 127.0f);
-        //         System.out.println("set parameter "+index+": "+value+"("+val+")");
+        System.out.println("set parameter "+index+": "+value+"("+val+")");
         switch(index){
         case 0:
             osc.setEnergy(val);
+            for(int i=0; i<CONTROLS; ++i)
+                setParameterAutomated(i+5, osc.getControl(i));
 //             sendParameterToHost();
-//             updateDisplay(); // update params
+            updateDisplay(); // update params
             break;
         case 1:
             osc.setWavelength(val);
@@ -206,6 +208,16 @@ public class HarmonicOscillatorPlugin extends VstPluginImpl {
         }
 //         System.out.println("get parameter "+index+": "+(val / 127.0f));
         return val / 127.0f;
+    }
+
+    public VSTPinProperties getInputProperties(int index) {
+        VSTPinProperties vpp = null;
+        if(index == 0) {
+            vpp = new VSTPinProperties();
+            vpp.setLabel("harms properties");
+            vpp.setFlags(VSTPinProperties.VST_PIN_IS_ACTIVE);
+        }
+        return vpp;
     }
 
     public VSTPinProperties getOutputProperties(int index) {
