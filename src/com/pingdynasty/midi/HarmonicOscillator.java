@@ -79,7 +79,6 @@ public class HarmonicOscillator {
 
         PsiArray = new double[samples+1][HeightConstant];
         initialisePSIArray();
-        setGlauberState(63); // initialises control values
     }
 
 

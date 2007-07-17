@@ -211,27 +211,37 @@
 <!--     </jar> -->
   </target>
 
-  <target name="harms.vst.mac" depends="compile, jar">
-    <property name="harms.vst.dir.mac" value="${build.dir}/harms-mac.vst"/>
-    <mkdir dir="${harms.vst.dir.mac}"/>
-    <copy todir="${harms.vst.dir.mac}/Contents/">
+  <target name="vst.mac" depends="prepare">
+    <mkdir dir="${build.dir}/${plugin}-mac.vst"/>
+    <copy todir="${build.dir}/${plugin}-mac.vst/Contents/">
       <fileset dir="${src.dir}/config" includes="PkgInfo"/>
     </copy>
-    <copy tofile="${harms.vst.dir.mac}/Contents/Info.plist" 
-          file="${src.dir}/config/harms.Info.plist"/>
-    <copy tofile="${harms.vst.dir.mac}/Contents/MacOS/harms.jnilib" 
+    <copy tofile="${build.dir}/${plugin}-mac.vst/Contents/Info.plist" 
+          file="${src.dir}/config/${plugin}.Info.plist"/>
+    <copy tofile="${build.dir}/${plugin}-mac.vst/Contents/MacOS/${plugin}.jnilib" 
           file="${proj.dir}/lib/native/macosx/libjvstwrapper.jnilib"/>
-    <copy tofile="${harms.vst.dir.mac}/Contents/Resources/harms.jnilib.ini" 
-          file="${src.dir}/config/harms.mac.ini"/>
-    <copy todir="${harms.vst.dir.mac}/Contents/Resources">
-      <fileset dir="${proj.dir}/lib" includes="jvaptools.jar, jVSTwRapper_bin.jar, jVSTsYstem_bin.jar"/>
+    <copy tofile="${build.dir}/${plugin}-mac.vst/Contents/Resources/${plugin}.jnilib.ini" 
+          file="${src.dir}/config/${plugin}.mac.ini"/>
+    <copy todir="${build.dir}/${plugin}-mac.vst/Contents/Resources">
+      <fileset dir="${proj.dir}/lib" includes="jVSTwRapper_bin.jar, jVSTsYstem_bin.jar"/>
       <fileset dir="${build.dir}" includes="miditoys.jar"/>
     </copy>
-    <zip destfile="${build.dir}/harms-vst-mac.zip" basedir="${build.dir}">
-      <include name="harms-mac.vst/**/*.*"/>
+    <zip destfile="${build.dir}/${plugin}-mac.zip" basedir="${build.dir}">
+      <include name="${plugin}-mac.vst/**"/>
     </zip>
   </target>
 
+  <target name="harms-effect.vst.mac" depends="compile, jar">
+    <antcall target="vst.mac">
+      <param name="plugin" value="harms-effect"/>
+    </antcall>
+  </target>
+
+  <target name="harms-synth.vst.mac" depends="compile, jar">
+    <antcall target="vst.mac">
+      <param name="plugin" value="harms-synth"/>
+    </antcall>
+  </target>
 
   <target name="pong.vst" depends="pong.vst.mac, pong.vst.windows"/>
 

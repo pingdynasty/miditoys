@@ -12,13 +12,13 @@ public class HarmonicOscillatorGUI extends VSTPluginGUIAdapter {
     private HarmonicOscillatorPlugin plugin;
 
     public HarmonicOscillatorGUI(){
-        System.out.println("harms gui ctor");
         setTitle("harms vst");
         view = new OscillatorPanel(512); // todo fix sizes
         view.setMinimumSize(new Dimension(512, 100));
         view.setPreferredSize(new Dimension(512, 200));
         setSize(new Dimension(512, 100));
         //     this.setResizable(false);
+        log("harms gui ctor");
     }
 
     // the order of events seems to be:
@@ -28,23 +28,26 @@ public class HarmonicOscillatorGUI extends VSTPluginGUIAdapter {
     // PongPlugin.open()
     // PongGUI.open()
     public void init(VSTPluginAdapter adapter) {
-        System.out.println("harms gui init");
-        plugin = (HarmonicOscillatorPlugin)adapter;
-        plugin.setView(view);
-//         setJMenuBar(pong.getMenuBar(false));
+        if(adapter instanceof HarmonicOscillatorPlugin){
+            plugin = (HarmonicOscillatorPlugin)adapter;
+            plugin.setView(view);
+        }
+//         plugin.setView(view);
+//         setJMenuBar(osc.getMenuBar(false));
         getContentPane().add(view);
-        setVisible(true);
+        undecorate();
+        log("harms gui init");
     }
 
     public void open() {
         super.open();
-        System.out.println("harms gui open");
+        log("harms gui open");
         setVisible(true);
     }
 
     public void close() {
         super.close();
-        System.out.println("harms gui close");
+        log("harms gui close");
         setVisible(false);
     }
 }
