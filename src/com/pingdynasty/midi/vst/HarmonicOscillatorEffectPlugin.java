@@ -41,6 +41,7 @@ public class HarmonicOscillatorEffectPlugin extends HarmonicOscillatorPlugin {
         this.setUniqueID(UNIQUE_ID);
         this.suspend();
         osc = new HarmonicOscillator(SAMPLE_WIDTH, CONTROLS);
+        osc.setGlauberState(63); // initialises control values
     }
 
     public String getEffectName() { return "harms effect"; }

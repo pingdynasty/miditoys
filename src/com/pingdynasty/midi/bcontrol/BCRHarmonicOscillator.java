@@ -568,8 +568,10 @@ public class BCRHarmonicOscillator extends JPanel {
         int sampleWidth = configuration.getSampleWidth();
         float outputFrequency = configuration.getOutputFrequency();
         int buffersize = configuration.getBufferSize();
-        for(int i=0; i<presets.length; ++i)
+        for(int i=0; i<presets.length; ++i){
             presets[i] = new HarmonicOscillator(sampleWidth, width);
+            presets[i].setGlauberState(i*10 + 20); // initialises control values
+        }
         osc = presets[0];
         output = new AudioLineOutput(sampleWidth, AudioOutput.PCM16SL);
         output.openLine(outputFrequency, buffersize);
