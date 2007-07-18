@@ -27,23 +27,22 @@ public class PongGUI extends jvst.wrapper.VSTPluginGUIAdapter {
     // PongPlugin.open()
     // PongGUI.open()
     public void init(jvst.wrapper.VSTPluginAdapter adapter) {
-        System.out.println("pong gui init");
         plugin = (PongPlugin)adapter;
         pong = plugin.pong;
         setJMenuBar(pong.getMenuBar(false));
         getContentPane().add(pong);
-        setVisible(true);
+        System.out.println("pong gui init");
     }
 
     public void open() {
         super.open();
-        System.out.println("pong gui open");
         setVisible(true);
+        System.out.println("pong gui open");
     }
 
     public void close() {
         super.close();
-        System.out.println("pong gui close");
         setVisible(false);
+        System.out.println("pong gui close");
     }
 }
