@@ -13,6 +13,7 @@ import jvst.wrapper.valueobjects.*;
 public class PongPlugin extends org.jvaptools.VstPluginImpl  {
 
     Pong pong;
+    public static final int UNIQUE_ID = '4' << 24 | 'i' << 16 | '5' << 8 | '8';
 
     public PongPlugin(long wrapper){
         super(wrapper);
@@ -25,8 +26,7 @@ public class PongPlugin extends org.jvaptools.VstPluginImpl  {
         this.canProcessReplacing(true);
         this.canMono(true);
         this.isSynth(true);
-
-        this.setUniqueID(0xfaffe);
+        this.setUniqueID(UNIQUE_ID);
         this.suspend();
 
         pong = new Pong();
@@ -65,8 +65,6 @@ public class PongPlugin extends org.jvaptools.VstPluginImpl  {
 
     public int canDo(String feature){
         System.out.println("cando: "+feature+".");
-//         if(CANDO_PLUG_RECEIVE_VST_EVENTS.equals(feature))
-//             return CANDO_YES;
 //         if(CANDO_PLUG_RECEIVE_VST_MIDI_EVENT.equals(feature))
 //             return CANDO_YES;
 //         if(CANDO_PLUG_RECEIVE_VST_TIME_INFO.equals(feature))
@@ -74,6 +72,8 @@ public class PongPlugin extends org.jvaptools.VstPluginImpl  {
 //         if(CANDO_PLUG_MIDI_PROGRAM_NAMES.equals(feature))
 //             return CANDO_YES;
 //         if(CANDO_PLUG_SEND_VST_EVENTS.equals(feature))
+//             return CANDO_YES;
+//         if(CANDO_PLUG_RECEIVE_VST_EVENTS.equals(feature))
 //             return CANDO_YES;
         if(CANDO_PLUG_SEND_VST_MIDI_EVENT.equals(feature))
             return CANDO_YES;
