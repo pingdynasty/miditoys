@@ -195,7 +195,7 @@ public class HarmonicOscillator {
     }
 
     public void setControl(int index, int value){
-        System.out.println("control "+index+": "+value);
+//         System.out.println("control "+index+": "+value);
         assert index < controlvalues.length;
         assert value <= MAX_VALUE;
         assert value >= 0;
@@ -235,7 +235,7 @@ public class HarmonicOscillator {
     // Setting of amplitudes for a single state
     public void setSingleState(int Nvalue){
         assert Nvalue < controlvalues.length;
-        System.out.println("single state "+Nvalue);
+//         System.out.println("single state "+Nvalue);
         for(int i=0; i<controls; ++i)
             rawCn[i] = 0.0;
         rawCn[Nvalue] = 1.0;
@@ -251,7 +251,7 @@ public class HarmonicOscillator {
 
     //    Setting of amplitudes for Glauber State by energy selector scroller
     public void setGlauberState(int Nvalue){
-        System.out.println("glauber state "+Nvalue);
+//         System.out.println("glauber state "+Nvalue);
         energyControl = Nvalue;
 
 //         AverageEnerg=EnergyConstant+0.0001+(10.0-0.1*(double)Nvalue );  // SETENERGY
@@ -331,7 +331,7 @@ public class HarmonicOscillator {
 
     // Set the time delta value. Should be small, 0.001 - 0.100.
     public void setTimeStep(double dt){
-        System.out.println("dt: "+dt);
+//         System.out.println("dt: "+dt);
         this.dt = dt;
     }
 }
