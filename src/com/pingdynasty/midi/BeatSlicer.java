@@ -9,6 +9,7 @@ import javax.sound.sampled.*;
 
 public class BeatSlicer implements Receiver {
 
+    private static final int NOTE_OFFSET = 60;
     private Slice[] slices;
     private int tick;
 
@@ -27,7 +28,7 @@ public class BeatSlicer implements Receiver {
         private FloatControl panControl;
         private int samplerate;
         private FloatControl samplerateControl;
-        private int ramp;
+//         private int ramp;
         private boolean looping;
 
         public static final int MAX_VALUE = 127;
@@ -172,13 +173,13 @@ public class BeatSlicer implements Receiver {
             return samplerate;
         }
 
-        public void setRamp(int ramp){
-            this.ramp = ramp;
-        }
+//         public void setRamp(int ramp){
+//             this.ramp = ramp;
+//         }
 
-        public int getRamp(){
-            return ramp;
-        }
+//         public int getRamp(){
+//             return ramp;
+//         }
 
         public byte[] getData(){
             return data;
@@ -282,15 +283,18 @@ public class BeatSlicer implements Receiver {
             break;
         }
         case ShortMessage.NOTE_ON:{
-            int slice = msg.getData1() - 60;
-            System.out.println("note on: "+msg.getData1());
+            int slice = msg.getData1() - NOTE_OFFSET;
+//             System.out.println("note on: "+msg.getData1());
             if(slice >= 0 && slice < slices.length)
-                slices[slice].start();
+                if(msg.getData2() == 0)
+                    slices[slice].stop();
+                else
+                    slices[slice].start();
             break;
         }
         case ShortMessage.NOTE_OFF:{
-            int slice = msg.getData1() - 60;
-            System.out.println("note off: "+msg.getData1());
+            int slice = msg.getData1() - NOTE_OFFSET;
+//             System.out.println("note off: "+msg.getData1());
             if(slice >= 0 && slice < slices.length)
                 slices[slice].stop();
             break;

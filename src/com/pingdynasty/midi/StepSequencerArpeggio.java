@@ -115,7 +115,11 @@ public class StepSequencerArpeggio implements Receiver {
             // these should send note on/off messages to BCR
             // todo: move Receiver to BCRStepSequencer, call arp.noteon()/noteoff()
         case ShortMessage.NOTE_ON:{
-            noteon(msg.getData1(), msg.getData2());
+            int velocity = msg.getData2();
+            if(velocity == 0)
+                noteoff(msg.getData1());
+            else
+                noteon(msg.getData1(), velocity);
             break;
         }
         case ShortMessage.NOTE_OFF:{
