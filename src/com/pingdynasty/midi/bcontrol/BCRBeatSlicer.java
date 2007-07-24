@@ -531,21 +531,21 @@ public class BCRBeatSlicer extends JPanel {
         }
     }
 
-    public void initialiseMidiDevices()
+    public void configure()
         throws MidiUnavailableException {
         configuration = new BCRBeatSlicerConfiguration();
         configuration.setUpdateAction(new AbstractAction(){
                 public void actionPerformed(ActionEvent e){
                     try{
-                        updateMidiDevices();
+                        configure(configuration);
                     }catch(Exception exc){exc.printStackTrace();}
                 }
             });
         configuration.init(); // runs configuration initialisation
-        updateMidiDevices();
+        configure(configuration);
     }
 
-    public void updateMidiDevices()
+    public void configure(BCRBeatSlicerConfiguration configuration)
         throws MidiUnavailableException {
         // update devices from configuration settings
         MidiDevice device = configuration.getMidiInput();
@@ -715,6 +715,7 @@ public class BCRBeatSlicer extends JPanel {
 //         midiOutput.close();
         slicer.close();
         midiControl.close();
+        midiSync.close();
     }
 
     public static void main(String[] args)
@@ -723,7 +724,7 @@ public class BCRBeatSlicer extends JPanel {
         if(args.length > 0)
             beats.loadSample(new File(args[0]));
 
-        beats.initialiseMidiDevices();
+        beats.configure();
         // create frame
         JFrame frame = new JFrame("bcr beats");
         frame.setJMenuBar(beats.getMenuBar());
