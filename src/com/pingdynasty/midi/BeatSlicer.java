@@ -11,7 +11,6 @@ public class BeatSlicer implements Receiver {
 
     private static final int NOTE_OFFSET = 60;
     private Slice[] slices;
-    private int tick;
 
     // alternative: subclass AudioInputStream to play only slice, use Clip to play stream.
     public class Slice implements LineListener {
@@ -273,15 +272,6 @@ public class BeatSlicer implements Receiver {
     public void send(ShortMessage msg, long time)
         throws InvalidMidiDataException {
         switch(msg.getStatus()){
-        case ShortMessage.TIMING_CLOCK: {
-            if(++tick == 24){
-                for(int i=0; i<slices.length; ++i)
-                    slices[i].retrigger();
-//                 System.err.println("retriggered");
-                tick = 0;
-            }
-            break;
-        }
         case ShortMessage.NOTE_ON:{
             int slice = msg.getData1() - NOTE_OFFSET;
 //             System.out.println("note on: "+msg.getData1());

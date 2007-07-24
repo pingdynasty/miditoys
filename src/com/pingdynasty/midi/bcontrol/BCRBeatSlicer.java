@@ -26,6 +26,7 @@ public class BCRBeatSlicer extends JPanel {
     private WaveformPanel waveform;
 
     private MidiSync midiSync; // internal MIDI sync generator
+    private GridSequencer sequencer;
     private ControlSurfaceHandler midiControl;
     private BCRBeatSlicerConfiguration configuration;
 
@@ -190,13 +191,10 @@ public class BCRBeatSlicer extends JPanel {
                     }catch(Exception exc){exc.printStackTrace();}
             }else if(data1 == 115){
                 // store button
-                if(data2 < 64){
-                    midiSync.stop();
-                    status("stop");
-                }else{
-                    midiSync.start();
-                    status("start");
-                }
+                if(data2 < 64)
+                    stop();
+                else
+                    start();
             }else if(data1 == 116){
                 // learn button
                 if(data2 < 64){
@@ -274,13 +272,11 @@ public class BCRBeatSlicer extends JPanel {
 //             System.out.println("short message "+msg.getStatus()+" "+msg.getData1()+" "+msg.getData2());
             switch(msg.getStatus()){
             case ShortMessage.START: {
-                midiSync.start();
-                status("start");
+                start();
                 break;
             }
             case ShortMessage.STOP: {
-                midiSync.stop();
-                status("stop");
+                stop();
                 break;
             }
             case ShortMessage.CONTROL_CHANGE: {
@@ -314,8 +310,13 @@ public class BCRBeatSlicer extends JPanel {
         slicer = new BeatSlicer(width);
         eventHandler = new EventHandler();
         midiControl = new ControlSurfaceHandler();
+        sequencer = new GridSequencer(width);
+        // initialise grid sequencer pattern
+        for(int i=0; i<width; ++i)
+            sequencer.setNoteOn(i, 60+i);
+        sequencer.setReceiver(slicer);
         midiSync = new MidiSync(bpm);
-        midiSync.setReceiver(slicer);
+        midiSync.setReceiver(sequencer);
 
         // statusbar
         statusbar = new JLabel();
@@ -328,6 +329,9 @@ public class BCRBeatSlicer extends JPanel {
         // add waveform graph
         waveform = new WaveformPanel(500, 100);
         mainarea.add(waveform);
+
+        // add grid sequencer display
+        mainarea.add(new GridSequencerPanel(sequencer));
 
         JPanel rows = new JPanel();
         rows.setLayout(new BoxLayout(rows, BoxLayout.X_AXIS));
@@ -709,11 +713,23 @@ public class BCRBeatSlicer extends JPanel {
         status("loaded sample from URL "+url);
     }
 
+    public void stop(){
+        midiSync.stop();
+        sequencer.stop();
+        status("stop");
+    }
+
+    public void start(){
+        sequencer.start();
+        midiSync.start();
+        status("start");
+    }
 
     public void destroy(){
 //         midiInput.close();
 //         midiOutput.close();
         slicer.close();
+        sequencer.close();
         midiControl.close();
         midiSync.close();
     }
@@ -731,7 +747,7 @@ public class BCRBeatSlicer extends JPanel {
         // configure frame
 //         frame.pack();
 
-        frame.setSize(625, 550);
+        frame.setSize(625, 750);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setContentPane(beats);
         frame.setVisible(true);
