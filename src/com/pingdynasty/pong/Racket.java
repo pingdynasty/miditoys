@@ -7,6 +7,7 @@ public abstract class Racket {
     Point pos;
     Point size = new Point(6, 50);
     int score = 0;
+    int speed = 0;
 
     public Racket(Point pos){
         this.pos = pos;
@@ -19,6 +20,7 @@ public abstract class Racket {
         ball.speed.x *= -1;
         return offset;
     }
+
 
     public abstract boolean isLeft();
     public abstract void check(Ball ball);

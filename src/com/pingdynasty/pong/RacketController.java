@@ -15,9 +15,11 @@ public abstract class RacketController {
         int midpos = racket.pos.y + delta;
         if(midpos > -35 && midpos < Pong.SCREEN_HEIGHT - 50)
             racket.pos.y += delta;
+        racket.speed = (racket.speed / 2) + delta;
     }
 
     public void moveTo(int pos){
+        racket.speed = (racket.speed / 2) + (pos - racket.pos.y);
         racket.pos.y = pos;
     }
 
