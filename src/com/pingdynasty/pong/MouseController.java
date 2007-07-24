@@ -14,7 +14,7 @@ public class MouseController extends RacketController implements MouseMotionList
     }
 
     public void mouseMoved(MouseEvent event){
-        moveTo(event.getY() - 25);
+        moveTo(event.getY() - (racket.size.y / 2));
     }
 	
     public void mouseDragged(MouseEvent event){}
