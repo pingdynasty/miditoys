@@ -31,8 +31,35 @@ public class Pong extends JPanel implements Receiver  {
     private RightRacket rightRacket;
     private RacketController leftController;
     private RacketController rightController;
-    private boolean running = true;
+    private Animator animator;
     private boolean started = false;
+
+    class Animator extends Thread {
+        public static final long FRAME_DELAY = 40; // 25fps
+        private boolean running = true;
+
+        public Animator(){
+            setDaemon(true);
+        }
+
+        public void run(){
+            while(running){
+                // allow rackets to move
+                leftController.move();
+                rightController.move();
+                // update screen
+                repaint();
+                try{
+                    sleep(FRAME_DELAY);
+                }catch(InterruptedException e){}
+            }
+        }
+
+        public void close(){
+            running = false;
+            interrupt();
+        }
+    }
 
     class ChangeSpeedAction extends AbstractAction {
         private int speed;
@@ -129,6 +156,11 @@ public class Pong extends JPanel implements Receiver  {
                && ball.pos.y + ball.radius > pos.y 
                && ball.pos.y < pos.y + size.y){
                 int offset = hit(ball);
+                // parameters:
+                // ball vertical speed
+                // racket vertical speed
+                // offset point
+                System.out.println("left racket speed "+speed);
                 sound(Math.abs(offset) + 20, Math.abs(ball.speed.y) * 40);
             }
         }
@@ -162,6 +194,7 @@ public class Pong extends JPanel implements Receiver  {
                && ball.pos.y + ball.radius > pos.y 
                && ball.pos.y < pos.y + size.y){
                 int offset = hit(ball);
+                System.out.println("right racket speed "+speed);
                 sound(Math.abs(offset) + 20, Math.abs(ball.speed.y) * 40);
             }
         }
@@ -189,6 +222,9 @@ public class Pong extends JPanel implements Receiver  {
         rightController = new MouseController(rightRacket, this);
 //         rightController = new JInputController(rightRacket);
 //         rightController = new KeyboardController(rightRacket, this, KeyEvent.VK_UP, KeyEvent.VK_DOWN);
+        // start pad moving animator thread
+        animator = new Animator();
+        animator.start();
 
         // set action handler for start/stop game (space bar)
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "start/stop game");
@@ -239,11 +275,6 @@ public class Pong extends JPanel implements Receiver  {
             // allow ball to move
             ball.move();
         }
-        // allow rackets to move
-        leftController.move();
-        rightController.move();
-        // update screen
-        repaint();
     }
 
     public void paintComponent(Graphics g){
@@ -333,6 +364,7 @@ public class Pong extends JPanel implements Receiver  {
 
     public void destroy(){
         stop();
+        animator.close();
     }
 
     public JMenuBar getMenuBar(boolean includeDeviceMenu){
@@ -557,6 +589,7 @@ public class Pong extends JPanel implements Receiver  {
 
     public void close(){
         stop();
+        animator.close();
     }
 
     public Receiver getMidiSyncReceiver(){
@@ -566,6 +599,8 @@ public class Pong extends JPanel implements Receiver  {
     public void setBPM(int bpm){
         ball.speed.x = court.width / 48;
 //         ball.speed.x = (court.width - court.x - 20 - ball.speed.x - ball.speed.x) / 48;
+//         System.out.println("width/speed "+court.width+"/"+ball.speed.x);
+//         System.out.println("diff "+((court.width - court.x - 20 - ball.speed.x - ball.speed.x) % ball.speed.x));
         internalSync.setBPM(bpm);
     }
 
