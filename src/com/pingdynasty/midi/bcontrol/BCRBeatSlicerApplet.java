@@ -11,7 +11,7 @@ public class BCRBeatSlicerApplet extends JApplet  {
     public void init() {
         try{
             beats = new BCRBeatSlicer();
-            beats.initialiseMidiDevices();
+            beats.configure();
             String sample = getParameter("sample");
             if(sample != null && !sample.equals(""))
                 beats.loadSample(new URL(getCodeBase(), sample));
