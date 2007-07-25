@@ -19,7 +19,7 @@ public class ControlSurfacePanel extends JPanel implements MouseMotionListener {
         player.setVelocity(velocity);
         try{
             if((event.getModifiersEx() & MouseEvent.SHIFT_DOWN_MASK) == MouseEvent.SHIFT_DOWN_MASK){
-                bend = 127 - y/2;
+                bend = 16383 - y * 64; // center position is 128, min is 0, max is 255
                 player.bend(bend);
             }else{
                 modulation = 127 - y/2;
@@ -35,7 +35,8 @@ public class ControlSurfacePanel extends JPanel implements MouseMotionListener {
     public ControlSurfacePanel(Player player){
         super(new BorderLayout());
         this.player = player;
-        bend = 64;
+        // The MIDI specification stipulates that pitch bend be a 14-bit value, where zero is maximum downward bend, 16383 is maximum upward bend, and 8192 is the center (no pitch bend). The actual amount of pitch change is not specified; it can be changed by a pitch-bend sensitivity setting. However, the General MIDI specification says that the default range should be two semitones up and down from center.
+        bend = 8192;
         modulation = 0;
         velocity = 60;
         try{
@@ -60,7 +61,7 @@ public class ControlSurfacePanel extends JPanel implements MouseMotionListener {
     }
 
     public void reset(){
-        bend = 64;
+        bend = 8192;
         modulation = 0;
         try{
             player.bend(bend);
@@ -82,6 +83,6 @@ public class ControlSurfacePanel extends JPanel implements MouseMotionListener {
         // put a purple dot on velocity / bend mark
         g.setColor(Color.magenta);
         g.drawString("bend "+bend, 224, 16);
-        g.fillOval(velocity * 2 + 20, 275 - bend * 2, 6, 6);
+        g.fillOval(velocity * 2 + 20, 275 - (bend / 64), 6, 6);
     }
 }

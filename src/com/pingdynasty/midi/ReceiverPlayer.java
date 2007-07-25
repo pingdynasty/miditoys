@@ -65,10 +65,10 @@ public class ReceiverPlayer extends Player {
         receiver.send(msg, -1);
     }
 
+    /** bend - the amount of pitch change, as a nonnegative 14-bit value (8192 = no bend) */
     public void bend(int degree)
         throws InvalidMidiDataException{
-//         msg.setMessage(ShortMessage.PITCH_BEND, channel, 0xff00 & degree, 0x00ff & degree);
-        msg.setMessage(ShortMessage.PITCH_BEND, channel, degree, degree);
+        msg.setMessage(ShortMessage.PITCH_BEND, channel, degree & 0x7F, (degree >> 7) & 0x7F);
         receiver.send(msg, -1);
     }
 
