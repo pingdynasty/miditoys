@@ -9,7 +9,7 @@ public class StepSequencer implements Receiver {
     protected Player player;
     protected Step[] steps;
     private boolean started = false;
-    public static final int DEFAULT_BPM = 128;
+    public static final int DEFAULT_BPM = 120;
     private int tick;
     private MidiSync sync; // internal midi sync/scheduling thread
     private JProgressBar progress;
