@@ -33,7 +33,7 @@ public class BCRHarmonicOscillator extends JPanel {
     private OscillatorPanel view;
     private AudioLineOutput output;
 //     private AudioFileOutput fileoutput;
-    private MidiInputHandler midiInput;
+    private Receiver midiInput;
     private MidiControl[] controls;
     private MidiControl[] cc_controls; // quick index for CC controls
     private JLabel statusbar;
@@ -41,39 +41,67 @@ public class BCRHarmonicOscillator extends JPanel {
     private ControlSurfaceHandler midiControl;
     private BCRHarmonicOscillatorConfiguration configuration;
     private Runner runner;
-    private AudioControl[] audiocontrols;
+//     private AudioControl[] audiocontrols;
 
-    class AudioControl {
+//     class AudioControl {
         
-    }
+//     }
+
+//     class Animator implements Runnable {
+//         private static final long FRAME_DELAY = 40; // 25fps
+//         private boolean running;
+
+//         public void start(){
+//             running = true;
+//             Thread thread = new Thread(this);
+//             thread.setDaemon(true);
+//             thread.start();
+//         }
+
+//         public void stop(){
+//             running = false;
+//         }
+
+//         public void run(){
+//             while(running){
+//                 view.setAndScaleData(osc.getData());
+//                 try{
+//                     Thread.sleep(FRAME_DELAY);
+//                 }catch(InterruptedException e){}
+//             }
+//         }
+//     }
 
     class Runner implements Runnable {
-        boolean running;
+        private boolean running = false;
+//         private Animator animator = new Animator();
 
         public void start(){
             running = true;
             Thread thread = new Thread(this);
             thread.start();
+//             animator.start();
         }
 
         public void stop(){
             running = false;
+//             animator.stop();
         }
 
         public void run(){
             double[] values;
             while(running){
+                osc.increment();
                 values = osc.calculate();
 //                 for(int i=0; i<4; ++i){
-                    output.write(values);
-                    if(output.clipping())
-                        status("clipping!");
+                output.write(values);
+                if(output.clipping())
+                    status("clipping!");
                     //                 if(fileoutput != null)
                     //                     fileoutput.write(values);
-                    osc.increment();
-                    values = osc.calculate();
+//                     values = osc.calculate();
 //                 }
-                view.setAndScaleData(osc.getData());
+                view.setAndScaleData(values);
             }
         }
     }
@@ -269,9 +297,8 @@ public class BCRHarmonicOscillator extends JPanel {
                     break;
                 }
                 case 100:{
-                    double dt = 0.001d * data2;
-                    osc.setTimeStep(dt);
-                    status("time step "+dt);
+                    osc.setTimeStep(data2);
+                    status("time step "+data2);
                     break;
                 }
                 case 101:{
@@ -285,17 +312,17 @@ public class BCRHarmonicOscillator extends JPanel {
         }
     }
 
-    public class MidiInputHandler extends ShortMessageReceiver {
-        public void send(ShortMessage msg, long time){
-            switch(msg.getStatus()){
-            case ShortMessage.NOTE_ON: {
-                int index = msg.getData1() - 60;
-                if(index >= 0 && index < osc.getControls())
-                    osc.setSingleState(index);
-            }
-            }
-        }
-    }
+//     public class MidiInputHandler extends ShortMessageReceiver {
+//         public void send(ShortMessage msg, long time){
+//             switch(msg.getStatus()){
+//             case ShortMessage.NOTE_ON: {
+//                 int index = msg.getData1() - 60;
+//                 if(index >= 0 && index < osc.getControls())
+//                     osc.setSingleState(index);
+//             }
+//             }
+//         }
+//     }
 
     public class ControlSurfaceHandler extends ShortMessageReceiver {
 
@@ -323,17 +350,15 @@ public class BCRHarmonicOscillator extends JPanel {
     public BCRHarmonicOscillator()
         throws Exception{
         super(new BorderLayout());
-
         eventHandler = new EventHandler();
         midiControl = new ControlSurfaceHandler();
-        midiInput = new MidiInputHandler();
         runner = new Runner();
         presets = new HarmonicOscillator[4];
         configuration = new BCRHarmonicOscillatorConfiguration();
         configuration.setUpdateAction(new AbstractAction(){
                 public void actionPerformed(ActionEvent e){
                     try{
-                        init();
+                        configure(configuration);
                         setControlValues();
                         cc_controls[117].setValue(0);
                     }catch(Exception exc){exc.printStackTrace();}
@@ -353,7 +378,7 @@ public class BCRHarmonicOscillator extends JPanel {
         this.add(statusbar, BorderLayout.SOUTH);
 
 //         configuration.init(); // runs configuration initialisation
-        init(); // initialise resources from configuration settings
+        configure(configuration); // initialise resources from configuration settings
 
         JPanel mainarea = new JPanel();
         mainarea.setLayout(new BoxLayout(mainarea, BoxLayout.Y_AXIS));
@@ -528,7 +553,7 @@ public class BCRHarmonicOscillator extends JPanel {
         }
 
         configuration.init(); // runs configuration initialisation
-        init(); // initialise resources from configuration settings
+        configure(configuration); // initialise resources from configuration settings
         setControlValues();
         view.setAndScaleData(osc.calculate());
     }
@@ -562,7 +587,7 @@ public class BCRHarmonicOscillator extends JPanel {
     }
 
     // initialise resources from configuration settings
-    public void init()
+    public void configure(BCRHarmonicOscillatorConfiguration configuration)
         throws Exception {
         int width = 8; // number of controls
         int sampleWidth = configuration.getSampleWidth();
@@ -575,12 +600,14 @@ public class BCRHarmonicOscillator extends JPanel {
         osc = presets[0];
         output = new AudioLineOutput(sampleWidth, AudioOutput.PCM16SL);
         output.openLine(outputFrequency, buffersize);
+        midiInput = new HarmonicOscillatorSynth(osc);
 
         // update MIDI devices from configuration settings
         MidiDevice device = configuration.getMidiInput();
         if(device != null){
             device.open();
-            midiInput.setTransmitter(device.getTransmitter());
+            device.getTransmitter().setReceiver(midiInput);
+//             midiInput.setTransmitter(device.getTransmitter());
         }
 
         device = configuration.getMidiControlInput();

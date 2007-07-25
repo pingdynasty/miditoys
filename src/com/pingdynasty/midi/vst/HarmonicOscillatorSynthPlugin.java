@@ -9,13 +9,13 @@ public class HarmonicOscillatorSynthPlugin extends HarmonicOscillatorPlugin {
 
     public static final int UNIQUE_ID = '9' << 24 | '0' << 16 | '2' << 8 | 'p';
     private HarmonicOscillator osc;
+    private HarmonicOscillatorSynth synth;
     private double scale = 1.0d;
 //     private double scaleconstant = 2.0d * 32768.0d / 127.0d;
 //     private double scaleconstant = 2.0d / 127.0d;
     private double scaleconstant = 2.0d;
 //     private boolean running = false;
     private int framepos;
-    private int[] controlvalues = new int[CONTROLS];
     private static final int CONTROLS = 24;
     private static final int SAMPLE_WIDTH = 512;
     private static final int NOTE_OFFSET = 60;
@@ -25,8 +25,6 @@ public class HarmonicOscillatorSynthPlugin extends HarmonicOscillatorPlugin {
         "time step",
         "scale"
     };
-
-//     public native void setOutputSamplerate(float);
 
     public HarmonicOscillatorSynthPlugin(long wrapper){
         super(wrapper);
@@ -44,7 +42,7 @@ public class HarmonicOscillatorSynthPlugin extends HarmonicOscillatorPlugin {
         this.suspend();
 
         osc = new HarmonicOscillator(SAMPLE_WIDTH, CONTROLS);
-
+        synth = new HarmonicOscillatorSynth(osc);
 //         // initialise sound
 //         MidiDevice device = getMidiDevice();
 //         try{
@@ -180,53 +178,39 @@ public class HarmonicOscillatorSynthPlugin extends HarmonicOscillatorPlugin {
 //         }
     }
 
-    public int processEvents( VSTEvents vst_events ) {
+    public int processEvents(VSTEvents vst_events) {
         VSTEvent[] events = vst_events.getEvents();
         int num_events = vst_events.getNumEvents();
         for(int i=0; i<num_events; ++i) {
             if(events[i].getType() == VSTEvent.VST_EVENT_MIDI_TYPE){
                 byte[] msg_data = ((VSTMidiEvent)events[i]).getData();
-                switch(msg_data[0] & 0xF0) {
-                case 0x80: { /* Note off.*/
-                    int control = (msg_data[1] & 0x7F) - NOTE_OFFSET;
-//                     log("note off "+control+"/"+(msg_data[1] & 0x7F));
-                    if(control < controlvalues.length && control >= 0)
-                        osc.setControl(control, controlvalues[control]);
-                    controlvalues[control] = 0;
+                switch(msg_data[0] & 0xF0){
+                case 0x80: 
+                    /* Note off.*/
+                    synth.noteoff(msg_data[1] & 0x7F);
                     break;
-                }
-                case 0x90: { /* Note on.*/
-                    int control = (msg_data[1] & 0x7F) - NOTE_OFFSET;
+                case 0x90: {
+                    /* Note on.*/
                     int velocity = msg_data[2] & 0x7F;
-//                     log("note on "+control+"/"+(msg_data[1] & 0x7F)+"/"+velocity);
-                    if(control < controlvalues.length && control >= 0){
-                        /* It seems note on with velocity = 0 is also note off.*/
-                        if(velocity == 0){
-                            osc.setControl(control, controlvalues[control]);
-                            controlvalues[control] = 0;
-                        }else{ // if(controlvalues[control] == 0)
-                            controlvalues[control] = osc.getControl(control);
-                            osc.setControl(control, velocity);
-                        }
-                    }
+                    if(velocity == 0)
+                        synth.noteoff(msg_data[1] & 0x7F);
+                    else 
+                        synth.noteon(msg_data[1] & 0x7F, velocity);
                     break;
                 }
-//             case 0xB0: /* Control change.*/
-//                 /* Controller 120 = all sound off */
-//                 /* Controller 121 = reset all controllers */
-//                 /* Controller 123 = all notes off */
-//                 int ctrl = msg_data[ 1 ] & 0x7F;
-//                 int value = msg_data[ 2 ] & 0x7F;
-//                 if( ctrl >= 20 && ctrl < num_controllers + 20 )
-//                     liquinth_vst_gui.set_controller( ctrl - 20, value );
-//                 if( ctrl == 0x7E || ctrl == 0x7B )
-//                     synthesizer.all_notes_off( false );
-//                 break;
-//                 case 0xE0: /* Pitch wheel.*/
-//                     int pitch = ( msg_data[ 1 ] & 0x7F ) | ( ( msg_data[ 2 ] & 0x7F ) << 7 );
-//                     synthesizer.set_pitch_wheel( pitch - 8192 );
-//                     break;
-//                 }
+                case 0xB0:
+                    /* Control change.*/
+                    /* CC 1 = modulation */
+                    /* CC 120 = all sound off */
+                    /* CC 121 = reset all controllers */
+                    /* CC 123 = all notes off */
+                    if((msg_data[1] & 0x7F) == 1)
+                        synth.modulation(msg_data[2] & 0x7F);
+                    break;
+                case 0xE0:
+                    /* Pitch wheel.*/
+                    synth.pitchbend((msg_data[1] & 0x7F) | ((msg_data[2] & 0x7F) << 7));
+                    break;
                 }
             }
         }
