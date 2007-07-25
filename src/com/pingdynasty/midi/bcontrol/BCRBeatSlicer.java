@@ -115,34 +115,52 @@ public class BCRBeatSlicer extends JPanel {
             this.mode = mode;
             try{
                 // update reassignable encoders
+                int maxcontrols = slicer.getSlice(0).getNumberOfControls();
                 switch(mode){
                 case MODE_A :
                     for(int i=0; i<width; ++i){
                         cc_controls[i+81].setValue(slicer.getSlice(i).getLength());
                         cc_controls[i+81].setDescription("length");
-                    }
-                    for(int i=0; i<width; ++i){
-                        cc_controls[i+89].setValue(slicer.getSlice(i).getVolume());
-                        cc_controls[i+89].setDescription("volume");
-                    }
-                    for(int i=0; i<width; ++i){
-                        cc_controls[i+97].setValue(slicer.getSlice(i).getPan());
-                        cc_controls[i+97].setDescription("stereo pan");
+                        if(maxcontrols > 0){
+                            cc_controls[i+89].setValue(slicer.getSlice(i).getControlValue(0));
+                            cc_controls[i+89].setDescription(slicer.getSlice(i).getControlName(0));
+                        }else{
+                            cc_controls[i+89].setValue(0);
+                            cc_controls[i+89].setDescription("not in use");
+                        }
+                        if(maxcontrols > 1){
+                            cc_controls[i+97].setValue(slicer.getSlice(i).getControlValue(1));
+                            cc_controls[i+97].setDescription(slicer.getSlice(i).getControlName(1));
+                        }else{
+                            cc_controls[i+97].setValue(0);
+                            cc_controls[i+97].setDescription("not in use");
+                        }
                     }
                     status("mode A");
                     break;
                 case MODE_B :
                     for(int i=0; i<width; ++i){
-                        cc_controls[i+81].setValue(slicer.getSlice(i).getSampleRate());
-                        cc_controls[i+81].setDescription("sample rate");
-                    }
-                    for(int i=0; i<width; ++i){
-                        cc_controls[i+89].setValue(0);
-                        cc_controls[i+89].setDescription("not in use");
-                    }
-                    for(int i=0; i<width; ++i){
-                        cc_controls[i+97].setValue(0);
-                        cc_controls[i+97].setDescription("not in use");
+                        if(maxcontrols > 2){
+                            cc_controls[i+81].setValue(slicer.getSlice(i).getControlValue(2));
+                            cc_controls[i+81].setDescription(slicer.getSlice(i).getControlName(2));
+                        }else{
+                            cc_controls[i+81].setValue(0);
+                            cc_controls[i+81].setDescription("not in use");
+                        }
+                        if(maxcontrols > 3){
+                            cc_controls[i+89].setValue(slicer.getSlice(i).getControlValue(3));
+                            cc_controls[i+89].setDescription(slicer.getSlice(i).getControlName(3));
+                        }else{
+                            cc_controls[i+89].setValue(0);
+                            cc_controls[i+89].setDescription("not in use");
+                        }
+                        if(maxcontrols > 4){
+                            cc_controls[i+97].setValue(slicer.getSlice(i).getControlValue(4));
+                            cc_controls[i+97].setDescription(slicer.getSlice(i).getControlName(4));
+                        }else{
+                            cc_controls[i+97].setValue(0);
+                            cc_controls[i+97].setDescription("not in use");
+                        }
                     }
                     status("mode B");
                     break;
@@ -162,7 +180,7 @@ public class BCRBeatSlicer extends JPanel {
                 BeatSlicer.Slice slice = slicer.getSlice(data1 - 1);
                 slice.setStart(data2);
                 waveform.setMark(slice);
-                status("start position "+data2);
+                status("start offset "+slice.getByteOffset()+" bytes");
             }else if(data1 >= 33 && data1 <= 40){
                 // push encoder pressed
                 if(data2 > 63)
@@ -208,8 +226,6 @@ public class BCRBeatSlicer extends JPanel {
                     slider.setEnabled(false);
                 }
             }else{
-                if(data1 >= 81 && data1 <= 104)
-                    status(cc_controls[data1].getToolTip());
                 switch(mode){
                 case MODE_A :
                     if(data1 >= 81 && data1 <= 88){
@@ -219,23 +235,35 @@ public class BCRBeatSlicer extends JPanel {
 //                         waveform.setMarkLength(data2 * waveform.getWidth() / 127);
                         waveform.setMark(slicer.getSlice(data1 - 81));
 //                         sequencer.getStep(data1 - 81).setVelocity(data2);
+                        status("length "+slicer.getSlice(data1 - 81).getByteLength()+" bytes");
                     }else if(data1 >= 89 && data1 <= 96){
                         // second row simple encoder
-                        slicer.getSlice(data1 - 89).setVolume(data2);
-//                         sequencer.getStep(data1 - 89).setDuration(data2);
+                        slicer.getSlice(data1 - 89).setControlValue(0, data2);
+                        status(slicer.getSlice(data1 - 89).getControlName(0)+" "+
+                               slicer.getSlice(data1 - 89).getControlValueString(0));
                     }else if(data1 >= 97 && data1 <= 104){
                         // third row simple encoder
-                        slicer.getSlice(data1 - 97).setPan(data2);
+                        slicer.getSlice(data1 - 97).setControlValue(1, data2);
+                        status(slicer.getSlice(data1 - 97).getControlName(1)+" "+
+                               slicer.getSlice(data1 - 97).getControlValueString(1));
                     }
                     break;
                 case MODE_B :
                     if(data1 >= 81 && data1 <= 88){
                         // top row simple encoder (below buttons)
-                        slicer.getSlice(data1 - 81).setSampleRate(data2);
-//                     }else if(data1 >= 89 && data1 <= 96){
+                        slicer.getSlice(data1 - 81).setControlValue(2, data2);
+                        status(slicer.getSlice(data1 - 81).getControlName(2)+" "+
+                               slicer.getSlice(data1 - 81).getControlValueString(2));
+                    }else if(data1 >= 89 && data1 <= 96){
                         // second row simple encoder
-//                     }else if(data1 >= 97 && data1 <= 104){
+                        slicer.getSlice(data1 - 89).setControlValue(3, data2);
+                        status(slicer.getSlice(data1 - 89).getControlName(3)+" "+
+                               slicer.getSlice(data1 - 89).getControlValueString(3));
+                    }else if(data1 >= 97 && data1 <= 104){
                         // third row simple encoder
+                        slicer.getSlice(data1 - 97).setControlValue(4, data2);
+                        status(slicer.getSlice(data1 - 97).getControlName(4)+" "+
+                               slicer.getSlice(data1 - 97).getControlValueString(4));
                     }
                     break;
                 }
@@ -383,7 +411,7 @@ public class BCRBeatSlicer extends JPanel {
             MidiControl control = 
                 new RotaryEncoder(33+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 
                                   slicer.getSlice(i).getLength(),
-                                  "slice "+(1+i)+" length/sample rate");
+                                  "slice "+(1+i)+" length/sound control");
             list.add(control);
             rows.add(control.getComponent());
             control.getComponent().addFocusListener(new WaveformFocusListener(i));
@@ -393,8 +421,7 @@ public class BCRBeatSlicer extends JPanel {
         for(int i=0; i<width; ++i){
             MidiControl control = 
                 new RotaryEncoder(41+i, ShortMessage.CONTROL_CHANGE, channel, 89+i, 
-                                  slicer.getSlice(i).getVolume(),
-                                  "slice "+(1+i)+" volume");
+                                  0, "sound control");
             list.add(control);
             rows.add(control.getComponent());
             control.getComponent().addFocusListener(new WaveformFocusListener(i));
@@ -404,8 +431,7 @@ public class BCRBeatSlicer extends JPanel {
         for(int i=0; i<width; ++i){
             MidiControl control = 
                 new RotaryEncoder(49+i, ShortMessage.CONTROL_CHANGE, channel, 97+i, 
-                                  slicer.getSlice(i).getPan(),
-                                  "slice "+(1+i)+" stereo pan");
+                                  0, "sound control");
             list.add(control);
             rows.add(control.getComponent());
             control.getComponent().addFocusListener(new WaveformFocusListener(i));
@@ -497,7 +523,6 @@ public class BCRBeatSlicer extends JPanel {
             controls[i].getComponent().addKeyListener(listener);
             controls[i].getComponent().addFocusListener(new ToolTipFocusAdapter(i));
         }
-        eventHandler.setMode(eventHandler.MODE_A);
     }
 
     private void addFourButtons(JComponent component, MidiControl[] controls){
@@ -697,6 +722,7 @@ public class BCRBeatSlicer extends JPanel {
             return;
         }
         waveform.setData(slicer.getSlice(0).getData(), slicer.getSlice(0).getAudioFormat());
+        eventHandler.setMode(eventHandler.MODE_A);
         updateMidiControl();
         status("loaded sample from file "+file.getName());
     }
@@ -709,6 +735,7 @@ public class BCRBeatSlicer extends JPanel {
             return;
         }
         waveform.setData(slicer.getSlice(0).getData(), slicer.getSlice(0).getAudioFormat());
+        eventHandler.setMode(eventHandler.MODE_A);
         updateMidiControl();
         status("loaded sample from URL "+url);
     }

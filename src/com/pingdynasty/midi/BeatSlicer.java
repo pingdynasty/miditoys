@@ -4,6 +4,8 @@ import java.net.URL;
 import java.io.File;
 import java.io.IOException;
 import java.io.ByteArrayOutputStream;
+import java.util.List;
+import java.util.ArrayList;
 import javax.sound.midi.*;
 import javax.sound.sampled.*;
 
@@ -21,22 +23,14 @@ public class BeatSlicer implements Receiver {
         private int framesize;
         private int start;
         private int length;
-        private int volume;
-        private FloatControl volumeControl;
-        private int pan;
-        private FloatControl panControl;
-        private int samplerate;
-        private FloatControl samplerateControl;
-//         private int ramp;
         private boolean looping;
-
-        public static final int MAX_VALUE = 127;
+        private FloatControl[] controls;
+        private static final int MAX_INT_VALUE = 127;
+        private static final float MAX_FLOAT_VALUE = 127.0f;
 
         public Slice(int start, int length){
             this.start = start;
             this.length = length;
-            volume = 108; // 108 is equivalent of 0-level Master Gain
-            pan = 63; // center stereo pan
             data = new byte[0];
         }
 
@@ -46,42 +40,33 @@ public class BeatSlicer implements Receiver {
             framesize = line.getFormat().getFrameSize();
             setStart(start);
             setLength(length);
-            try{
-                volumeControl = (FloatControl)line.getControl(FloatControl.Type.MASTER_GAIN);
-            }catch(IllegalArgumentException exc){
-                volumeControl = (FloatControl)line.getControl(FloatControl.Type.VOLUME);
+
+            // get the mixer controls
+            List list = new ArrayList();
+            Control[] cs = line.getControls();
+            for(int i=0; i<cs.length; ++i){
+                System.out.println("control: "+cs[i].getType());
+                if(cs[i] instanceof FloatControl)
+                    list.add(cs[i]);
             }
-            panControl = (FloatControl)line.getControl(FloatControl.Type.PAN);
-            samplerateControl = (FloatControl)line.getControl(FloatControl.Type.SAMPLE_RATE);
-            samplerate = (int)(((samplerateControl.getValue() - samplerateControl.getMinimum()) / (samplerateControl.getMaximum() - samplerateControl.getMinimum())) * 127.0f);
-//             if(volume == -1)
-//                 volume = (int)(((volumeControl.getValue() - volumeControl.getMinimum()) / (volumeControl.getMaximum() - volumeControl.getMinimum())) * 127.0f);
-//             else
-//                 setVolume(volume);
-//             System.out.println("volume "+volume+"/"+volumeControl.getValue());
-//             setVolume(MAX_VALUE);
-//             line.addLineListener(this);
+            controls = new FloatControl[list.size()];
+            list.toArray(controls);
         }
 
-
-    public void update(LineEvent event){
-        System.out.println("line event: "+event);
-//         if(event.getType().equals(LineEvent.Type.STOP)){
-//             stop();
-//         }else if(event.getType().equals(LineEvent.Type.CLOSE)){
-//             close();
-//         }
-    }
+        public void update(LineEvent event){
+            System.out.println("line event: "+event);
+            //         if(event.getType().equals(LineEvent.Type.STOP)){
+            //             stop();
+            //         }else if(event.getType().equals(LineEvent.Type.CLOSE)){
+            //             close();
+            //         }
+        }
 
         // start playing the clip from the start position
         public void start(){
             line.flush();
-//             if(ramp > 0)
-//                 volumeControl.shift(0, ((float)volume) * (volumeControl.getMaximum() - volumeControl.getMinimum()) / 127.0f + volumeControl.getMinimum(), ramp * 100);
-            // todo: FloatControl shift implementation does not work, implement with separate thread
             line.start();
             line.write(data, offset, len);
-//             line.drain();
         }
 
         public void stop(){
@@ -103,8 +88,8 @@ public class BeatSlicer implements Receiver {
         }
 
         public void retrigger(){
-//             if(line.isRunning()){
-//             if(line.isActive()){
+            //             if(line.isRunning()){
+            //             if(line.isActive()){
             if(looping){
                 line.stop();
                 start();
@@ -119,66 +104,63 @@ public class BeatSlicer implements Receiver {
             return length;
         }
 
+        public int getByteOffset(){
+            return offset;
+        }
+
+        public int getByteLength(){
+            return len;
+        }
+
         /** Set start position of slice to a value between 0 (beginning of clip)
-         *  and MAX_VALUE (end of clip). 
+         *  and MAX_INT_VALUE (end of clip). 
          */
         public void setStart(int start){
             this.start = start;
-            offset = (((data.length / framesize) * start) / MAX_VALUE) * framesize;
-            len = (((data.length / framesize) * length) / MAX_VALUE) * framesize;
+            offset = (((data.length / framesize) * start) / MAX_INT_VALUE) * framesize;
+            len = (((data.length / framesize) * length) / MAX_INT_VALUE) * framesize;
             if(offset + len > data.length)
                 len = data.length - offset;
             retrigger();
         }
 
         /** Set length of slice to a value between 0 (beginning of slice)
-         *  and MAX_VALUE (end of slice). 
+         *  and MAX_INT_VALUE (end of slice). 
          */
         public void setLength(int length){
             this.length = length;
-            len = (((data.length / framesize) * length) / MAX_VALUE) * framesize;
+            len = (((data.length / framesize) * length) / MAX_INT_VALUE) * framesize;
             if(offset + len > data.length)
                 len = data.length - offset;
             retrigger();
         }
 
-        public void setVolume(int volume){
-            this.volume = volume;
-            if(volumeControl != null)
-                volumeControl.setValue(((float)volume) * (volumeControl.getMaximum() - volumeControl.getMinimum()) / 127.0f + volumeControl.getMinimum());
+        public int getNumberOfControls(){
+            return controls.length;
         }
 
-        public int getVolume(){
-            return volume;
+        public String getControlName(int index){
+            if(index < controls.length)
+                return controls[index].getType().toString();
+            return null;
         }
 
-        public void setPan(int pan){
-            this.pan = pan;
-            if(panControl != null)
-                panControl.setValue(((float)pan) * (panControl.getMaximum() - panControl.getMinimum()) / 127.0f + panControl.getMinimum());
+        public String getControlValueString(int index){
+            if(index < controls.length)
+                return controls[index].getValue() + " " + controls[index].getUnits();
+            return null;
         }
 
-        public int getPan(){
-            return pan;
+        public int getControlValue(int index){
+            if(index < controls.length)
+                return (int)((controls[index].getValue() - controls[index].getMinimum()) / (controls[index].getMaximum() - controls[index].getMinimum()) * MAX_FLOAT_VALUE);
+            return 0;
         }
 
-        public void setSampleRate(int samplerate){
-            this.samplerate = samplerate;
-            if(samplerateControl != null)
-                samplerateControl.setValue(((float)samplerate) * (samplerateControl.getMaximum() - samplerateControl.getMinimum()) / 127.0f + samplerateControl.getMinimum());
+        public void setControlValue(int index, int value){
+            if(index < controls.length)
+                controls[index].setValue((value / MAX_FLOAT_VALUE) * (controls[index].getMaximum() - controls[index].getMinimum()) + controls[index].getMinimum());
         }
-
-        public int getSampleRate(){
-            return samplerate;
-        }
-
-//         public void setRamp(int ramp){
-//             this.ramp = ramp;
-//         }
-
-//         public int getRamp(){
-//             return ramp;
-//         }
 
         public byte[] getData(){
             return data;
@@ -193,7 +175,7 @@ public class BeatSlicer implements Receiver {
         throws Exception {
         slices = new Slice[length];
         for(int i=0; i<length; ++i)
-            slices[i] = new Slice(i * Slice.MAX_VALUE / length, Slice.MAX_VALUE / length);
+            slices[i] = new Slice(i * Slice.MAX_INT_VALUE / length, Slice.MAX_INT_VALUE / length);
     }
 
     public void loadSample(URL url)
@@ -218,19 +200,15 @@ public class BeatSlicer implements Receiver {
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         byte[] buf = new byte[1024];
-//         int offset = 0;
+        //         int offset = 0;
         for(int len = audioInputStream.read(buf); len > 0;
             len = audioInputStream.read(buf)){
             outputStream.write(buf, 0, len);
-//             offset += len;
+            //             offset += len;
         }
         byte[] data = outputStream.toByteArray();
         DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
-
         for(int i=0; i<slices.length; ++i){
-//             AudioFormat format = audioInputStream.getFormat();
-//             Clip clip = (Clip)AudioSystem.getLine(info);
-//             clip.open(audioInputStream);
             SourceDataLine line = (SourceDataLine)AudioSystem.getLine(info);
             line.open(format, data.length); // use total sample size as buffer size
             slices[i].setData(data, line);
@@ -248,15 +226,6 @@ public class BeatSlicer implements Receiver {
         slices[pos].play();
     }
 
-//     public void setTransmitter(Transmitter transmitter){
-//         if(this.transmitter == transmitter)
-//             return;
-//         if(this.transmitter != null)
-//             this.transmitter.close();
-//         this.transmitter = transmitter;
-//         transmitter.setReceiver(this);
-//     }
-
     public void send(MidiMessage msg, long time){
         if(msg instanceof ShortMessage){
             try{
@@ -264,8 +233,6 @@ public class BeatSlicer implements Receiver {
             }catch(Exception exc){
                 exc.printStackTrace();
             }
-        }else{
-            return;
         }
     }
 
@@ -274,7 +241,7 @@ public class BeatSlicer implements Receiver {
         switch(msg.getStatus()){
         case ShortMessage.NOTE_ON:{
             int slice = msg.getData1() - NOTE_OFFSET;
-//             System.out.println("note on: "+msg.getData1());
+            //             System.out.println("note on: "+msg.getData1());
             if(slice >= 0 && slice < slices.length)
                 if(msg.getData2() == 0)
                     slices[slice].stop();
@@ -284,7 +251,7 @@ public class BeatSlicer implements Receiver {
         }
         case ShortMessage.NOTE_OFF:{
             int slice = msg.getData1() - NOTE_OFFSET;
-//             System.out.println("note off: "+msg.getData1());
+            //             System.out.println("note off: "+msg.getData1());
             if(slice >= 0 && slice < slices.length)
                 slices[slice].stop();
             break;
@@ -297,15 +264,15 @@ public class BeatSlicer implements Receiver {
             slices[i].close();
     }
 
-//     public static void main(String[] args)
-//         throws Exception{
-//         if(args.length != 2){
-//             System.out.println("BeatSlicer: usage:");
-//             System.out.println("\tjava BeatSlicer <soundfile> <#loops>");
-//         }else{
-//             File	clipFile = new File(args[0]);
-//             int		nLoopCount = Integer.parseInt(args[1]);
-//             BeatSlicer	clipPlayer = new BeatSlicer(clipFile, nLoopCount);
-//         }
-//     }
+    //     public static void main(String[] args)
+    //         throws Exception{
+    //         if(args.length != 2){
+    //             System.out.println("BeatSlicer: usage:");
+    //             System.out.println("\tjava BeatSlicer <soundfile> <#loops>");
+    //         }else{
+    //             File	clipFile = new File(args[0]);
+    //             int		nLoopCount = Integer.parseInt(args[1]);
+    //             BeatSlicer	clipPlayer = new BeatSlicer(clipFile, nLoopCount);
+    //         }
+    //     }
 }
