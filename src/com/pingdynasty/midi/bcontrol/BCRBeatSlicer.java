@@ -225,45 +225,57 @@ public class BCRBeatSlicer extends JPanel {
 //                     midiInput.setMidiSync(true);
                     slider.setEnabled(false);
                 }
-            }else{
+            }else if(data1 >= 81 && data1 <= 104){
+                int row = (data1 - 81) / 8;
+                BeatSlicer.Slice slice = slicer.getSlice((data1 - 81) % 8);
                 switch(mode){
                 case MODE_A :
-                    if(data1 >= 81 && data1 <= 88){
+                    switch(row){
+                    case 0 :
                         // top row simple encoder (below buttons)
-                        slicer.getSlice(data1 - 81).setLength(data2);
-//                         waveform.setEndMark(data2 * waveform.getWidth() / 127);
-//                         waveform.setMarkLength(data2 * waveform.getWidth() / 127);
-                        waveform.setMark(slicer.getSlice(data1 - 81));
-//                         sequencer.getStep(data1 - 81).setVelocity(data2);
-                        status("length "+slicer.getSlice(data1 - 81).getByteLength()+" bytes");
-                    }else if(data1 >= 89 && data1 <= 96){
+                        slice.setLength(data2);
+                        waveform.setMark(slice);
+                        status("length "+slice.getByteLength()+" bytes");
+                        break;
+                    case 1 :
                         // second row simple encoder
-                        slicer.getSlice(data1 - 89).setControlValue(0, data2);
-                        status(slicer.getSlice(data1 - 89).getControlName(0)+" "+
-                               slicer.getSlice(data1 - 89).getControlValueString(0));
-                    }else if(data1 >= 97 && data1 <= 104){
+                        if(slice.getNumberOfControls() > 0){
+                            slice.setControlValue(0, data2);
+                            status(slice.getControlName(0)+" "+slice.getControlValueString(0));
+                        }
+                        break;
+                    case 2 :
                         // third row simple encoder
-                        slicer.getSlice(data1 - 97).setControlValue(1, data2);
-                        status(slicer.getSlice(data1 - 97).getControlName(1)+" "+
-                               slicer.getSlice(data1 - 97).getControlValueString(1));
+                        if(slice.getNumberOfControls() > 1){
+                            slice.setControlValue(1, data2);
+                            status(slice.getControlName(1)+" "+slice.getControlValueString(1));
+                        }
+                        break;
                     }
                     break;
                 case MODE_B :
-                    if(data1 >= 81 && data1 <= 88){
+                    switch(row){
+                    case 0 :
                         // top row simple encoder (below buttons)
-                        slicer.getSlice(data1 - 81).setControlValue(2, data2);
-                        status(slicer.getSlice(data1 - 81).getControlName(2)+" "+
-                               slicer.getSlice(data1 - 81).getControlValueString(2));
-                    }else if(data1 >= 89 && data1 <= 96){
+                        if(slice.getNumberOfControls() > 2){
+                            slice.setControlValue(2, data2);
+                            status(slice.getControlName(2)+" "+slice.getControlValueString(2));
+                        }
+                        break;
+                    case 1 :
                         // second row simple encoder
-                        slicer.getSlice(data1 - 89).setControlValue(3, data2);
-                        status(slicer.getSlice(data1 - 89).getControlName(3)+" "+
-                               slicer.getSlice(data1 - 89).getControlValueString(3));
-                    }else if(data1 >= 97 && data1 <= 104){
+                        if(slice.getNumberOfControls() > 3){
+                            slice.setControlValue(3, data2);
+                            status(slice.getControlName(3)+" "+slice.getControlValueString(3));
+                        }
+                        break;
+                    case 2 :
                         // third row simple encoder
-                        slicer.getSlice(data1 - 97).setControlValue(4, data2);
-                        status(slicer.getSlice(data1 - 97).getControlName(4)+" "+
-                               slicer.getSlice(data1 - 97).getControlValueString(4));
+                        if(slice.getNumberOfControls() > 4){
+                            slice.setControlValue(4, data2);
+                            status(slice.getControlName(4)+" "+slice.getControlValueString(4));
+                        }
+                        break;
                     }
                     break;
                 }
@@ -358,8 +370,8 @@ public class BCRBeatSlicer extends JPanel {
         waveform = new WaveformPanel(500, 100);
         mainarea.add(waveform);
 
-        // add grid sequencer display
-        mainarea.add(new GridSequencerPanel(sequencer));
+//         // add grid sequencer display
+//         mainarea.add(new GridSequencerPanel(sequencer));
 
         JPanel rows = new JPanel();
         rows.setLayout(new BoxLayout(rows, BoxLayout.X_AXIS));
@@ -774,7 +786,7 @@ public class BCRBeatSlicer extends JPanel {
         // configure frame
 //         frame.pack();
 
-        frame.setSize(625, 750);
+        frame.setSize(625, 550);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setContentPane(beats);
         frame.setVisible(true);
