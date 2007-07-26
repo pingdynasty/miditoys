@@ -11,14 +11,10 @@ public class HarmonicOscillatorSynthPlugin extends HarmonicOscillatorPlugin {
     private HarmonicOscillator osc;
     private HarmonicOscillatorSynth synth;
     private double scale = 1.0d;
-//     private double scaleconstant = 2.0d * 32768.0d / 127.0d;
-//     private double scaleconstant = 2.0d / 127.0d;
     private double scaleconstant = 2.0d;
-//     private boolean running = false;
     private int framepos;
-    private static final int CONTROLS = 24;
+    private static final int CONTROLS = 21;
     private static final int SAMPLE_WIDTH = 512;
-    private static final int NOTE_OFFSET = 60;
     private static final String[] PARAMETER_NAMES = new String[]{
         "wavelength",
         "distance",
