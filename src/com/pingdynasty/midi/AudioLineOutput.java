@@ -8,7 +8,7 @@ public class AudioLineOutput extends AudioOutput {
 
     private FloatControl[] controls;
     private SourceDataLine line;
-    private static final float MAX_VALUE = 127.0f;
+    private static final float MAX_FLOAT_VALUE = 127.0f;
 
     public AudioLineOutput(int samples, int mode)
         throws Exception{
@@ -27,9 +27,7 @@ public class AudioLineOutput extends AudioOutput {
         // means that we may end up with audio 4 frames late
         line.open(format, buffersize);
 
-        AudioFormat[] formats = info.getFormats();
-        for(int k=0; k<formats.length; ++k)
-            System.out.println("format: "+formats[k]);
+        // get the mixer controls
         List list = new ArrayList();
         Control[] cs = line.getControls();
         for(int i=0; i<cs.length; ++i){
@@ -39,6 +37,15 @@ public class AudioLineOutput extends AudioOutput {
         }
         controls = new FloatControl[list.size()];
         list.toArray(controls);
+
+        // start the line
+        line.start();
+
+        dump();
+    }
+
+    public void dump()
+        throws Exception{
         Mixer.Info[] minfos = AudioSystem.getMixerInfo();
         for(int i=0; i<minfos.length; ++i){
             System.out.println("mixer: "+minfos[i]);
@@ -47,14 +54,13 @@ public class AudioLineOutput extends AudioOutput {
             for(int j=0; j<linfos.length; ++j){
                 System.out.println("source line: "+linfos[j]);
                 if(linfos[j] instanceof DataLine.Info){
-                    info = (DataLine.Info)linfos[i];
-                    formats = info.getFormats();
+                    DataLine.Info dlinfo = (DataLine.Info)linfos[j];
+                    AudioFormat[] formats = dlinfo.getFormats();
                     for(int k=0; k<formats.length; ++k)
                         System.out.println("format: "+formats[k]);
                 }
             }
         }
-        line.start();
     }
 
     public void write(double[] values){
@@ -81,7 +87,7 @@ public class AudioLineOutput extends AudioOutput {
 
     public int getControlValue(int index){
         if(index < controls.length)
-            return (int)((controls[index].getValue() - controls[index].getMinimum()) / (controls[index].getMaximum() - controls[index].getMinimum()) * MAX_VALUE);
+            return (int)((controls[index].getValue() - controls[index].getMinimum()) / (controls[index].getMaximum() - controls[index].getMinimum()) * MAX_FLOAT_VALUE);
         return 0;
     }
 //                 scaled = ( norm * ( max - min ) ) + min
@@ -89,6 +95,6 @@ public class AudioLineOutput extends AudioOutput {
 
     public void setControlValue(int index, int value){
         if(index < controls.length)
-            controls[index].setValue((value / MAX_VALUE ) * (controls[index].getMaximum() - controls[index].getMinimum()) + controls[index].getMinimum());
+            controls[index].setValue((value / MAX_FLOAT_VALUE) * (controls[index].getMaximum() - controls[index].getMinimum()) + controls[index].getMinimum());
     }
 }
