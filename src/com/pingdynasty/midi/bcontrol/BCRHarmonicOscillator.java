@@ -17,7 +17,6 @@ import com.pingdynasty.midi.*;
 // todo:
 // - write control update method that sets control values from osc and output settings.
 // - add volume control.
-// - check for sample rate, volume, master gain controls before adding them in.
 // - make display update frequency configurable
 // - make output buffer size configurable
 // - give visual clipping indication - flash a controller button
@@ -33,7 +32,7 @@ public class BCRHarmonicOscillator extends JPanel {
     private OscillatorPanel view;
     private AudioLineOutput output;
 //     private AudioFileOutput fileoutput;
-    private Receiver midiInput;
+    private HarmonicOscillatorSynth midiInput;
     private MidiControl[] controls;
     private MidiControl[] cc_controls; // quick index for CC controls
     private JLabel statusbar;
@@ -181,7 +180,9 @@ public class BCRHarmonicOscillator extends JPanel {
                 try{
                     cc_controls[i+1].setValue(osc.getControl(i));
                 }catch(Exception exc){exc.printStackTrace();}
-//                 System.out.println(i+":\t"+osc.getControl(i));
+                try{
+                    cc_controls[i+81].setValue(osc.getControl(i+8));
+                }catch(Exception exc){exc.printStackTrace();}
             }
             synchronising = false;
         }
@@ -191,7 +192,6 @@ public class BCRHarmonicOscillator extends JPanel {
             try{
                 cc_controls[97].setValue(osc.getEnergy());
             }catch(Exception exc){exc.printStackTrace();}
-//             System.out.println("e:\t"+osc.getEnergy());
             synchronising = false;
         }
 
@@ -207,15 +207,13 @@ public class BCRHarmonicOscillator extends JPanel {
                 status("amplitude "+data1+" "+data2);
 //             }else if(data1 >= 33 && data1 <= 40){
                 // push encoder pressed
-            }else if(data1 >= 65 && data1 <= 72){
-                // button row 1 pressed
+            }else if(data1 >= 65 && data1 <= 80){
+                // button row 1 or row 2 pressed
                 if(data2 > 63){
                     osc.setSingleState(data1 - 65);
                     update();
                     status("single state "+(data1 - 64));
                 }
-//             }else if(data1 >= 73 && data1 <= 80){
-                // button row 2 pressed
             }else if(data1 >= 111 && data1 <= 114){
                 // encoder group buttons
                 int index = data1 - 111;
@@ -223,6 +221,7 @@ public class BCRHarmonicOscillator extends JPanel {
                     assert index < presets.length;
                     assert index >= 0;
                     osc = presets[index];
+                    midiInput.setHarmonicOscillator(osc);
                     update();
                     setControlValues();
                     status("preset "+(index+1));
@@ -267,11 +266,13 @@ public class BCRHarmonicOscillator extends JPanel {
 //                     }catch(Exception exc){exc.printStackTrace();}
 //                 }
 
-//                 if(data1 >= 81 && data1 <= 88){
-//                     // top row simple encoder (below buttons)
-//                 }else if(data1 >= 89 && data1 <= 96){
+            }else if(data1 >= 81 && data1 <= 88){
+                // top row simple encoder (below buttons)
+                osc.setControl(data1 - 81, data2);
+                updateEnergy();
+                status("amplitude "+(data1-80)+" "+data2);
             }else if(data1 >= 89 && data1 <= 96){
-                    // second row simple encoder
+                // second row simple encoder
                 int index = data1 - 89;
                 if(index < output.getNumberOfControls()){
                     output.setControlValue(index, data2);
@@ -312,18 +313,6 @@ public class BCRHarmonicOscillator extends JPanel {
             }
         }
     }
-
-//     public class MidiInputHandler extends ShortMessageReceiver {
-//         public void send(ShortMessage msg, long time){
-//             switch(msg.getStatus()){
-//             case ShortMessage.NOTE_ON: {
-//                 int index = msg.getData1() - 60;
-//                 if(index >= 0 && index < osc.getControls())
-//                     osc.setSingleState(index);
-//             }
-//             }
-//         }
-//     }
 
     public class ControlSurfaceHandler extends ShortMessageReceiver {
 
@@ -440,7 +429,7 @@ public class BCRHarmonicOscillator extends JPanel {
         for(int i=0; i<8; ++i){
             MidiControl control = 
                 new RotaryEncoder(33+i, ShortMessage.CONTROL_CHANGE, channel, 81+i, 
-                                  0, "not in use");
+                                  0, "amplitude "+(8+i));
             list.add(control);
             rows.add(control.getComponent());
         }
@@ -557,6 +546,7 @@ public class BCRHarmonicOscillator extends JPanel {
         configure(configuration); // initialise resources from configuration settings
         setControlValues();
         view.setAndScaleData(osc.calculate());
+        start();
     }
 
     private void addFourButtons(JComponent component, MidiControl[] controls){
@@ -590,13 +580,13 @@ public class BCRHarmonicOscillator extends JPanel {
     // initialise resources from configuration settings
     public void configure(BCRHarmonicOscillatorConfiguration configuration)
         throws Exception {
-        int width = 8; // number of controls
+        int amplitudes = 16; // number of state amplitudes that we control
         int sampleWidth = configuration.getSampleWidth();
         float outputFrequency = configuration.getOutputFrequency();
         int buffersize = configuration.getBufferSize();
         for(int i=0; i<presets.length; ++i){
-            presets[i] = new HarmonicOscillator(sampleWidth, width);
-            presets[i].setGlauberState(i*10 + 20); // initialises control values
+            presets[i] = new HarmonicOscillator(sampleWidth, amplitudes);
+//             presets[i].setGlauberState(i*10 + 20); // initialises control values
         }
         osc = presets[0];
         output = new AudioLineOutput(sampleWidth, AudioOutput.PCM16SL);
@@ -608,7 +598,6 @@ public class BCRHarmonicOscillator extends JPanel {
         if(device != null){
             device.open();
             device.getTransmitter().setReceiver(midiInput);
-//             midiInput.setTransmitter(device.getTransmitter());
         }
 
         device = configuration.getMidiControlInput();
