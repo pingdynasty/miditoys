@@ -47,49 +47,50 @@ public class BCRHarmonicOscillator extends JPanel {
         
 //     }
 
-//     class Animator implements Runnable {
-//         private static final long FRAME_DELAY = 40; // 25fps
-//         private boolean running;
-
-//         public void start(){
-//             running = true;
-//             Thread thread = new Thread(this);
-//             thread.setDaemon(true);
-//             thread.start();
-//         }
-
-//         public void stop(){
-//             running = false;
-//         }
-
-//         public void run(){
-//             while(running){
-//                 view.setAndScaleData(osc.getData());
-//                 try{
-//                     Thread.sleep(FRAME_DELAY);
-//                 }catch(InterruptedException e){}
-//             }
-//         }
-//     }
-
     class Runner implements Runnable {
         private boolean running = false;
-//         private Animator animator = new Animator();
+        private Animator animator = new Animator();
+        private double[] values;
+
+    class Animator implements Runnable {
+        private static final long FRAME_DELAY = 40; // 25fps
+        private boolean running;
+
+        public void start(){
+            running = true;
+            Thread thread = new Thread(this);
+            thread.setDaemon(true);
+            thread.start();
+        }
+
+        public void stop(){
+            running = false;
+        }
+
+        public void run(){
+            while(running){
+                view.setAndScaleData(values);
+                try{
+                    Thread.sleep(FRAME_DELAY);
+                }catch(InterruptedException e){}
+            }
+        }
+    }
+
 
         public void start(){
             running = true;
             Thread thread = new Thread(this);
             thread.start();
-//             animator.start();
+            animator.start();
         }
 
         public void stop(){
             running = false;
-//             animator.stop();
+            animator.stop();
         }
 
         public void run(){
-            double[] values;
             while(running){
                 osc.increment();
                 values = osc.calculate();
@@ -101,7 +102,7 @@ public class BCRHarmonicOscillator extends JPanel {
                     //                     fileoutput.write(values);
 //                     values = osc.calculate();
 //                 }
-                view.setAndScaleData(values);
+//                 view.setAndScaleData(values);
             }
         }
     }
