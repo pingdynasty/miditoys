@@ -5,7 +5,7 @@ public class Step {
     private int velocity = 64;
     private int duration = 64;
     private int modulation = 0;
-    private int bend = 64;
+    private int bend = 64; // bend is in the range 0-127 instead of 0-16353;
     private int delay = 0;
     private int lastNote;
     private int noteOffTick;

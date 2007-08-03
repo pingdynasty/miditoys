@@ -26,7 +26,8 @@ public class StepSequencerPlayer extends StepSequencer {
 //             player.setDuration(((range(global.getDuration() + step.getDuration() - norm.getDuration())) * period) / 64);
             player.setVelocity(range(global.getVelocity() + step.getVelocity() - norm.getVelocity()));
             player.modulate(range(global.getModulation() + step.getModulation() - norm.getModulation()));
-            player.bend(range(global.getBend() + step.getBend() - norm.getBend()));
+            // Step bend is in the range 0-127
+            player.bend(range(global.getBend() + step.getBend() - norm.getBend()) * 128);
             player.noteon(range(global.getNote() + step.getNote() - norm.getNote()));
         }catch(InvalidMidiDataException exc){
             exc.printStackTrace();

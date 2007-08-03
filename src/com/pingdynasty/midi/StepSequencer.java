@@ -103,7 +103,8 @@ public class StepSequencer implements Receiver {
 //         System.out.println("noteon  "+step.getNote()+" \t"+tick);
         try{
             player.modulate(step.getModulation());
-            player.bend(step.getBend());
+            // Step bend is in the range 0-127
+            player.bend(step.getBend() * 128);
             player.setVelocity(step.getVelocity());
             player.noteon(step.getNote());
         }catch(InvalidMidiDataException exc){
