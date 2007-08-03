@@ -6,7 +6,7 @@
     <h1 id="configuration">MIDI Configuration</h1>
     <p>The MIDI configuration is accessed by choosing <i>setup</i> in the bcr harms menu. If you select <i>send Sysex MIDI messages</i> then your MIDI controller will receive SysEx configuration message - you should probably only use this with a Behringer BCR2000.</p>
     <h2>MIDI Input and Output</h2>
-    <p><i>bcr harms</i> responds to MIDI input. Sending notes to bcr harms will trigger single state settings - the first single state corresponds to middle C (MIDI note 60) and the other single states are in half-note steps up from there. You can also send MIDI start and stop messages, to start/stop the oscillator.</p>
+    <p><i>bcr harms</i> responds to MIDI input. Sending notes to bcr harms will update state amplitudes. The first state corresponds to middle C (MIDI note 60) and the other states are in half-note steps up from there. The highest note that the application will respond to is 75, sixteen halfnotes up. The oscillator also responds to MIDI pitch-bend and modulation changes. Changing the pitch bend will change the oscillator wavelength. Modulation will change the oscillator time step.</p>
     <h3>Controller Configuration</h3>
     <p><i>bcr harms</i> was designed to complement the Behringer BCR2000 controller. It can be used on its own, but you will have much more fun with a few real knobs to tweak.</p>
     <p>If you have a BCR2000, make sure it is attached and switched on when you start the application. Then go to the MIDI configuration, and set the BCR2000 MIDI input and output buses under <i>Control input</i> and <i>Control output</i>.</p>
