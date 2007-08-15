@@ -19,6 +19,11 @@ public class MidiSyncDevice implements MidiDevice {
     }
     private List devices;
 
+    public MidiSyncDevice(int bpm){
+        this.bpm = bpm;
+        devices = new ArrayList();
+    }
+
     public int getBPM(){
         return bpm;
     }
@@ -33,7 +38,13 @@ public class MidiSyncDevice implements MidiDevice {
         }
     }
 
-    public void close(){}
+    public void close(){
+        Iterator it = devices.iterator();
+        while(it.hasNext()){
+            MidiSync sync = (MidiSync)it.next();
+            sync.close();
+        }
+    }
 
     public MidiDevice.Info getDeviceInfo(){
         return info;
@@ -59,6 +70,7 @@ public class MidiSyncDevice implements MidiDevice {
     public Transmitter getTransmitter(){
         MidiSync sync = new MidiSync(bpm);
         devices.add(sync);
+        sync.start();
         return sync;
     }
 
