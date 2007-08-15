@@ -10,6 +10,7 @@ public class MidiSync implements Runnable, Transmitter {
     private ShortMessage syncMessage;
     private long latency = 4; // assume 4ms latency by default
     private boolean enabled = true;
+    private static final int TICKS_PER_BEAT = 24;
 
     public MidiSync(int bpm){
         setBPM(bpm);
@@ -38,8 +39,9 @@ public class MidiSync implements Runnable, Transmitter {
         if(bpm < 1)
             throw new IllegalArgumentException("BPM must be greater than 0");
         this.bpm = bpm;
-        if(scheduler != null)
-            scheduler.interrupt();
+//         if(scheduler != null)
+//             scheduler.interrupt();
+// throws exception when called as applet.
     }
 
     public void setReceiver(Receiver receiver){
@@ -74,19 +76,20 @@ public class MidiSync implements Runnable, Transmitter {
 
     public void stop(){
         running = false;
-        if(scheduler != null)
-            scheduler.interrupt();
+//         if(scheduler != null)
+//             scheduler.interrupt();
+// throws exception when called as applet.
     }
 
     public void run(){
         while(running){
             int tick;
             long target;
-            long period = (60000 / bpm - latency) / 24;
+            long period = (60000 / bpm - latency) / TICKS_PER_BEAT;
             try{
                 tick = 0;
                 target = System.currentTimeMillis() + (60000 / bpm);
-                while(++tick < 24){
+                while(++tick < TICKS_PER_BEAT){
                     Thread.sleep(period);
                     if(receiver != null)
                         receiver.send(syncMessage, -1);
@@ -104,11 +107,11 @@ public class MidiSync implements Runnable, Transmitter {
 
 // count syncs sent out
 // add up difference in scheduled time and actual time
-// after 24 syncs, use difference average to adjust scheduling time (minus latency, eg 2ms)
+// after TICKS_PER_BEAT syncs, use difference average to adjust scheduling time (minus latency, eg 2ms)
 
 //     diff += now - scheduledtime;
-//     if(++counter == 24){
-//         adjust = latency + (diff / 24);
+//     if(++counter == TICKS_PER_BEAT){
+//         adjust = latency + (diff / TICKS_PER_BEAT);
 //         counter = 0;
 //     }
 //     }
