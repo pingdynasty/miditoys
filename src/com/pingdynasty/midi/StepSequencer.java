@@ -1,18 +1,16 @@
 package com.pingdynasty.midi;
 
 import javax.sound.midi.*;
-import javax.swing.JComponent;
-import javax.swing.JProgressBar;
 
 public class StepSequencer implements Receiver {
 
     protected Player player;
     protected Step[] steps;
     private boolean started = false;
-    public static final int DEFAULT_BPM = 120;
     private int tick;
-    private MidiSync sync; // internal midi sync/scheduling thread
-    private JProgressBar progress;
+    private int bpm = DEFAULT_BPM;
+    public static final int DEFAULT_BPM = 120;
+    private static final int TICKS_PER_BEAT = 24;
 
     public StepSequencer(Player player, int length){
         this(player, new Step[length]);
@@ -21,30 +19,26 @@ public class StepSequencer implements Receiver {
     public StepSequencer(Player player, Step[] steps){
         this.player = player;
         this.steps = steps;
-        sync = new MidiSync(DEFAULT_BPM);
-        sync.setReceiver(this);
-        progress = new JProgressBar(JProgressBar.HORIZONTAL, 0, steps.length * 24);
-        progress.setValue(0);
-//         noteon = new int[steps.length * 24];
-//         noteoff = new int[steps.length * 24];
         for(int i=0; i<steps.length; ++i){
             if(steps[i] == null)
                 steps[i] = new Step();                
-//             noteon[i] = i*24 + steps[i].getDelayTicks();
-//             noteoff[i] = noteon[i] + steps[i].getDurationTicks();
         }
     }
 
     public void setBPM(int bpm){
-        sync.setBPM(bpm);
+        this.bpm = bpm;
     }
 
     public int getBPM(){
-        return sync.getBPM();
+        return bpm;
     }
 
-    public JComponent getProgressBar(){
-        return progress;
+    public Step[] getSteps(){
+        return steps;
+    }
+
+    public void setSteps(Step[] steps){
+        this.steps = steps;
     }
 
     public boolean isStarted(){
@@ -70,14 +64,6 @@ public class StepSequencer implements Receiver {
         steps = newsteps;
     }
 
-//     public void setPeriod(int period){
-//         this.period = period;
-//     }
-
-//     public int getPeriod(){
-//         return period;
-//     }
-
     public Step getStep(int index){
         return steps[index];
     }
@@ -94,8 +80,6 @@ public class StepSequencer implements Receiver {
             }catch(Exception exc){
                 exc.printStackTrace();
             }
-        }else{
-            return;
         }
     }
 
@@ -121,16 +105,27 @@ public class StepSequencer implements Receiver {
         }
     }
 
-    protected void tick(){
-        if(progress != null)
-            progress.setValue(tick);
-        int max = steps.length * 24;
+    public int getStepPosition(){
+        return tick / TICKS_PER_BEAT;
+    }
+
+    public void setStepPosition(int index){
+        assert index < steps.length;
+        tick = index * TICKS_PER_BEAT;
+    }
+
+    public void tick(){
+        if(!started)
+            return;
+//         if(progress != null)
+//             progress.setValue(tick);
+        int max = steps.length * TICKS_PER_BEAT;
         int on;
 
 //         noteoff = new int[]{(tick + steps[i].getDurationTicks()) % max, steps.getNote()};
 
         for(int i=0; i<steps.length; ++i){
-            if((i*24 + steps[i].getDelayTicks()) % max == tick){
+            if((i*TICKS_PER_BEAT + steps[i].getDelayTicks()) % max == tick){
                 if(steps[i].getDuration() > 0){
                     steps[i].setNoteOffTick(tick + steps[i].getDurationTicks());
                     noteon(steps[i]);
@@ -180,7 +175,7 @@ public class StepSequencer implements Receiver {
 //             player.setDuration((step.getDuration() * period) / 256);
             player.modulate(step.getModulation());
             player.bend(step.getBend());
-            int duration = (step.getDuration() * 60000 / sync.getBPM()) / 64;
+            int duration = (step.getDuration() * 60000 / bpm) / 64;
             if(duration > 0){
                 player.setDuration(duration);
                 player.setVelocity(step.getVelocity());
@@ -191,21 +186,11 @@ public class StepSequencer implements Receiver {
         }
     }
 
-    public void enableInternalSync(){
-        sync.enable();
-    }
-
-    public void disableInternalSync(){
-        sync.disable();
-    }
-
     /**
      * Start endless play (until stop is called).
      */
     public void start(){
-        tick = 0;
         started = true;
-        sync.start();
         tick();
     }
 
@@ -216,6 +201,5 @@ public class StepSequencer implements Receiver {
         started = false;
         for(int i=0; i<steps.length; ++i)
             noteoff(steps[i]);
-        sync.stop();
     }
 }

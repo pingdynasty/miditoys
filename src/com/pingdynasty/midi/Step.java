@@ -1,5 +1,7 @@
 package com.pingdynasty.midi;
 
+import javax.sound.midi.InvalidMidiDataException;
+
 public class Step {
     private int note = 60;
     private int velocity = 64;
@@ -76,6 +78,19 @@ public class Step {
 
     public void setDelay(int delay){
         this.delay = delay;
+    }
+
+    // todo:!!
+    public void noteon(Player player){
+        try{
+            player.modulate(modulation);
+            // Step bend is in the range 0-127
+            player.bend(bend * 128);
+            player.setVelocity(velocity);
+            player.noteon(note);
+        }catch(InvalidMidiDataException exc){
+            exc.printStackTrace();
+        }
     }
 
     public int getLastNote(){

@@ -102,16 +102,16 @@ public class StepSequencerArpeggio implements Receiver {
     public void send(ShortMessage msg, long time)
         throws InvalidMidiDataException {
         switch(msg.getStatus()){
-        case ShortMessage.START: {
-            // this should send a start callback etc to BCR
-            sequencer.start();
-            break;
-        }
-        case ShortMessage.STOP: {
-            // this should send a stop callback etc to BCR
-            sequencer.stop();
-            break;
-        }
+//         case ShortMessage.START: {
+//             // this should send a start callback etc to BCR
+//             sequencer.start();
+//             break;
+//         }
+//         case ShortMessage.STOP: {
+//             // this should send a stop callback etc to BCR
+//             sequencer.stop();
+//             break;
+//         }
             // these should send note on/off messages to BCR
             // todo: move Receiver to BCRStepSequencer, call arp.noteon()/noteoff()
         case ShortMessage.NOTE_ON:{
@@ -150,12 +150,19 @@ public class StepSequencerArpeggio implements Receiver {
         transmitter.setReceiver(this);
     }
 
+    public void setSteps(Step[] steps){
+        Iterator it = resources.iterator();
+        for(StepSequencerPlayer player = (StepSequencerPlayer)it.next(); 
+            it.hasNext(); player = (StepSequencerPlayer)it.next())
+            player.setSteps(steps);
+    }
+
     public void setMidiSync(MidiDevice device)
         throws MidiUnavailableException{
         Iterator it = resources.iterator();
         for(StepSequencerPlayer player = (StepSequencerPlayer)it.next(); 
             it.hasNext(); player = (StepSequencerPlayer)it.next()){
-            player.disableInternalSync();
+//             player.disableInternalSync();
 //             try{
                 Transmitter transmitter = device.getTransmitter();
                 transmitter.setReceiver(player);
@@ -163,11 +170,11 @@ public class StepSequencerArpeggio implements Receiver {
         }
     }
 
-    public void resetMidiSync(){
-        Iterator it = resources.iterator();
-        for(StepSequencerPlayer player = (StepSequencerPlayer)it.next(); 
-            it.hasNext(); player = (StepSequencerPlayer)it.next()){
-            player.enableInternalSync();
-        }        
-    }
+//     public void resetMidiSync(){
+//         Iterator it = resources.iterator();
+//         for(StepSequencerPlayer player = (StepSequencerPlayer)it.next(); 
+//             it.hasNext(); player = (StepSequencerPlayer)it.next()){
+//             player.enableInternalSync();
+//         }        
+//     }
 }

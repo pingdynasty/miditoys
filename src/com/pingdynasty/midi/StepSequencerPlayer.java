@@ -46,6 +46,7 @@ public class StepSequencerPlayer extends StepSequencer {
      * Start playing the sequence with the given offset
      */
     public void start(int note, int velocity){
+        setStepPosition(0);
         global.setNote(note);
         global.setVelocity(velocity);
         start();
