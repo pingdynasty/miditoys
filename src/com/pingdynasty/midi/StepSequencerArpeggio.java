@@ -102,17 +102,6 @@ public class StepSequencerArpeggio implements Receiver {
     public void send(ShortMessage msg, long time)
         throws InvalidMidiDataException {
         switch(msg.getStatus()){
-//         case ShortMessage.START: {
-//             // this should send a start callback etc to BCR
-//             sequencer.start();
-//             break;
-//         }
-//         case ShortMessage.STOP: {
-//             // this should send a stop callback etc to BCR
-//             sequencer.stop();
-//             break;
-//         }
-            // these should send note on/off messages to BCR
             // todo: move Receiver to BCRStepSequencer, call arp.noteon()/noteoff()
         case ShortMessage.NOTE_ON:{
             int velocity = msg.getData2();
@@ -126,13 +115,14 @@ public class StepSequencerArpeggio implements Receiver {
             noteoff(msg.getData1());
             break;
         }
-//         case ShortMessage.TIMING_CLOCK: {
-//             Iterator it = taken.iterator();
-//             for(StepSequencerPlayer player = (StepSequencerPlayer)it.next(); 
-//                 it.hasNext(); player = (StepSequencerPlayer)it.next())
-//                 player.tick();
-//             break;
-//             }
+        }
+    }
+
+    public void tick(){
+        Iterator it = taken.iterator();
+        while(it.hasNext()){
+            StepSequencerPlayer player = (StepSequencerPlayer)it.next();
+            player.tick();
         }
     }
 
@@ -156,25 +146,4 @@ public class StepSequencerArpeggio implements Receiver {
             it.hasNext(); player = (StepSequencerPlayer)it.next())
             player.setSteps(steps);
     }
-
-    public void setMidiSync(MidiDevice device)
-        throws MidiUnavailableException{
-        Iterator it = resources.iterator();
-        for(StepSequencerPlayer player = (StepSequencerPlayer)it.next(); 
-            it.hasNext(); player = (StepSequencerPlayer)it.next()){
-//             player.disableInternalSync();
-//             try{
-                Transmitter transmitter = device.getTransmitter();
-                transmitter.setReceiver(player);
-//             }catch(MidiUnavailableException exc){exc.printStackTrace();}
-        }
-    }
-
-//     public void resetMidiSync(){
-//         Iterator it = resources.iterator();
-//         for(StepSequencerPlayer player = (StepSequencerPlayer)it.next(); 
-//             it.hasNext(); player = (StepSequencerPlayer)it.next()){
-//             player.enableInternalSync();
-//         }        
-//     }
 }

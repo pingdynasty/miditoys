@@ -200,12 +200,15 @@ public class BCRStepSequencer extends JPanel implements Receiver {
             }else if(data1 >= 111 && data1 <= 114){
                 // encoder group buttons
                 int index = data1 - 111;
+                assert index < presets.length;
+                assert index >= 0;
                 if(sequencer == presets[index]){
                     // double-pressed button - reset sequencer
                     sequencer.setStepPosition(0);
+                    try{
+                        cc_controls[data1].setValue(127);
+                    }catch(Exception exc){exc.printStackTrace();}
                 }else{
-                    assert index < presets.length;
-                    assert index >= 0;
                     boolean started = sequencer.isStarted();
                     if(started)
                         sequencer.stop();
@@ -216,12 +219,12 @@ public class BCRStepSequencer extends JPanel implements Receiver {
                     if(started)
                         sequencer.start();
                     status("preset "+(index+1));
+                    // turn other buttons off
+                    for(int i=111; i<=114; ++i)
+                        try{
+                            cc_controls[i].setValue(data1 == i ? 127 : 0);
+                        }catch(Exception exc){exc.printStackTrace();}
                 }
-                // turn other buttons off
-                for(int i=111; i<=114; ++i)
-                    try{
-                        cc_controls[i].setValue(data1 == i ? 127 : 0);
-                    }catch(Exception exc){exc.printStackTrace();}
             }else if(data1 == 115){
                 // store button
                 if(data2 < 64)
@@ -244,7 +247,7 @@ public class BCRStepSequencer extends JPanel implements Receiver {
                 if(midiSync != null){
                     try{
                         midiSync.open();
-                        midiInput.setMidiSync(midiSync);
+//                         midiInput.setMidiSync(midiSync);
                         midiSync.getTransmitter().setReceiver(getMidiSyncReceiver());
                     }catch(MidiUnavailableException exc){exc.printStackTrace();}
                 }
@@ -347,7 +350,7 @@ public class BCRStepSequencer extends JPanel implements Receiver {
         midiSync = new MidiSyncDevice(sequencer.getBPM());
         try{
             midiSync.getTransmitter().setReceiver(getMidiSyncReceiver());
-            midiInput.setMidiSync(midiSync);
+//             midiInput.setMidiSync(midiSync);
         }catch(MidiUnavailableException exc){exc.printStackTrace();}
 
         // the channel that all controls are tuned to listen and talk on
@@ -695,6 +698,7 @@ public class BCRStepSequencer extends JPanel implements Receiver {
         switch(msg.getStatus()){
         case ShortMessage.TIMING_CLOCK: {
             sequencer.tick();
+            midiInput.tick();
             if(++tick == 24){
                 tick = 0;
                 for(int i=65; i<73; ++i)
