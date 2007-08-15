@@ -172,6 +172,9 @@ public class BCRBeatSlicer extends JPanel {
             return mode;
         }
 
+        private int gridnote;
+        private boolean playmode = true;
+
         public void action(int command, int channel, int data1, int data2){
 //             status("action: "+command+" channel "+channel+
 //                    " data1 "+data1+" data2 "+data2);
@@ -189,16 +192,22 @@ public class BCRBeatSlicer extends JPanel {
                     slicer.getSlice(data1 - 33).stop();
             }else if(data1 >= 65 && data1 <= 72){
                 // button row 1 pressed
-                if(data2 > 63)
+                if(data2 > 63 && playmode){
                     slicer.getSlice(data1 - 65).play();
-                status("play slice "+(data1 - 64));
+                    status("play slice "+(data1 - 64));
+                }else{
+                    status("select slice "+(data1 - 64));
+                }
+                gridnote = data1 - 5; // notes start with 60
+                for(int i=0; i<width; ++i)
+                    try{
+                        cc_controls[i+73].setValue(sequencer.isNoteOn(i, gridnote) ? 127 : 0);
+                    }catch(Exception exc){exc.printStackTrace();}
             }else if(data1 >= 73 && data1 <= 80){
                 // button row 2 pressed
-                if(data2 > 63)
-                    slicer.getSlice(data1 - 73).loop();
-                else
-                    slicer.getSlice(data1 - 73).stop();
-                status("loop slice "+(data1 - 72));
+                sequencer.setNote(data1 - 73, gridnote, data2 > 63);
+                status("set slice "+(gridnote - 59)+" row "+(data1 - 72)+
+                       (data2 > 63 ? " on":" off"));
             }else if(data1 >= 105 && data1 <= 108){
                 // mode buttons - top two of four buttons in bottom right corner
                 setMode(data1 - 105);
@@ -225,6 +234,9 @@ public class BCRBeatSlicer extends JPanel {
 //                     midiInput.setMidiSync(true);
                     slider.setEnabled(false);
                 }
+            }else if(data1 == 117){
+                // learn button
+                playmode = data2 < 64;
             }else if(data1 >= 81 && data1 <= 104){
                 int row = (data1 - 81) / 8;
                 BeatSlicer.Slice slice = slicer.getSlice((data1 - 81) % 8);
@@ -371,7 +383,7 @@ public class BCRBeatSlicer extends JPanel {
         mainarea.add(waveform);
 
 //         // add grid sequencer display
-//         mainarea.add(new GridSequencerPanel(sequencer));
+        mainarea.add(new GridSequencerPanel(sequencer));
 
         JPanel rows = new JPanel();
         rows.setLayout(new BoxLayout(rows, BoxLayout.X_AXIS));
@@ -404,6 +416,7 @@ public class BCRBeatSlicer extends JPanel {
                                  "play slice "+(i+1));
             list.add(button);
             rows.add(button.getComponent());
+            button.getComponent().addFocusListener(new WaveformFocusListener(i));
         }
         for(int i=0; i<width; ++i){
             ToggleButton button = 
@@ -470,7 +483,7 @@ public class BCRBeatSlicer extends JPanel {
 
         // store/learn/edit/exit
         toggles = new ToggleButton[4];
-        String[] tooltips = new String[]{"start/stop", "external MIDI sync", "not in use", "not in use"};
+        String[] tooltips = new String[]{"start/stop", "external MIDI sync", "play/edit mode", "not in use"};
         for(int i=0; i<4; ++i){
             toggles[i] = new ToggleButton(53+i, ShortMessage.CONTROL_CHANGE, channel, 115+i, 0, tooltips[i]);
             list.add(toggles[i]);
