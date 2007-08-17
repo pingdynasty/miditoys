@@ -75,6 +75,16 @@ public class GridSequencer implements Receiver {
                 steps[step] &= ~bits[i]; // turn off note
     }
 
+    public void setNote(int step, int note, boolean on){
+        assert step < steps.length;
+        for(int i=0; i<notes.length; ++i)
+            if(notes[i] == note)
+                if(on)
+                    steps[step] |= bits[i]; // turn on note
+                else
+                    steps[step] &= ~bits[i]; // turn off note
+    }
+
     public void toggleNote(int step, int note){
         assert step < steps.length;
         for(int i=0; i<notes.length; ++i)
