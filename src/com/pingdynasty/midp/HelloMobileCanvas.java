@@ -1,7 +1,6 @@
 package com.pingdynasty.midp;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import javax.microedition.midlet.*;
 import javax.microedition.media.*;
 import javax.microedition.lcdui.*;
@@ -18,6 +17,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
     private Cursor cursor;
     private boolean editmode = true;
     private boolean playmode = false;
+    private MixingPlayer mixer;
     private static final int CLEAR_CELL = 64;
 
     private static final String[] names = new String[]{
@@ -43,6 +43,122 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         KEY_NUM8,
         KEY_NUM9};
 
+    public class MixingPlayer {
+        private Player player;
+        private byte[] buffer = new byte[cellsize * 8 + 44];
+        private static final int samplerate = 8000;
+        private static final int channels = 2;
+        private static final int cellsize // = 32000; // bytes to a beat (8khz * 0.5s * 2 channels * 16bits / 8bitsperbyte)
+            = samplerate * channels;
+
+        public MixingPlayer(){
+            init();
+        }
+
+        public void init(){
+            int size = cellsize * 8;
+            buffer[0] = 0x52;
+            buffer[1] = 0x49;
+            buffer[2] = 0x46;
+            buffer[3] = 0x46; // RIFF
+            buffer[4] = (byte)((36 + size) & 0x00ff);
+            buffer[5] = (byte)(((36 + size) >> 8) & 0x00ff);
+            buffer[6] = (byte)(((36 + size) >> 16) & 0x00ff);
+            buffer[7] = (byte)(((36 + size) >> 32) & 0x00ff);
+            buffer[8] = 0x57;
+            buffer[9] = 0x41;
+            buffer[10] = 0x56;
+            buffer[11] = 0x45; // WAVE
+            buffer[12] = 0x66;
+            buffer[13] = 0x6d;
+            buffer[14] = 0x74;
+            buffer[15] = 0x20; // fmt
+            buffer[16] = 0x10;
+            buffer[17] = 0x00;
+            buffer[18] = 0x00;
+            buffer[19] = 0x00;
+            buffer[20] = 0x01;
+            buffer[21] = 0x00;
+            buffer[22] = 0x02;
+            buffer[23] = 0x00;
+
+            buffer[24] = 0x40;
+            buffer[25] = 0x1f;
+            buffer[26] = 0x00;
+            buffer[27] = 0x00; // samplerate
+            buffer[28] = 0x00;
+            buffer[29] = 0x7d;
+            buffer[30] = 0x00;
+            buffer[31] = 0x00; // byterate
+
+//             buffer[24] = (byte)(samplerate & 0x00ff);
+//             buffer[25] = (byte)((samplerate >> 8) & 0x00ff);
+//             buffer[26] = (byte)((samplerate >> 16) & 0x00ff);
+//             buffer[27] = (byte)((samplerate >> 32) & 0x00ff); // samplerate
+//             buffer[28] = (byte)((samplerate * channels * 2) & 0x00ff);
+//             buffer[29] = (byte)(((samplerate * channels * 2) >> 8) & 0x00ff);
+//             buffer[30] = (byte)(((samplerate * channels * 2) >> 16) & 0x00ff);
+//             buffer[31] = (byte)(((samplerate * channels * 2) >> 32) & 0x00ff); // byterate
+
+            buffer[32] = 0x04;
+            buffer[33] = 0x00;
+            buffer[34] = 0x10;
+            buffer[35] = 0x00; // bits per sample
+            // end of subchunk 1
+            buffer[36] = 0x64;
+            buffer[37] = 0x61;
+            buffer[38] = 0x74;
+            buffer[39] = 0x61;
+            buffer[40] = (byte)(size & 0x00ff);
+            buffer[41] = (byte)((size >> 8) & 0x00ff);
+            buffer[42] = (byte)((size >> 16) & 0x00ff);
+            buffer[43] = (byte)((size >> 32) & 0x00ff);
+        }
+
+        public void reset(){
+            for(int i=44; i<buffer.length; ++i)
+                buffer[i] = 0;
+        }
+
+        public void mix(Sequence sequence)
+            throws IOException, MediaException {
+            for(int i=0; i<sequence.getLength(); ++i){
+                Cell cell = sequence.getCell(i);
+                int index = cell.getSampleIndex();
+                if(index > -1){
+                    InputStream is = getClass().getResourceAsStream(names[index]);
+                    is.skip(44); // size of header
+                    int val = is.read();
+                    int offset = i * cellsize + 44;
+                    while(val != -1 && offset < buffer.length){
+                        buffer[offset++] += val;
+                        val = is.read();
+                    }
+                }
+            }
+            player = Manager.createPlayer(new ByteArrayInputStream(buffer), "audio/x-wav");
+            player.setLoopCount(-1);
+        }
+
+        public void start(){
+            try{
+                if(player != null)
+                    player.start();
+            }catch(MediaException exc){
+                error(exc);
+            }
+        }
+
+        public void stop(){
+            try{
+                if(player != null)
+                    player.stop();
+            }catch(MediaException exc){
+                error(exc);
+            }
+        }
+    }
+
     private class Sequence implements Runnable {
         private final int row;
         private Cell[] cells;
@@ -57,7 +173,10 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             for(int i=0; i<cells.length; ++i){
                 cells[i] = new Cell(i, row);
             }
-            start();
+        }
+
+        public int getLength(){
+            return cells.length;
         }
 
         public Cell getCell(int col){
@@ -170,6 +289,13 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             return player;
         }
 
+        public int getSampleIndex(){
+            for(int i=0; i<players.length; ++i)
+                if(player == players[i])
+                    return i;
+            return -1;
+        }
+
         public void clearSample(){
             player = null;
             board.setCell(col, row, CLEAR_CELL);
@@ -207,6 +333,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         players = createPlayers();
         sequences = createSequences(8, 8);
         cursor = createCursor();
+        mixer = new MixingPlayer();
         layout = new LayerManager();
         layout.append(cursor);
         layout.append(board);
@@ -226,6 +353,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         Sequence[] sequences = new Sequence[rows];
         for(int i=0; i<sequences.length; ++i){
             sequences[i] = new Sequence(cols, i);
+//             sequences[i].start(); // create and start thread
         }
         return sequences;
     }
@@ -343,10 +471,13 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             cursor.clearSample();
             cursor.right();
             break;
-        case KEY_STAR:
-            playmode = !playmode;
-            cursor.toggle();
-            break;
+//         case KEY_STAR:
+//             playmode = !playmode;
+//             if(playmode)
+//                 mixer.start();
+//             else
+//                 mixer.stop();
+//             break;
 //         case KEY_POUND:
 //             editmode = !editmode;
 //             break;
@@ -386,7 +517,17 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             editmode = !editmode;
         }else if(keycode == KEY_STAR){
             playmode = !playmode;
-            cursor.toggle();
+            if(playmode){
+                try{
+                    mixer.mix(sequences[cursor.getRow()]);
+                    mixer.start();
+                }catch(Exception exc){
+                    error(exc);
+                }
+            }else{
+                mixer.stop();
+                mixer.reset();
+            }
         }
         if(editmode){
             checkkey(keycode);
