@@ -1,0 +1,8 @@
+MIDlet-1: HelloMobile, /HelloMobile32.png, com.pingdynasty.midp.HelloMobile
+MIDlet-Jar-Size: 5629
+MIDlet-Jar-URL: HelloMobile.jar
+MIDlet-Name: HelloMobile
+MIDlet-Icon: /HelloMobile32.png
+MIDlet-Vendor: www.pingdynasty.com
+MIDlet-Version: 0.1.0
+MIDlet-Description: midlet template

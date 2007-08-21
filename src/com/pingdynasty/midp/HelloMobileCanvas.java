@@ -13,8 +13,11 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
     private Display display;
     private TiledLayer board;
     private LayerManager layout;
-
+    private Sequence[] sequences;
     private Player[] players;
+    private Cursor cursor;
+    private static final int CLEAR_CELL = 48;
+
     private static final String[] names = new String[]{
         "Bass Pluck Hi Hat.wav",
         "Bass Bend.wav",
@@ -23,19 +26,6 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         "Snare and Trumpet.wav",
         "Snare.wav",
         "Trumpet.wav"};
-//         "start.wav",
-//         "shot.wav",
-//         "hit.wav",
-//         "loose.wav",
-//         "win.wav"};
-//         "start.wav",
-//         "shot.wav",
-//         "hit.wav",
-//         "loose.wav",
-//         "win.wav",
-//         "foo.mp3",
-//         "bar.mp3",
-//         "snippet.mp3"};
 
     private static final int[] keys = new int[]{
         KEY_NUM0,
@@ -48,17 +38,184 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         KEY_NUM7,
         KEY_NUM8,
         KEY_NUM9};
-  
+
+    private class Sequence implements Runnable {
+        private final int row;
+        private Cell[] cells;
+        private int period = 600;
+        private boolean running;
+        private boolean playing;
+
+        public Sequence(int width, int row){
+            this.row = row;
+            cells = new Cell[width];
+            for(int i=0; i<cells.length; ++i){
+                cells[i] = new Cell(i, row);
+            }
+            start();
+        }
+
+        public Cell getCell(int col){
+//             assert col < cells.length;
+            return cells[col];
+        }
+
+        public void start(){
+            running = true;
+            Thread thread = new Thread(this);
+            thread.start();
+        }
+
+        public void finish(){
+            running = false;
+        }
+
+        public void toggle(){
+            playing = !playing;
+        }
+
+        public void run(){
+            while(running){
+                if(playing){
+                    for(int i=0; i<cells.length && running && playing; ++i){
+                        cells[i].play();
+                        try{ 
+                            Thread.sleep(period); 
+                        }catch(InterruptedException ie){}
+                    }
+//                     playing = false;
+                }else{
+                    try{ 
+                        Thread.sleep(500);
+                    }catch(InterruptedException ie){}
+                }
+            }
+        }
+    }
+
+    private class Cursor extends Sprite {
+        int col, row; // [0-7]
+        public static final int MIN = 0;
+        public static final int MAX = 7;
+
+        public Cursor(Image image){
+            super(image);
+            col = MIN;
+            row = MIN;
+        }
+
+        public void left(){
+            if(--col < MIN)
+                col = MAX;
+            setPosition(col*20, row*20);
+        }
+
+        public void right(){
+            if(++col > MAX)
+                col = MIN;
+            setPosition(col*20, row*20);
+        }
+
+        public void up(){
+            if(--row < MIN)
+                row = MAX;
+            setPosition(col*20, row*20);
+        }
+
+        public void down(){
+            if(++row > MAX)
+                row = MIN;
+            setPosition(col*20, row*20);
+        }
+
+        public int getColumn(){
+            return col;
+        }
+
+        public int getRow(){
+            return row;
+        }
+
+        public void toggle(){
+            sequences[row].toggle();
+        }
+
+        public void setSample(int index){
+            sequences[row].getCell(col).setSample(index);
+        }
+
+        public void clearSample(){
+            sequences[row].getCell(col).clearSample();
+        }
+
+    }
+
+    private class Cell {
+        int col, row;
+        Player player;
+
+        public Cell(int col, int row){
+            this.col = col;
+            this.row = row;
+        }
+
+        public void clearSample(){
+            player = null;
+            board.setCell(col, row, CLEAR_CELL);
+        }
+
+        public void setSample(int index){
+//             assert index < players.length;
+            player = players[index];
+            board.setCell(col, row, index+1);
+        }
+
+        public void play(){
+            try{
+                if(player != null)
+                    player.start();
+            }catch(MediaException exc){
+                error(exc);
+            }
+        }
+
+        public void stop(){
+            try{
+                player.stop();
+            }catch(MediaException exc){
+                error(exc);
+            }
+        }
+    }
+
     public HelloMobileCanvas(Display display) 
         throws IOException, MediaException {
         super(false); // suppress key events
         board = createBoard();
         players = createPlayers();
+        sequences = createSequences(8, 8);
+        cursor = createCursor();
         layout = new LayerManager();
+        layout.append(cursor);
         layout.append(board);
-        layout.setViewWindow( 0, 0, 160, 160 );
+        layout.setViewWindow(0, 0, 160, 160);
 //         layout.setViewWindow(0, 0, getWidth(), getHeight());
         this.display = display;
+    }
+
+    public Cursor createCursor()
+        throws IOException {
+        Image image = Image.createImage("/shape.png");
+        Cursor cursor = new Cursor(image);
+        return cursor;
+    }
+
+    public Sequence[] createSequences(int cols, int rows){
+        Sequence[] sequences = new Sequence[rows];
+        for(int i=0; i<sequences.length; ++i){
+            sequences[i] = new Sequence(cols, i);
+        }
+        return sequences;
     }
 
     public Player[] createPlayers()
@@ -86,7 +243,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         throws IOException {
         // 176 * 220
         Image image = Image.createImage("/shapes.png");
-        TiledLayer tiledLayer = new TiledLayer(8, 6, image, 20, 20);
+        TiledLayer tiledLayer = new TiledLayer(8, 8, image, 20, 20);
 //         int[] map = {
 //             1,  2,  3,  4,  5,  6,  7,  8,
 //             9, 10, 11, 12, 13, 14, 15, 16,
@@ -103,27 +260,28 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
 //             int row = (i - column) / 10;
 //             tiledLayer.setCell(column, row, map[i]);
 //         }
-        for(int i=0; i< 8; ++i)
-            for(int j=0; j< 6; ++j)
-                tiledLayer.setCell(i, j, i*8+j+1);
+        for(int i=0; i<8; ++i)
+            for(int j=0; j<8; ++j)
+                tiledLayer.setCell(i, j, CLEAR_CELL);
         return tiledLayer;
     }
   
-    public void start() {
+    public void start(){
         running = true;
-        Thread t = new Thread(this);
-        t.start();
+        Thread thread = new Thread(this);
+        thread.start();
     }
   
     public void play(int index){
-        if(index > -1 && index < players.length){
+//         if(index > -1 && index < players.length){
             try{
                 players[index].start();
-                board.setCell(2, 2, index+1);
+                cursor.setSample(index);
+                cursor.right(); // move one step forward
             }catch(MediaException exc){ 
-                error(exc.toString());
+                error(exc);
             }
-        }
+//         }
     }
 
     public void run() {
@@ -154,20 +312,52 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
     }
 
     private void input() {
-//         int keyStates = getKeyStates();
-//         for(int i=0; i<keys.length; ++i)
-//             if((keyStates & keys[i]) != 0)
-//                 play(i);
+        int keyStates = getKeyStates();
+        if((keyStates & LEFT_PRESSED) != 0) 
+            cursor.left();
+        else if((keyStates & RIGHT_PRESSED) != 0) 
+            cursor.right();
+        else if((keyStates & UP_PRESSED) != 0)
+            cursor.up();
+        else if((keyStates & DOWN_PRESSED) != 0)
+            cursor.down();
+        else if((keyStates & FIRE_PRESSED) != 0)
+            cursor.toggle();
     }
 
     protected void keyPressed(int keycode){
-        for(int i=1; i<keys.length; ++i)
-            if(keycode == keys[i])
-                play(i-1);
-//         switch(keycode){
-//         case KEY_NUM0 :
-//             play(0);
+//         int action = getGameAction(keycode);
+//         switch(action){
+//         case UP:
+//             cursor.up();
 //             break;
+//         case DOWN:
+//             cursor.down();
+//             break;
+//         case LEFT:
+//             cursor.left();
+//             break;
+//         case RIGHT:
+//             cursor.right();
+//             break;
+//         case FIRE:
+//             cursor.toggle();
+//             break;
+// //         case KEY_NUM0 :
+// //             break;
+//         default:
+        if(keycode == KEY_NUM0){
+            cursor.clearSample();
+            cursor.right();
+        }else{
+            for(int i=1; i<keys.length; ++i)
+                if(keycode == keys[i]){
+                    int index = i-1;
+                    if(index > -1 && index < players.length){
+                        play(index);
+                    }
+                }
+        }
     }
 
     private void render(Graphics g) {
@@ -180,6 +370,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         layout.paint(g, x, y);
         g.setColor(0x000000);
         g.drawRect(x, y, 160, 160);
+
     }
   
     private void renderTime(Graphics g, int time) {
@@ -205,6 +396,12 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         for(int i=0; i<players.length; ++i)
             if(players[i] != null)
                 players[i].close();
+        for(int i=0; i<sequences.length; ++i)
+            sequences[i].finish();
+    }
+
+    public void error(Exception exc){
+        error(exc.toString());
     }
 
     public void error(String message){
