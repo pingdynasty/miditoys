@@ -16,11 +16,15 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
     private Sequence[] sequences;
     private Player[] players;
     private Cursor cursor;
-    private static final int CLEAR_CELL = 48;
+    private boolean editmode = true;
+    private boolean playmode = false;
+    private static final int CLEAR_CELL = 64;
 
     private static final String[] names = new String[]{
         "Bass Pluck Hi Hat.wav",
         "Bass Bend.wav",
+        "Bass Bump.wav",
+        "Bass Syncopation.wav",
         "Bass.wav",
         "Snare and Bass Pluck.wav",
         "Snare and Trumpet.wav",
@@ -45,6 +49,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         private int period = 600;
         private boolean running;
         private boolean playing;
+        private Cell lastCell;
 
         public Sequence(int width, int row){
             this.row = row;
@@ -78,7 +83,10 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             while(running){
                 if(playing){
                     for(int i=0; i<cells.length && running && playing; ++i){
+                        if(lastCell != null)
+                            lastCell.stop();
                         cells[i].play();
+                        lastCell = cells[i];
                         try{ 
                             Thread.sleep(period); 
                         }catch(InterruptedException ie){}
@@ -147,16 +155,19 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         public void clearSample(){
             sequences[row].getCell(col).clearSample();
         }
-
     }
 
-    private class Cell {
-        int col, row;
-        Player player;
+    public class Cell {
+        private int col, row;
+        private Player player;
 
         public Cell(int col, int row){
             this.col = col;
             this.row = row;
+        }
+
+        public Player getPlayer(){
+            return player;
         }
 
         public void clearSample(){
@@ -181,7 +192,8 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
 
         public void stop(){
             try{
-                player.stop();
+                if(player != null)
+                    player.stop();
             }catch(MediaException exc){
                 error(exc);
             }
@@ -291,9 +303,9 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         while(running){
             long start = System.currentTimeMillis();
             tick();
-            input();
             render(g);
-            renderTime(g, lastRenderTime);
+            renderStatus(g);
+//             renderTime(g, lastRenderTime);
             flushGraphics();
             long end = System.currentTimeMillis();
             lastRenderTime = (int)(end - start);
@@ -308,48 +320,37 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
     }
   
     private void tick() {
-
+        input();
     }
 
     private void input() {
-        int keyStates = getKeyStates();
-        if((keyStates & LEFT_PRESSED) != 0) 
-            cursor.left();
-        else if((keyStates & RIGHT_PRESSED) != 0) 
-            cursor.right();
-        else if((keyStates & UP_PRESSED) != 0)
-            cursor.up();
-        else if((keyStates & DOWN_PRESSED) != 0)
-            cursor.down();
-        else if((keyStates & FIRE_PRESSED) != 0)
-            cursor.toggle();
+//         int keyStates = getKeyStates();
+//         if((keyStates & LEFT_PRESSED) != 0) 
+//             cursor.left();
+//         else if((keyStates & RIGHT_PRESSED) != 0) 
+//             cursor.right();
+//         else if((keyStates & UP_PRESSED) != 0)
+//             cursor.up();
+//         else if((keyStates & DOWN_PRESSED) != 0)
+//             cursor.down();
+//         else if((keyStates & FIRE_PRESSED) != 0)
+//             cursor.toggle();
     }
 
-    protected void keyPressed(int keycode){
-//         int action = getGameAction(keycode);
-//         switch(action){
-//         case UP:
-//             cursor.up();
-//             break;
-//         case DOWN:
-//             cursor.down();
-//             break;
-//         case LEFT:
-//             cursor.left();
-//             break;
-//         case RIGHT:
-//             cursor.right();
-//             break;
-//         case FIRE:
-//             cursor.toggle();
-//             break;
-// //         case KEY_NUM0 :
-// //             break;
-//         default:
-        if(keycode == KEY_NUM0){
+    private void checkkey(int keycode){
+        switch(keycode){
+        case KEY_NUM0:
             cursor.clearSample();
             cursor.right();
-        }else{
+            break;
+        case KEY_STAR:
+            playmode = !playmode;
+            cursor.toggle();
+            break;
+//         case KEY_POUND:
+//             editmode = !editmode;
+//             break;
+        default:
             for(int i=1; i<keys.length; ++i)
                 if(keycode == keys[i]){
                     int index = i-1;
@@ -357,6 +358,42 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
                         play(index);
                     }
                 }
+        }
+    }
+
+    private void checkaction(int action){
+        switch(action){
+        case UP:
+            cursor.up();
+            break;
+        case DOWN:
+            cursor.down();
+            break;
+        case LEFT:
+            cursor.left();
+            break;
+        case RIGHT:
+            cursor.right();
+            break;
+        case FIRE:
+            cursor.toggle();
+            break;
+        }
+    }
+
+    protected void keyPressed(int keycode){
+        if(keycode == KEY_POUND){
+            editmode = !editmode;
+        }else if(keycode == KEY_STAR){
+            playmode = !playmode;
+            cursor.toggle();
+        }
+        if(editmode){
+            checkkey(keycode);
+        }else{
+            checkaction(getGameAction(keycode));
+//             if((getKeyStates() & (LEFT_PRESSED | RIGHT_PRESSED | UP_PRESSED | DOWN_PRESSED | FIRE_PRESSED)) == 0)
+//                 checkkey(keycode);
         }
     }
 
@@ -373,6 +410,20 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
 
     }
   
+    private void renderStatus(Graphics g) {
+        int w = getWidth();
+        int h = getHeight();
+        String status = (editmode ? "edit" : "play") + (playmode ? " x" : " o");
+        Font font = g.getFont();
+        int sw = font.stringWidth(status) + 2;
+        int sh = font.getHeight();
+        g.setColor(0xffffff);
+        g.fillRect(w - sw, h - sh, sw, sh);
+        g.setColor(0x000000);
+        g.drawRect(w - sw, h - sh, sw, sh);
+        g.drawString(status, w, h, Graphics.RIGHT | Graphics.BOTTOM);
+    }
+
     private void renderTime(Graphics g, int time) {
         int w = getWidth();
         int h = getHeight();
