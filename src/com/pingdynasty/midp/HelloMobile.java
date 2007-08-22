@@ -8,7 +8,8 @@ import javax.microedition.media.MediaException;
 public class HelloMobile extends MIDlet implements CommandListener{
 
     private HelloMobileCanvas canvas;
-    private static final Command exitCmd = new Command("Exit", Command.EXIT,1);
+    private static final Command exitCmd = new Command("Exit", Command.EXIT, 0);
+    private static final Command memoryCmd = new Command("Memory", Command.SCREEN, 1);
 
     public void startApp() {
         Display display = Display.getDisplay(this);
@@ -17,6 +18,7 @@ public class HelloMobile extends MIDlet implements CommandListener{
                 canvas = new HelloMobileCanvas(display);
                 canvas.start();
                 canvas.addCommand(exitCmd);
+                canvas.addCommand(memoryCmd);
                 canvas.setCommandListener(this);
             }catch(Exception exc){
                 display.setCurrent(new Alert("error", exc.toString(), null, null));
@@ -37,6 +39,16 @@ public class HelloMobile extends MIDlet implements CommandListener{
         if(c == exitCmd){
             destroyApp(true);
             notifyDestroyed();
+        }else if(c == memoryCmd){
+            Runtime runtime = Runtime.getRuntime();
+            String msg = "mem: "+runtime.freeMemory()+"/"+runtime.totalMemory();
+            Alert alert = new Alert("Memory", msg, null, AlertType.INFO);
+            Display display = Display.getDisplay(this);
+            Displayable current = display.getCurrent();
+            if(!(current instanceof Alert)){
+                // This next call can't be done when current is an Alert
+                display.setCurrent(alert, current);
+            }
         }
     }
 }
