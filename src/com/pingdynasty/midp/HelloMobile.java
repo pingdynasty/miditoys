@@ -40,6 +40,7 @@ public class HelloMobile extends MIDlet implements CommandListener{
             destroyApp(true);
             notifyDestroyed();
         }else if(c == memoryCmd){
+            System.gc();
             Runtime runtime = Runtime.getRuntime();
             String msg = "mem: "+runtime.freeMemory()+"/"+runtime.totalMemory();
             Alert alert = new Alert("Memory", msg, null, AlertType.INFO);

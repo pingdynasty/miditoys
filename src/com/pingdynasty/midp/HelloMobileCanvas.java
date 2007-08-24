@@ -3,6 +3,7 @@ package com.pingdynasty.midp;
 import java.io.*;
 import javax.microedition.midlet.*;
 import javax.microedition.media.*;
+import javax.microedition.media.control.*;
 import javax.microedition.lcdui.*;
 import javax.microedition.lcdui.game.*;
 
@@ -19,10 +20,12 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
     private boolean editmode = true;
     private boolean playmode = false;
     private MixingPlayer mixer;
-    private static final int NUMBER_OF_TRACKS = 6;
+    private Image background;
+    private static final int NUMBER_OF_TRACKS = 8;
     private static final int NUMBER_OF_BEATS = 8;
     private static final int SAMPLES_PER_BANK = 8;
     private static final int CLEAR_CELL = 64;
+    private static final int LAST_SAMPLE_TRACK_INDEX = 6;
 
     private static final String[] names = new String[]{
         "amen_one.wav",
@@ -96,19 +99,24 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
     }
 
     public class MixingPlayer {
-        private Player player;
+        private int bpm;
+        private Player sampleplayer;
+//         private Player toneplayer;
         private byte[] buffer;
         private int cellsize; // bytes to a beat (8khz * 0.5s * 2 channels * 16bits / 8bitsperbyte)
 
         public MixingPlayer(int bpm)
             throws IOException, MediaException{
             init(bpm, 8000, 2);
+//             toneplayer = Manager.createPlayer(Manager.TONE_DEVICE_LOCATOR); 
+//             toneplayer.realize(); 
         }
 
         public void init(int bpm, int samplerate, int channels)
             throws IOException, MediaException{
-            if(player != null)
-                player.close();
+            if(sampleplayer != null)
+                sampleplayer.close();
+            this.bpm = bpm;
             // period = 1000 / bps == 1000 / (bpm / 60) == 60000 / bpm
             int period = 60000 / bpm;
             cellsize = (samplerate * period * channels * 2) / 1000;
@@ -172,8 +180,8 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             buffer[41] = (byte)((size >> 8) & 0x00ff);
             buffer[42] = (byte)((size >> 16) & 0x00ff);
             buffer[43] = (byte)((size >> 32) & 0x00ff);
-            player = Manager.createPlayer(new ByteArrayInputStream(buffer), "audio/x-wav");
-            player.setLoopCount(-1);
+            sampleplayer = Manager.createPlayer(new ByteArrayInputStream(buffer), "audio/x-wav");
+            sampleplayer.setLoopCount(-1);
         }
 
         public void reset(){
@@ -185,7 +193,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             throws IOException, MediaException {
             for(int i=0; i<sequence.getLength(); ++i){
                 Cell cell = sequence.getCell(i);
-                int index = cell.getSampleIndex();
+                int index = cell.getValue();
                 if(index > -1){
                     InputStream is = getClass().getResourceAsStream(names[index]);
                     is.skip(44); // size of header
@@ -205,16 +213,22 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         public void remix()
             throws IOException, MediaException {
             for(int i=0; i<sequences.length; ++i)
-                if(sequences[i].isMixed())
-                    try{
-                        mix(sequences[i], true);
-                    }catch(Exception exc){
-                        error(exc);
+                if(sequences[i].isMixed()){
+                    if(sequences[i].isSampleSequence()){
+                        try{
+                            mix(sequences[i], true);
+                        }catch(Exception exc){
+                            error(exc);
+                        }
+                    }else if(sequences[i].isToneSequence()){
+//                         ToneControl tc = (ToneControl)toneplayer.getControl("ToneControl"); 
+//                         tc.setSequence(sequences[i].getToneSequence(bpm)); 
                     }
-            if(player != null)
-                player.close();
-            player = Manager.createPlayer(new ByteArrayInputStream(buffer), "audio/x-wav");
-            player.setLoopCount(-1);
+                }
+            if(sampleplayer != null)
+                sampleplayer.close();
+            sampleplayer = Manager.createPlayer(new ByteArrayInputStream(buffer), "audio/x-wav");
+            sampleplayer.setLoopCount(-1);
         }
 
         public void play(){
@@ -230,8 +244,10 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
 
         public void start(){
             try{
-                if(player != null)
-                    player.start();
+                if(sampleplayer != null)
+                    sampleplayer.start();
+//                 if(toneplayer != null)
+//                     toneplayer.start();
             }catch(MediaException exc){
                 error(exc);
             }
@@ -239,29 +255,33 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
 
         public void stop(){
             try{
-                if(player != null)
-                    player.stop();
+                if(sampleplayer != null)
+                    sampleplayer.stop();
+//                 if(toneplayer != null)
+//                     toneplayer.stop();
             }catch(MediaException exc){
                 error(exc);
             }
         }
     }
 
-    private class Sequence { // implements Runnable {
-//         private final int row;
+    private class Sequence {
         private Cell[] cells;
-//         private int period = 600;
-//         private boolean running;
-//         private boolean playing;
-        private Cell lastCell;
         private boolean mixed = true;
 
         public Sequence(int width, int row){
-//             this.row = row;
             cells = new Cell[width];
             for(int i=0; i<cells.length; ++i){
-                cells[i] = new Cell(i, row);
+                cells[i] = new Cell(i, row, row > LAST_SAMPLE_TRACK_INDEX ? Cell.TONE_CELL_TYPE : Cell.SAMPLE_CELL_TYPE);
             }
+        }
+
+        public boolean isSampleSequence(){
+            return cells[0].getCellType() == Cell.SAMPLE_CELL_TYPE;
+        }
+
+        public boolean isToneSequence(){
+            return cells[0].getCellType() == Cell.TONE_CELL_TYPE;
         }
 
         public int getLength(){
@@ -275,24 +295,33 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
 
         public void mix(){
             mixed = true;
-//             try{
-//                 mixer.mix(this, true);
-//             }catch(Exception exc){
-//                 error(exc);
-//             }
         }
 
         public void unmix(){
             mixed = false;
-//             try{
-//                 mixer.mix(this, false);
-//             }catch(Exception exc){
-//                 error(exc);
-//             }
         }
 
         public boolean isMixed(){
             return mixed;
+        }
+
+        public byte[] getToneSequence(int bpm){
+            if(!isToneSequence())
+                return null;
+            byte tempo = (byte)(bpm / 4);
+//             byte notelength = 8; // eight note
+//             byte notelength = 4; // quarter note
+            byte notelength = 2; // half note
+            byte[] sequence = new byte[cells.length * 2 + 4];
+            sequence[0] = ToneControl.VERSION;
+            sequence[1] = 1;
+            sequence[2] = ToneControl.TEMPO;
+            sequence[3] = tempo;
+            for(int i=0; i<cells.length; ++i){
+                sequence[i*2+4] = (byte)cells[i].getValue();
+                sequence[i*2+5] = notelength;
+            }
+            return sequence;
         }
     }
 
@@ -304,20 +333,31 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         public static final int MAX_COL = NUMBER_OF_BEATS - 1;
 
         public Cursor(Image image){
-            super(image);
+            super(image, 20, 20);
             col = MIN_ROW;
             row = MIN_COL;
         }
 
+        public void toggleCursor(){
+            if(editmode)
+                setFrame(0);
+            else
+                setFrame(1);
+        }
+
         public void left(){
-            if(--col < MIN_COL)
+            if(--col < MIN_COL){
                 col = MAX_COL;
+                up();
+            }
             setPosition(col*20, row*20);
         }
 
         public void right(){
-            if(++col > MAX_COL)
+            if(++col > MAX_COL){
                 col = MIN_COL;
+                down();
+            }
             setPosition(col*20, row*20);
         }
 
@@ -341,60 +381,82 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             return row;
         }
 
-        public void setSample(int index){
-            sequences[row].getCell(col).setSample(index);
+        public Sequence getSequence(){
+            return sequences[row];
         }
 
-        public void clearSample(){
-            sequences[row].getCell(col).clearSample();
+        public void setCellValue(int index){
+            sequences[row].getCell(col).setValue(index);
+        }
+
+        public void clearCell(){
+            sequences[row].getCell(col).clear();
         }
     }
 
     public class Cell {
         private int col, row;
-        private Sample sample;
+        private int value = -1;
+        private final int type;
+        public static final int SAMPLE_CELL_TYPE = 1;
+        public static final int TONE_CELL_TYPE = 2;
+        public static final int MIDI_CELL_TYPE = 3;
 
-        public Cell(int col, int row){
+        public Cell(int col, int row, int type){
             this.col = col;
             this.row = row;
+            this.type = type;
         }
 
-        public Sample getSample(){
-            return sample;
+        public int getValue(){
+            return value;
         }
 
-        public int getSampleIndex(){
-            for(int i=0; i<samples.length; ++i)
-                if(sample == samples[i])
-                    return i;
-            return -1;
+        public int getCellType(){
+            return type;
         }
 
-        public void clearSample(){
-            sample = null;
+        public void clear(){
+            value = -1;
             board.setCell(col, row, CLEAR_CELL);
         }
 
-        public void setSample(int index){
-//             assert index < samples.length;
-            sample = samples[index];
-            board.setCell(col, row, index+1);
+        public void setValue(int value){
+//             assert value < samples.length;
+            this.value = value;
+            board.setCell(col, row, value+1);
         }
 
         public void play(){
-            if(sample != null)
-                sample.play();
+            if(value == -1)
+                return;
+            switch(type){
+            case SAMPLE_CELL_TYPE:
+                if(samples[value] != null)
+                    samples[value].play();
+                break;
+            case TONE_CELL_TYPE:
+//                 try{
+//                     Manager.playTone(value + 48, 400, 90);
+//                 }catch(MediaException exc){
+//                     error(exc);
+//                 }
+//                 break;
+            }
         }
 
-        public void stop(){
-            if(sample != null)
-                sample.stop();
+        public Sample getSample(){
+            if(type == SAMPLE_CELL_TYPE && value != -1)
+                return samples[value];
+            else
+                return null;
         }
     }
 
     public HelloMobileCanvas(Display display) 
         throws IOException, MediaException {
         super(false); // suppress key events
+        background = Image.createImage("/background160x160.png");
         board = createBoard();
         samples = createSamples();
         sequences = createSequences(NUMBER_OF_BEATS, NUMBER_OF_TRACKS);
@@ -403,6 +465,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         layout = new LayerManager();
         layout.append(cursor);
         layout.append(board);
+
         layout.setViewWindow(0, 0, NUMBER_OF_BEATS*20, NUMBER_OF_TRACKS*20);
 //         layout.setViewWindow(0, 0, getWidth(), getHeight());
         this.display = display;
@@ -410,7 +473,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
 
     public Cursor createCursor()
         throws IOException {
-        Image image = Image.createImage("/shape.png");
+        Image image = Image.createImage("/cursor.png");
         Cursor cursor = new Cursor(image);
         return cursor;
     }
@@ -439,7 +502,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
     private TiledLayer createBoard() 
         throws IOException {
         // 176 * 220
-        Image image = Image.createImage("/shapes.png");
+        Image image = Image.createImage("/samples.png");
         TiledLayer tiledLayer = new TiledLayer(NUMBER_OF_BEATS, NUMBER_OF_TRACKS, image, 20, 20);
         for(int i=0; i<NUMBER_OF_BEATS; ++i)
             for(int j=0; j<NUMBER_OF_TRACKS; ++j)
@@ -461,7 +524,6 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             long start = System.currentTimeMillis();
             render(g);
             renderStatus(g);
-//             renderTime(g, lastRenderTime);
             flushGraphics();
             long end = System.currentTimeMillis();
             lastRenderTime = (int)(end - start);
@@ -474,14 +536,24 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             }
         }
     }
-  
-    // set and play the sample at the current cursor position
-    private void setSample(int index){
-        if(index > -1 && index < samples.length && samples[index] != null){
-            samples[index].play();
-            cursor.setSample(index);
-            cursor.right(); // move one step forward
-        }
+
+    private void play(int index){
+//         if(cursor.getSequence().isToneSequence()){
+//         if(cursor.getRow() > LAST_SAMPLE_TRACK_INDEX){
+//             try{
+//                 Manager.playTone(index + 48, 400, 90);
+//             }catch(MediaException exc){
+//                 error(exc);
+//             }
+//             cursor.setCellValue(index);
+//             cursor.right(); // move one step forward
+//         }else{
+            if(index < samples.length && samples[index] != null){
+                samples[index].play();
+                cursor.setCellValue(index);
+                cursor.right(); // move one step forward
+            }
+//         }
     }
 
     private void checkkey(int keycode){
@@ -490,32 +562,32 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
             cursor.left();
             break;
         case KEY_NUM0:
-            cursor.clearSample();
+            cursor.clearCell();
             cursor.right();
             break;
         case KEY_NUM1:
-            setSample(bank * SAMPLES_PER_BANK);
+            play(bank * SAMPLES_PER_BANK);
             break;
         case KEY_NUM2:
-            setSample(bank * SAMPLES_PER_BANK + 1);
+            play(bank * SAMPLES_PER_BANK + 1);
             break;
         case KEY_NUM3:
-            setSample(bank * SAMPLES_PER_BANK + 2);
+            play(bank * SAMPLES_PER_BANK + 2);
             break;
         case KEY_NUM4:
-            setSample(bank * SAMPLES_PER_BANK + 3);
+            play(bank * SAMPLES_PER_BANK + 3);
             break;
         case KEY_NUM5:
-            setSample(bank * SAMPLES_PER_BANK + 4);
+            play(bank * SAMPLES_PER_BANK + 4);
             break;
         case KEY_NUM6:
-            setSample(bank * SAMPLES_PER_BANK + 5);
+            play(bank * SAMPLES_PER_BANK + 5);
             break;
         case KEY_NUM7:
-            setSample(bank * SAMPLES_PER_BANK + 6);
+            play(bank * SAMPLES_PER_BANK + 6);
             break;
         case KEY_NUM8:
-            setSample(bank * SAMPLES_PER_BANK + 7);
+            play(bank * SAMPLES_PER_BANK + 7);
             break;
         case KEY_NUM9:
             if(++bank > samples.length / SAMPLES_PER_BANK)
@@ -548,6 +620,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
     protected void keyPressed(int keycode){
         if(keycode == KEY_POUND){
             editmode = !editmode;
+            cursor.toggleCursor();
             if(editmode && playmode)
                 togglePlay();
         }
@@ -594,6 +667,7 @@ public class HelloMobileCanvas extends GameCanvas implements Runnable {
         g.fillRect(0, 0, w, h);
         int x = (w - NUMBER_OF_BEATS*20) / 2;
         int y = (h - NUMBER_OF_TRACKS*20) / 2;
+        g.drawImage(background, x, y, Graphics.TOP | Graphics.LEFT);
         layout.paint(g, x, y);
         g.setColor(0x000000);
         g.drawRect(x, y, NUMBER_OF_BEATS*20, NUMBER_OF_TRACKS*20);
