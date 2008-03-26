@@ -31,6 +31,10 @@ public abstract class RacketController {
 
     public void missed(){}
 
+    public void reset(){
+        racket.reset();
+    }
+
     // close this controller
     public void close(){}
 }

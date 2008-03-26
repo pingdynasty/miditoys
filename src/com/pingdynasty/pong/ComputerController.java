@@ -30,6 +30,11 @@ public class ComputerController extends RacketController {
         }
     }
 
+    public void reset(){
+        super.reset();
+        adjustment = 8;
+    }
+
     public void missed(){
         if(adjustment > 2)
             --adjustment;

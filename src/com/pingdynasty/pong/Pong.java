@@ -34,12 +34,45 @@ public class Pong extends JPanel implements Receiver  {
     private Animator animator;
     private boolean started = false;
 
+    private int clock = 0;
+    private int ticksperclock = 4;
+    private int clocksperbeat = 24;
+
     class Animator extends Thread {
-        public static final long FRAME_DELAY = 40; // 25fps
+//         public static final long FRAME_DELAY = 40; // 25fps
+        long FRAME_DELAY = 20; // 50fps
+//         public static final long FRAME_DELAY = 10; // 100fps
         private boolean running = true;
+        private int tick = 0;
+//         private int adjust;
+        private long lastAdjust;
+        private boolean waiting;
 
         public Animator(){
             setDaemon(true);
+        }
+
+        public void setClock(int clock){
+//             int newtick = clock * ticksperclock;
+//             adjust += newtick - tick;
+//             tick = newtick;
+            tick = clock * ticksperclock;
+            if(clock == 1)
+                waiting = false;
+            interrupt();
+        }
+
+        public void adjust(){
+            long now = System.currentTimeMillis();
+            long delta = now - lastAdjust;
+            System.out.println("delta "+delta);
+            if(delta < 250)
+                delta = 250; // 240 bpm
+            else if(delta > 2000) // 30 bpm
+                delta = 2000;
+            FRAME_DELAY = delta / (ticksperclock * clocksperbeat);
+            // set frames per second to match the clocks (by factor of ticksperclock)
+            lastAdjust = now;
         }
 
         public void run(){
@@ -47,6 +80,20 @@ public class Pong extends JPanel implements Receiver  {
                 // allow rackets to move
                 leftController.move();
                 rightController.move();
+                if(started && !waiting){
+                    // collision detection
+                    if(ball.speed.x < 0){
+                        if(leftRacket.check(ball) && court.check(ball))
+                            ball.move(++tick);
+                        else
+                            waiting = true;
+                    }else{
+                        if(rightRacket.check(ball) && court.check(ball))
+                            ball.move(++tick);
+                        else
+                            waiting = true;
+                    }
+                }
                 // update screen
                 repaint();
                 try{
@@ -115,28 +162,38 @@ public class Pong extends JPanel implements Receiver  {
 
     class Court extends Rectangle {
 
+        int leftgoal;
+        int rightgoal;
+
         public Court() {
             super(15, 15, Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT - 50);
+            leftgoal = 15;
+            rightgoal = width - 20;
         }
 
-        public void check(Ball ball){
-            if(ball.pos.x + ball.speed.x <= court.x){
+        public boolean check(Ball ball){
+            if(ball.pos.x < leftgoal){
                 // goal on left side
                 sound(Math.abs(ball.speed.y) * 2 + 10, 100);
                 leftController.missed();
                 rightController.serve(ball);
-            }else if(ball.pos.x + ball.speed.x >= court.width - 20){
+                System.out.println("left goal");
+                return false;
+            }else if(ball.pos.x + ball.radius > rightgoal){
                 // goal on right side
                 sound(Math.abs(ball.speed.y) * 2 + 10, 100);
                 rightController.missed();
                 leftController.serve(ball);
-            }else if(ball.pos.y + ball.speed.y <= court.y){
+                System.out.println("right goal");
+                return false;
+            }else if(ball.pos.y <= court.y){
                 // hit top wall
                 ball.speed.y *= -1;
-            }else if(ball.pos.y + ball.speed.y >= court.height + ball.radius){
+            }else if(ball.pos.y >= court.height + ball.radius){
                 // hit bottom wall
                 ball.speed.y *= -1;
             }
+            return true;
         }
     }
 
@@ -144,15 +201,16 @@ public class Pong extends JPanel implements Receiver  {
         public LeftRacket(){
             // position at left end plus 20 (margin)
             super(new Point(20, Pong.SCREEN_WIDTH / 2 - 25));
+            goal = 15;
         }
 
         public boolean isLeft(){
             return true;
         }
 
-        public void check(Ball ball){
-            if(ball.pos.x + ball.speed.x <= pos.x // + (size.x / 2) // enemyPoint.x + 4
-               && ball.pos.x > pos.x
+        public boolean check(Ball ball){
+            if(ball.pos.x + ball.speed.x <= pos.x + size.x
+               && ball.pos.x + ball.radius > pos.x
                && ball.pos.y + ball.radius > pos.y 
                && ball.pos.y < pos.y + size.y){
                 int offset = hit(ball);
@@ -160,17 +218,19 @@ public class Pong extends JPanel implements Receiver  {
                 // ball vertical speed
                 // racket vertical speed
                 // offset point
-                System.out.println("left racket speed "+speed);
+//                 System.out.println("left racket speed "+speed);
                 sound(Math.abs(offset) + 20, Math.abs(ball.speed.y) * 40);
+                return false;
             }
+            return true;
         }
 
         public void serve(Ball ball){
             ++score;
             // start ball off right away
-            ball.pos.x = pos.x + 20 + ball.speed.x; // compensate for extra distance behind racket
-            ball.pos.y = pos.y + 25;
-//             ball.pos.y = court.height / 2;
+            ball.pos.x = pos.x + 20; // compensate for extra distance behind racket
+//             ball.pos.y = pos.y + 25;
+            ball.pos.y = court.height / 2;
             if(pos.y < court.height / 2)
                 ball.speed.y = 4;
             else
@@ -182,27 +242,30 @@ public class Pong extends JPanel implements Receiver  {
         public RightRacket(){
             // position at right end minus 20 (margin) and width of pad (6)
             super(new Point(Pong.SCREEN_WIDTH - 26, Pong.SCREEN_HEIGHT / 2 - 25));
+            goal = Pong.SCREEN_WIDTH - 21;
         }
 
         public boolean isLeft(){
             return false;
         }
 
-        public void check(Ball ball){
-            if(ball.pos.x + ball.speed.x >= pos.x - size.x // racketPoint.x - 6
-               && ball.pos.x < pos.x
+        public boolean check(Ball ball){
+            if(ball.pos.x + ball.radius + ball.speed.x >= pos.x // racketPoint.x - 6
+               && ball.pos.x < pos.x + size.x
                && ball.pos.y + ball.radius > pos.y 
                && ball.pos.y < pos.y + size.y){
                 int offset = hit(ball);
-                System.out.println("right racket speed "+speed);
+//                 System.out.println("right racket speed "+speed);
                 sound(Math.abs(offset) + 20, Math.abs(ball.speed.y) * 40);
+                return false;
             }
+            return true;
         }
 
         public void serve(Ball ball){
             ++score;
             // start ball off right away
-            ball.pos.x = pos.x - 26 - ball.speed.x; // compensate for extra distance behind racket
+            ball.pos.x = pos.x - 26; // compensate for extra distance behind racket
             ball.pos.y = pos.y + 25;
             if(pos.y < court.height / 2)
                 ball.speed.y = 4;
@@ -216,6 +279,9 @@ public class Pong extends JPanel implements Receiver  {
         internalSync.setReceiver(this);
         court = new Court();
         ball = new Ball();
+        ball.distance = court.rightgoal - court.leftgoal;
+        ball.resolution = clocksperbeat * ticksperclock;
+        System.out.println("ball distance: "+ball.distance);
         rightRacket = new RightRacket();
         leftRacket = new LeftRacket();
         leftController = new ComputerController(leftRacket, ball);
@@ -238,6 +304,41 @@ public class Pong extends JPanel implements Receiver  {
                         start();
                 }
             });
+
+        // set action handler for game reset - escape key
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "reset game");
+        getActionMap().put("reset game", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    reset();
+                }
+            });
+
+        // set action handlers for ticks per clock
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_1, 0), "key1command");
+        getActionMap().put("key1command", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    setClocksPerBeat(clocksperbeat-12);
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_2, 0), "key2command");
+        getActionMap().put("key2command", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    setClocksPerBeat(clocksperbeat+12);
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_3, 0), "key3command");
+        getActionMap().put("key3command", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    setTicksPerClock(ticksperclock-1);
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_4, 0), "key4command");
+        getActionMap().put("key4command", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    setTicksPerClock(ticksperclock+1);
+                }
+            });
+
 //         addMouseMotionListener(new MouseMotionAdapter(){
         addMouseListener(new MouseAdapter(){
                 public void mouseExited(MouseEvent e){
@@ -253,6 +354,22 @@ public class Pong extends JPanel implements Receiver  {
         internalSync.start(); // start sending ticks for racket movements
     }
 
+    public void setClocksPerBeat(int cpb){
+        if(cpb >= 12 && cpb <= 96){
+            clocksperbeat = cpb;
+            System.out.println("clocks per beat: "+clocksperbeat);
+        }
+    }
+        
+    public void setTicksPerClock(int tpc){
+        if(tpc > 0 && tpc <= 6){
+            ticksperclock = tpc;
+            ball.resolution = clocksperbeat * ticksperclock;
+            System.out.println("ticks per clock: "+ticksperclock);
+        }
+            //         animator.adjust();
+    }
+
     public void start(){
         started = true;
 //         internalSync.start();
@@ -264,16 +381,24 @@ public class Pong extends JPanel implements Receiver  {
 //         internalSync.stop();
     }
 
+    public void reset(){
+//                     if(started)
+//                         stop();
+        rightController.reset();
+//         leftController.serve(ball);
+        leftController.reset();
+        ball.reset();
+        clock = 0;
+    }
+
     public void tick(){
         if(started){
-            // collision detection
-            if(ball.speed.x < 0)
-                leftRacket.check(ball);
-            else
-                rightRacket.check(ball);
-            court.check(ball);
-            // allow ball to move
-            ball.move();
+//             ball.move(++clock*ticksperclock);
+            animator.setClock(++clock);
+            if(clock == clocksperbeat){
+                clock = 0;
+                animator.adjust();
+            }
         }
     }
 
@@ -497,7 +622,7 @@ public class Pong extends JPanel implements Receiver  {
         // speed menu
         menu = new JMenu("BPM");
         group = new ButtonGroup();
-        for(int i=60; i<200; i+=20){
+        for(int i=20; i<200; i+=20){
             button = new JRadioButtonMenuItem(""+i);
             if(i == DEFAULT_BPM)
                 button.setSelected(true);
@@ -599,8 +724,8 @@ public class Pong extends JPanel implements Receiver  {
     public void setBPM(int bpm){
         ball.speed.x = court.width / 48;
 //         ball.speed.x = (court.width - court.x - 20 - ball.speed.x - ball.speed.x) / 48;
-//         System.out.println("width/speed "+court.width+"/"+ball.speed.x);
-//         System.out.println("diff "+((court.width - court.x - 20 - ball.speed.x - ball.speed.x) % ball.speed.x));
+        System.out.println("width/speed "+court.width+"/"+ball.speed.x);
+        System.out.println("diff "+((court.width - court.x - 20 - ball.speed.x - ball.speed.x) % ball.speed.x));
         internalSync.setBPM(bpm);
     }
 
