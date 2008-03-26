@@ -43,7 +43,7 @@ public abstract class Player {
         throws InvalidMidiDataException;
     public abstract void noteoff(int note)
         throws InvalidMidiDataException;
-    /** bend - the amount of pitch change, as a nonnegative 14-bit value (8192 = no bend) */
+    /** bend - the amount of pitch change, as a nonnegative 14-bit value (8192 = no bend) (0-16384) */
     public abstract void bend(int degree)
         throws InvalidMidiDataException;
     public abstract void modulate(int degree)
