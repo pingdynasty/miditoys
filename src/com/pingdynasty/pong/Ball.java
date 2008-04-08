@@ -6,10 +6,9 @@ import java.awt.Point;
 public class Ball {
     public static final int MAX_VERTICAL_SPEED = 18;
 
-    Point pos = new Point(0, 0);
-    Point speed = new Point(0, 0);
+    Point pos;
+    Point speed;
     int radius = 8;
-    int tick = 0;
     int distance; // total pixels across screen
     int resolution; // total ticks across screen
  
@@ -47,17 +46,13 @@ public class Ball {
 //         pos.y = pos.y + speed.y;
 //     }		
 
-    public void tick(){
-        ++tick;
-    }
-
     public void paint(Graphics g){
         g.fillOval(pos.x, pos.y, radius, radius);
     }
 
-    public void reset(){
-        pos = new Point(Pong.SCREEN_WIDTH / 2, Pong.SCREEN_HEIGHT / 2);
-    }
+//     public void reset(int offset){
+//         pos = new Point(Pong.SCREEN_WIDTH / 2, Pong.SCREEN_HEIGHT / 2);
+//     }
 
     // get the relative distance between racket and ball, 0-30
     public int distance(Racket racket){

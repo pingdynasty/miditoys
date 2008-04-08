@@ -39,9 +39,10 @@ public class Pong extends JPanel implements Receiver  {
     private List eventqueue = Collections.synchronizedList(new ArrayList());
 
     private Player midi;
-    private int clock = 0;
     private int ticksperclock = 4;
-    private int clocksperbeat = 24;
+    private int clocksperbeat = 48;
+    private int clockoffset = clocksperbeat / 2;
+    private int clock = clockoffset;
 
     class Animator extends Thread {
 //         public static final long FRAME_DELAY = 40; // 25fps
@@ -224,7 +225,7 @@ public class Pong extends JPanel implements Receiver  {
                 // ball vertical speed
                 // racket vertical speed
                 // offset point
-//                 System.out.println("left racket speed "+speed);
+//                 log("left racket speed "+speed);
                 enqueue(new Event(Event.HIT, Event.LEFT, Math.abs(offset)));
                 return false;
             }
@@ -261,7 +262,7 @@ public class Pong extends JPanel implements Receiver  {
                && ball.pos.y + ball.radius > pos.y 
                && ball.pos.y < pos.y + size.y){
                 int offset = hit(ball);
-//                 System.out.println("right racket speed "+speed);
+//                 log("right racket speed "+speed);
                 enqueue(new Event(Event.HIT, Event.RIGHT, Math.abs(offset)));
                 return false;
             }
@@ -287,7 +288,7 @@ public class Pong extends JPanel implements Receiver  {
         ball = new Ball();
         ball.distance = court.rightgoal - court.leftgoal;
         ball.resolution = clocksperbeat * ticksperclock;
-        System.out.println("ball distance: "+ball.distance);
+        log("ball distance: "+ball.distance);
         rightRacket = new RightRacket();
         leftRacket = new LeftRacket();
         leftController = new ComputerController(leftRacket, ball);
@@ -348,49 +349,49 @@ public class Pong extends JPanel implements Receiver  {
         getActionMap().put("key5command", new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     noterange.x -= 6;
-                    System.out.println("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
+                    log("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
                 }
             });
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_6, 0), "key6command");
         getActionMap().put("key6command", new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     noterange.x += 6;
-                    System.out.println("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
+                    log("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
                 }
             });
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_7, 0), "key7command");
         getActionMap().put("key7command", new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     noterange.y -= 6;
-                    System.out.println("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
+                    log("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
                 }
             });
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_8, 0), "key8command");
         getActionMap().put("key8command", new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     noterange.y += 6;
-                    System.out.println("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
+                    log("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
                 }
             });
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_W, 0), "w");
         getActionMap().put("w", new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     doWalls = !doWalls;
-                    System.out.println("walls "+(doWalls ? "on" : "off"));
+                    log("walls "+(doWalls ? "on" : "off"));
                 }
             });
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_B, 0), "b");
         getActionMap().put("b", new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     doBend = !doBend;
-                    System.out.println("bend "+(doBend ? "on" : "off"));
+                    log("bend "+(doBend ? "on" : "off"));
                 }
             });
         getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_M, 0), "m");
         getActionMap().put("m", new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     doModulation = !doModulation;
-                    System.out.println("modulation "+(doModulation ? "on" : "off"));
+                    log("modulation "+(doModulation ? "on" : "off"));
                 }
             });
 
@@ -413,6 +414,12 @@ public class Pong extends JPanel implements Receiver  {
         eventqueue.add(event);
     }
 
+    private boolean doLog = true;
+    public void log(String msg){
+        if(doLog)
+            System.err.println(msg);
+    }
+            
     private boolean doModulation = false;
     private boolean doBend = false;
     private boolean doWalls = false;
@@ -422,9 +429,8 @@ public class Pong extends JPanel implements Receiver  {
         while(!eventqueue.isEmpty()){
             Event event = (Event)eventqueue.remove(0);
             int note = noterange.x + (event.value * noterange.y / 30);
-            note = scales.getNote(note);
-
-            System.out.println(event.getEventName()+": "+note+" / "+event.value);
+//             note = scales.getNote(note);
+            log(event.getEventName()+": "+note+" / "+event.value);
             switch(event.type){
             case Event.HIT:
                 midi.setVelocity(100);
@@ -466,7 +472,7 @@ public class Pong extends JPanel implements Receiver  {
         if(cpb >= 12){
             clocksperbeat = cpb;
             ball.resolution = clocksperbeat * ticksperclock;
-            System.out.println("clocks per beat: "+clocksperbeat);
+            log("clocks per beat: "+clocksperbeat);
         }
     }
         
@@ -474,7 +480,7 @@ public class Pong extends JPanel implements Receiver  {
         if(tpc > 0 && tpc <= 6){
             ticksperclock = tpc;
             ball.resolution = clocksperbeat * ticksperclock;
-            System.out.println("ticks per clock: "+ticksperclock);
+            log("ticks per clock: "+ticksperclock);
         }
             //         animator.adjust();
     }
@@ -493,11 +499,15 @@ public class Pong extends JPanel implements Receiver  {
     public void reset(){
 //                     if(started)
 //                         stop();
+        log("reset!");
         rightController.reset();
 //         leftController.serve(ball);
         leftController.reset();
-        ball.reset();
-        clock = 0;
+//         ball.reset();
+        clock = clockoffset;
+        ball.move(clockoffset*ticksperclock);
+        ball.pos.y = court.height / 2;
+        ball.speed.y = 4;
     }
 
     public void tick(){
@@ -587,7 +597,7 @@ public class Pong extends JPanel implements Receiver  {
         int note = scales.getNote(value);
         duration += baseduration;
         midi.setDuration(duration);
-//         System.out.println("value "+value+" \tnote "+note+" \tduration "+duration);
+//         log("value "+value+" \tnote "+note+" \tduration "+duration);
         try{
             midi.play(note);
         }catch(Exception exc){
@@ -810,12 +820,48 @@ public class Pong extends JPanel implements Receiver  {
             break;
         }
         case ShortMessage.START: {
-            start();
+            if(!started)
+                start();
             break;
         }
         case ShortMessage.STOP: {
-            stop();
+            if(started)
+                stop();
+            else
+                reset();
             break;
+        }
+        case ShortMessage.CONTROL_CHANGE: {
+            switch(msg.getData1()){
+            case 21:
+                noterange.x = msg.getData2();
+                log("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
+                break;
+            case 22:
+                noterange.y = msg.getData2();
+                log("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
+                break;
+            case 23:
+                clockoffset = msg.getData2();
+                log("Clock offset: "+clockoffset);
+                break;
+            case 24:
+                doWalls = msg.getData2() > 63;
+                log("walls "+(doWalls ? "on" : "off"));
+                break;
+            case 25:
+                doBend = msg.getData2() > 63;
+                log("bend "+(doBend ? "on" : "off"));
+                break;
+            case 26:
+                doModulation = msg.getData2() > 63;
+                log("modulation "+(doModulation ? "on" : "off"));
+                break;
+            case 27:
+                doLog = msg.getData2() > 63;
+                log("log output "+(doLog ? "on" : "off"));
+                break;
+            }
         }
         }
     }
@@ -832,8 +878,8 @@ public class Pong extends JPanel implements Receiver  {
     public void setBPM(int bpm){
         ball.speed.x = court.width / 48;
 //         ball.speed.x = (court.width - court.x - 20 - ball.speed.x - ball.speed.x) / 48;
-        System.out.println("width/speed "+court.width+"/"+ball.speed.x);
-        System.out.println("diff "+((court.width - court.x - 20 - ball.speed.x - ball.speed.x) % ball.speed.x));
+        log("width/speed "+court.width+"/"+ball.speed.x);
+        log("diff "+((court.width - court.x - 20 - ball.speed.x - ball.speed.x) % ball.speed.x));
         internalSync.setBPM(bpm);
     }
 
