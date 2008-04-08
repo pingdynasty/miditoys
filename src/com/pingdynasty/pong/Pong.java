@@ -5,6 +5,9 @@ package com.pingdynasty.pong;
  * some source pulled from http://www.eecs.tufts.edu/~mchow/excollege/s2006/examples.php
  */
 import java.util.Locale;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -33,7 +36,9 @@ public class Pong extends JPanel implements Receiver  {
     private RacketController rightController;
     private Animator animator;
     private boolean started = false;
+    private List eventqueue = Collections.synchronizedList(new ArrayList());
 
+    private Player midi;
     private int clock = 0;
     private int ticksperclock = 4;
     private int clocksperbeat = 24;
@@ -65,7 +70,6 @@ public class Pong extends JPanel implements Receiver  {
         public void adjust(){
             long now = System.currentTimeMillis();
             long delta = now - lastAdjust;
-            System.out.println("delta "+delta);
             if(delta < 250)
                 delta = 250; // 240 bpm
             else if(delta > 2000) // 30 bpm
@@ -161,10 +165,8 @@ public class Pong extends JPanel implements Receiver  {
     }
 
     class Court extends Rectangle {
-
         int leftgoal;
         int rightgoal;
-
         public Court() {
             super(15, 15, Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT - 50);
             leftgoal = 15;
@@ -174,23 +176,27 @@ public class Pong extends JPanel implements Receiver  {
         public boolean check(Ball ball){
             if(ball.pos.x < leftgoal){
                 // goal on left side
-                sound(Math.abs(ball.speed.y) * 2 + 10, 100);
+                enqueue(new Event(Event.SCORE, Event.RIGHT, ball.distance(leftController.racket)));
+//                 enqueue(new Event(Event.MISS, Event.LEFT, ball.speed.y));
                 leftController.missed();
                 rightController.serve(ball);
-                System.out.println("left goal");
                 return false;
             }else if(ball.pos.x + ball.radius > rightgoal){
                 // goal on right side
-                sound(Math.abs(ball.speed.y) * 2 + 10, 100);
+                enqueue(new Event(Event.SCORE, Event.LEFT, ball.distance(rightController.racket)));
+//                 enqueue(new Event(Event.MISS, Event.RIGHT, ball.speed.y));
                 rightController.missed();
                 leftController.serve(ball);
-                System.out.println("right goal");
                 return false;
             }else if(ball.pos.y <= court.y){
                 // hit top wall
                 ball.speed.y *= -1;
+                if(doWalls)
+                    enqueue(new Event(Event.WALL, Event.LEFT, ball.speed.y));
             }else if(ball.pos.y >= court.height + ball.radius){
                 // hit bottom wall
+                if(doWalls)
+                    enqueue(new Event(Event.WALL, Event.LEFT, ball.speed.y));
                 ball.speed.y *= -1;
             }
             return true;
@@ -219,7 +225,7 @@ public class Pong extends JPanel implements Receiver  {
                 // racket vertical speed
                 // offset point
 //                 System.out.println("left racket speed "+speed);
-                sound(Math.abs(offset) + 20, Math.abs(ball.speed.y) * 40);
+                enqueue(new Event(Event.HIT, Event.LEFT, Math.abs(offset)));
                 return false;
             }
             return true;
@@ -256,7 +262,7 @@ public class Pong extends JPanel implements Receiver  {
                && ball.pos.y < pos.y + size.y){
                 int offset = hit(ball);
 //                 System.out.println("right racket speed "+speed);
-                sound(Math.abs(offset) + 20, Math.abs(ball.speed.y) * 40);
+                enqueue(new Event(Event.HIT, Event.RIGHT, Math.abs(offset)));
                 return false;
             }
             return true;
@@ -338,6 +344,55 @@ public class Pong extends JPanel implements Receiver  {
                     setTicksPerClock(ticksperclock+1);
                 }
             });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_5, 0), "key5command");
+        getActionMap().put("key5command", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    noterange.x -= 6;
+                    System.out.println("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_6, 0), "key6command");
+        getActionMap().put("key6command", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    noterange.x += 6;
+                    System.out.println("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_7, 0), "key7command");
+        getActionMap().put("key7command", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    noterange.y -= 6;
+                    System.out.println("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_8, 0), "key8command");
+        getActionMap().put("key8command", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    noterange.y += 6;
+                    System.out.println("Note range: "+noterange.x+" to "+(noterange.x+noterange.y));
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_W, 0), "w");
+        getActionMap().put("w", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    doWalls = !doWalls;
+                    System.out.println("walls "+(doWalls ? "on" : "off"));
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_B, 0), "b");
+        getActionMap().put("b", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    doBend = !doBend;
+                    System.out.println("bend "+(doBend ? "on" : "off"));
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_M, 0), "m");
+        getActionMap().put("m", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    doModulation = !doModulation;
+                    System.out.println("modulation "+(doModulation ? "on" : "off"));
+                }
+            });
 
 //         addMouseMotionListener(new MouseMotionAdapter(){
         addMouseListener(new MouseAdapter(){
@@ -354,14 +409,68 @@ public class Pong extends JPanel implements Receiver  {
         internalSync.start(); // start sending ticks for racket movements
     }
 
-    public void setClocksPerBeat(int cpb){
-        if(cpb >= 12 && cpb <= 96){
+    public void enqueue(Event event){
+        eventqueue.add(event);
+    }
+
+    private boolean doModulation = false;
+    private boolean doBend = false;
+    private boolean doWalls = false;
+    private Point noterange = new Point(48,24); // two octaves
+
+    public void sendevents(){
+        while(!eventqueue.isEmpty()){
+            Event event = (Event)eventqueue.remove(0);
+            int note = noterange.x + (event.value * noterange.y / 30);
+            note = scales.getNote(note);
+
+            System.out.println(event.getEventName()+": "+note+" / "+event.value);
+            switch(event.type){
+            case Event.HIT:
+                midi.setVelocity(100);
+                try{
+                    midi.play(note);
+                }catch(Exception exc){exc.printStackTrace();}
+                break;
+            case Event.MISS:
+                midi.setVelocity(100);
+                try{
+                    midi.play(note);
+                }catch(Exception exc){exc.printStackTrace();}
+                break;
+            case Event.SCORE:
+                midi.setVelocity(120);
+                try{
+                    midi.play(note);
+                }catch(Exception exc){exc.printStackTrace();}
+                break;
+            case Event.WALL:
+                midi.setVelocity(60);
+                try{
+                    midi.play(note);
+                }catch(Exception exc){exc.printStackTrace();}
+                break;
+            }
+        }
+        try{
+            if(doModulation)
+                midi.modulate((ball.pos.y * 120) / court.height);
+            if(doBend)
+                midi.bend(8192 + (ball.pos.y - court.height / 2) * 8192 / court.height);
+        }catch(Exception exc){
+            exc.printStackTrace();
+        }
+    }
+
+    public synchronized void setClocksPerBeat(int cpb){
+        if(cpb >= 12){
             clocksperbeat = cpb;
+            ball.resolution = clocksperbeat * ticksperclock;
             System.out.println("clocks per beat: "+clocksperbeat);
         }
     }
         
-    public void setTicksPerClock(int tpc){
+    public synchronized void setTicksPerClock(int tpc){
         if(tpc > 0 && tpc <= 6){
             ticksperclock = tpc;
             ball.resolution = clocksperbeat * ticksperclock;
@@ -395,6 +504,7 @@ public class Pong extends JPanel implements Receiver  {
         if(started){
 //             ball.move(++clock*ticksperclock);
             animator.setClock(++clock);
+            sendevents();
             if(clock == clocksperbeat){
                 clock = 0;
                 animator.adjust();
@@ -463,9 +573,6 @@ public class Pong extends JPanel implements Receiver  {
         }
     }
 
-    private Player midi;
-    private int baseduration = 500;
-
     public void initSound(MidiDevice device)
         throws Exception{
         device.open();
@@ -476,6 +583,7 @@ public class Pong extends JPanel implements Receiver  {
     }
 
     public void sound(int value, int duration){
+        final int baseduration = 500;
         int note = scales.getNote(value);
         duration += baseduration;
         midi.setDuration(duration);

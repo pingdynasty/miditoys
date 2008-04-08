@@ -58,5 +58,14 @@ public class Ball {
     public void reset(){
         pos = new Point(Pong.SCREEN_WIDTH / 2, Pong.SCREEN_HEIGHT / 2);
     }
+
+    // get the relative distance between racket and ball, 0-30
+    public int distance(Racket racket){
+        int edge = racket.pos.y + racket.size.y;
+        if(edge > pos.y)
+            return (edge - pos.y) * 30 / (Pong.SCREEN_HEIGHT - 40);
+        else
+            return (pos.y - racket.pos.y) * 30 / (Pong.SCREEN_HEIGHT - 40);
+    }
 }
 

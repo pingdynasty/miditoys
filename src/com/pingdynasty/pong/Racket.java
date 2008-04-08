@@ -19,7 +19,6 @@ public abstract class Racket {
         if(Math.abs(ball.speed.y) < ball.MAX_VERTICAL_SPEED)
             ball.speed.y += offset / 7;
         ball.speed.x *= -1;
-        System.out.println("hit ball "+ball.speed.x);
         return offset;
     }
 
