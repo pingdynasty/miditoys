@@ -3,31 +3,32 @@ package com.pingdynasty.pong;
 import java.awt.Graphics;
 import java.awt.Point;
 
-public class Ball {
-    public static final int MAX_VERTICAL_SPEED = 18;
+public class Ball extends Configurable {
 
     Point pos;
     Point speed;
     int radius = 8;
     int distance; // total pixels across screen
-    int resolution; // total ticks across screen
+    private int resolution; // total ticks across screen
  
-    public Ball(){
-        pos = new Point(Pong.SCREEN_WIDTH / 2, Pong.SCREEN_HEIGHT / 2);
+    public Ball(PongConfiguration cfg){
+        super(cfg);
+        pos = new Point(cfg.width / 2, cfg.height / 2);
         speed = new Point(0, 0);
+        update();
     }
 
-    public Ball(Point pos, Point speed){
-        this.pos = pos;
-        this.speed = speed;
+    public void update(){
+        distance = cfg.rightgoal - cfg.leftgoal;
+        resolution = cfg.clocksperbeat * cfg.ticksperclock;
     }
 
     public void move(int tick){
-        assert tick < resolution && tick >= 0;
+//         assert tick <= resolution && tick >= 0 : "tick: "+tick;
         if(speed.x > 0)
-            pos.x = 20 + tick * distance / resolution;
+            pos.x = cfg.leftgoal + tick * distance / resolution;
         else
-            pos.x = Pong.SCREEN_WIDTH - tick * distance / resolution - 20;
+            pos.x = cfg.rightgoal - tick * distance / resolution;
         pos.y = pos.y + speed.y;
     }
 
@@ -56,7 +57,7 @@ public class Ball {
 
     // get the relative distance between racket and ball, 0-30
     public int distance(Racket racket){
-        int edge = racket.pos.y + racket.size.y;
+        int edge = racket.pos.y + racket.size.height;
         if(edge > pos.y)
             return (edge - pos.y) * 30 / (Pong.SCREEN_HEIGHT - 40);
         else

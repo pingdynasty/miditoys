@@ -5,34 +5,41 @@ import java.awt.Point;
 public class ComputerController extends RacketController {
 
     Ball ball;
-    int adjustment = 8;
-    private static final int MARGIN = 15;
+    int adjustment;
+    int fudge;
 
     public ComputerController(Racket racket, Ball ball){
         super(racket);
         this.ball = ball;
+        update();
     }
 
     public void move(){
-        int centerpos = racket.pos.y + racket.size.y / 2;
+        int centerpos = racket.pos.y + racket.size.height / 2;
         if((ball.speed.x < 0 && racket.isLeft()) ||
            (ball.speed.x > 0 && !racket.isLeft())){
-            int dist = java.lang.Math.abs(ball.pos.y - centerpos);
-            if(centerpos < ball.pos.y - MARGIN)
+            int dist = Math.abs(ball.pos.y - centerpos);
+            if(centerpos < ball.pos.y - fudge)
                 move(dist / adjustment);
-            else if(centerpos > ball.pos.y + MARGIN)
+            else if(centerpos > ball.pos.y + fudge)
                 move(-dist / adjustment);
         }else{
-            if(centerpos < Pong.SCREEN_HEIGHT / 2 - MARGIN)
+            if(centerpos < cfg.height / 2 - fudge)
                 move(3);
-            else if(centerpos > Pong.SCREEN_HEIGHT / 2 + MARGIN)
+            else if(centerpos > cfg.height / 2 + fudge)
                 move(-3);
         }
     }
 
+    public void update(){
+        adjustment = cfg.computerRacketSkill;
+        // set fudge factor slightly different on left/right sides
+        fudge = cfg.computerRacketFudge + (racket.isLeft() ? 3 : -3);
+    }
+
     public void reset(){
         super.reset();
-        adjustment = 8;
+        update();
     }
 
     public void missed(){

@@ -1,22 +1,27 @@
 package com.pingdynasty.pong;
 
-import java.awt.Graphics;
 import java.awt.Point;
+import java.awt.Graphics;
+import java.awt.Dimension;
 
-public abstract class Racket {
+public abstract class Racket extends Configurable {
     Point pos;
-    Point size = new Point(6, 50);
+    Dimension size = new Dimension(6, 50);
     int score = 0;
     int speed = 0;
-    int goal; // the x position of this side's goal line
+//     int goal; // the x position of this side's goal line
 
-    public Racket(Point pos){
-        this.pos = pos;
+    public Racket(PongConfiguration cfg){
+        super(cfg);
     }
 
+//     public Racket(Point pos){
+//         this.pos = pos;
+//     }
+
     public int hit(Ball ball){
-        int offset = ball.pos.y - (pos.y + (size.y / 2)); // distance from center of racket
-        if(Math.abs(ball.speed.y) < ball.MAX_VERTICAL_SPEED)
+        int offset = ball.pos.y - (pos.y + (size.height / 2)); // distance from center of racket
+        if(Math.abs(ball.speed.y) < cfg.maxVerticalSpeed)
             ball.speed.y += offset / 7;
         ball.speed.x *= -1;
         return offset;
@@ -31,6 +36,6 @@ public abstract class Racket {
     public abstract void serve(Ball ball);
 
     public void paint(Graphics g){
-        g.fillRect(pos.x, pos.y, size.x, size.y);
+        g.fillRect(pos.x, pos.y, size.width, size.height);
     }
 }

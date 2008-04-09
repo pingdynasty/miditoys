@@ -2,11 +2,12 @@ package com.pingdynasty.pong;
 
 import java.awt.Point;
 
-public abstract class RacketController {
+public abstract class RacketController extends Configurable {
 
     Racket racket;
 
     public RacketController(Racket racket){
+        super(racket.getConfiguration());
         this.racket = racket;
     }
 
