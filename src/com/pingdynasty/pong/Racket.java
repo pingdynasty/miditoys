@@ -6,13 +6,19 @@ import java.awt.Dimension;
 
 public abstract class Racket extends Configurable {
     Point pos;
-    Dimension size = new Dimension(6, 50);
+    Dimension size;
     int score = 0;
     int speed = 0;
 //     int goal; // the x position of this side's goal line
 
     public Racket(PongConfiguration cfg){
         super(cfg);
+        size = new Dimension(cfg.width / 80, cfg.height / 10);
+    }
+
+    public void update(){
+        size.width = cfg.width / 80;
+        size.height = cfg.height / 10;
     }
 
 //     public Racket(Point pos){

@@ -7,18 +7,22 @@ public class Ball extends Configurable {
 
     Point pos;
     Point speed;
-    int radius = 8;
+    int diameter;
     int distance; // total pixels across screen
     private int resolution; // total ticks across screen
  
     public Ball(PongConfiguration cfg){
         super(cfg);
-        pos = new Point(cfg.width / 2, cfg.height / 2);
+        pos = new Point(); // cfg.x + cfg.width / 2, cfg.y + cfg.height / 2);
+//         diameter = (cfg.width + cfg.height) / 120;
         speed = new Point(0, 0);
         update();
     }
 
     public void update(){
+        pos.x = cfg.x + cfg.width / 2;
+        pos.y = cfg.y + cfg.height / 2;
+        diameter = (cfg.width + cfg.height) / 120;
         distance = cfg.rightgoal - cfg.leftgoal;
         resolution = cfg.clocksperbeat * cfg.ticksperclock;
     }
@@ -48,12 +52,14 @@ public class Ball extends Configurable {
 //     }		
 
     public void paint(Graphics g){
-        g.fillOval(pos.x, pos.y, radius, radius);
+        g.fillOval(pos.x, pos.y, diameter, diameter);
     }
 
-//     public void reset(int offset){
-//         pos = new Point(Pong.SCREEN_WIDTH / 2, Pong.SCREEN_HEIGHT / 2);
-//     }
+    public void reset(){
+        move(cfg.clockoffset*cfg.ticksperclock);
+        pos.y = cfg.height / 2;
+        speed.y = 2;
+    }
 
     // get the relative distance between racket and ball, 0-30
     public int distance(Racket racket){

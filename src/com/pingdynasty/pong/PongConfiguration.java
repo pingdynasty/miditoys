@@ -17,12 +17,12 @@ public class PongConfiguration {
     int leftgoal = x + 15;
     int rightgoal = x + width - 15;
     int bpm = 80;
-    int ticksperclock = 4;
+    int ticksperclock = 2;
     int clocksperbeat = 48;
     int clockoffset = clocksperbeat / 2;
     int clock = clockoffset;
-    int maxVerticalSpeed = 18;
-    int computerRacketFudge = 15;
+    int maxVerticalSpeed = 16;
+    int computerRacketFudge = 10;
     int computerRacketSkill = 8;
 
     Font font = new Font("Arial", Font.BOLD, 18);

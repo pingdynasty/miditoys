@@ -18,11 +18,13 @@ public class ComputerController extends RacketController {
         int centerpos = racket.pos.y + racket.size.height / 2;
         if((ball.speed.x < 0 && racket.isLeft()) ||
            (ball.speed.x > 0 && !racket.isLeft())){
-            int dist = Math.abs(ball.pos.y - centerpos);
-            if(centerpos < ball.pos.y - fudge)
+            int dist = ball.pos.y + (ball.diameter / 2) - centerpos;
+//             if(Math.abs(dist) > fudge)
                 move(dist / adjustment);
-            else if(centerpos > ball.pos.y + fudge)
-                move(-dist / adjustment);
+//             if(centerpos < ball.pos.y - fudge)
+//                 move(dist / adjustment);
+//             else if(centerpos > ball.pos.y + fudge)
+//                 move(-dist / adjustment);
         }else{
             if(centerpos < cfg.height / 2 - fudge)
                 move(3);

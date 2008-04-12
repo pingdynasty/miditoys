@@ -16,7 +16,7 @@ class Court extends Configurable {
 //             leftController.missed();
 //             rightController.serve(ball);
             return false;
-        }else if(ball.pos.x + ball.radius >= cfg.rightgoal){
+        }else if(ball.pos.x + ball.diameter >= cfg.rightgoal){
             // goal on right side
 //             Pong.enqueue(new Event(Event.SCORE, Event.LEFT, ball.distance(rightController.racket)));
             //                 enqueue(new Event(Event.MISS, Event.RIGHT, ball.speed.y));
@@ -26,7 +26,7 @@ class Court extends Configurable {
             ball.speed.y *= -1;
             if(cfg.doWalls)
                 Pong.enqueue(new Event(Event.WALL, Event.LEFT, ball.speed.y));
-        }else if(ball.pos.y >= cfg.y + cfg.height + ball.radius){
+        }else if(ball.pos.y + ball.diameter >= cfg.y + cfg.height){
             // hit bottom wall
             if(cfg.doWalls)
                 Pong.enqueue(new Event(Event.WALL, Event.LEFT, ball.speed.y));

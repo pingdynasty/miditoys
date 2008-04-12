@@ -5,8 +5,14 @@ import java.awt.Point;
 class RightRacket extends Racket {
     public RightRacket(PongConfiguration cfg){
         super(cfg);
-        // position at middle of right goal minus margin (5) and width of pad (6)
-        pos = new Point(cfg.rightgoal - 11, cfg.y + cfg.width / 2);
+        // position at middle of right goal minus margin (5) and width of pad
+        pos = new Point(cfg.rightgoal - size.width - 5, cfg.y + cfg.height / 2);
+    }
+
+    public void update(){
+        super.update();
+        pos.x = cfg.rightgoal - size.width - 5;
+        pos.y = cfg.y + cfg.height / 2;
     }
 
     public boolean isLeft(){
@@ -14,9 +20,9 @@ class RightRacket extends Racket {
     }
 
     public boolean check(Ball ball){
-        if(ball.pos.x + ball.radius + ball.speed.x >= pos.x // racketPoint.x - 6
+        if(ball.pos.x + ball.diameter + ball.speed.x >= pos.x // racketPoint.x - 6
 //            && ball.pos.x < pos.x + size.width
-           && ball.pos.y + ball.radius > pos.y 
+           && ball.pos.y + ball.diameter > pos.y 
            && ball.pos.y < pos.y + size.height){
             int offset = hit(ball);
             //                 log("right racket speed "+speed);
@@ -30,8 +36,8 @@ class RightRacket extends Racket {
         ++score;
         // start ball off right away
         ball.pos.x = pos.x - 26; // compensate for extra distance behind racket
-        ball.pos.y = pos.y + 25;
-        if(pos.y < cfg.height / 2)
+        ball.pos.y = pos.y + size.height / 2;
+        if(ball.pos.y < cfg.height / 2)
             ball.speed.y = 4;
         else
             ball.speed.y = -4;

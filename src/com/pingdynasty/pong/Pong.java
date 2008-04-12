@@ -23,7 +23,7 @@ public class Pong extends JPanel implements Receiver  {
 
 //     public static final int GAME_END_SCORE = 11;	
     public static final int SCREEN_WIDTH = 510;
-    public static final int SCREEN_HEIGHT = 520;
+    public static final int SCREEN_HEIGHT = 560;
     private PongConfiguration cfg;
     private MidiSync internalSync; // internal midi sync/scheduling thread
     private Transmitter externalSync;
@@ -41,12 +41,10 @@ public class Pong extends JPanel implements Receiver  {
     private int clock;
 
     class Animator extends Thread {
-//         public static final long FRAME_DELAY = 40; // 25fps
-        long FRAME_DELAY = 20; // 50fps
-//         public static final long FRAME_DELAY = 10; // 100fps
+        long frameDelay = 20; // 50fps
         private boolean running = true;
         private int tick = 0;
-//         private int adjust;
+        private int step = 0;
         private long lastAdjust;
         private boolean waiting;
 
@@ -59,6 +57,7 @@ public class Pong extends JPanel implements Receiver  {
 //             adjust += newtick - tick;
 //             tick = newtick;
             tick = clock * cfg.ticksperclock;
+            step =  0;
             if(clock == 1)
                 waiting = false;
             interrupt();
@@ -71,7 +70,7 @@ public class Pong extends JPanel implements Receiver  {
                 delta = 250; // 240 bpm
             else if(delta > 2000) // 30 bpm
                 delta = 2000;
-            FRAME_DELAY = delta / (cfg.ticksperclock * cfg.clocksperbeat);
+            frameDelay = delta / (cfg.ticksperclock * cfg.clocksperbeat);
             // set frames per second to match the clocks (by factor of ticksperclock)
             lastAdjust = now;
         }
@@ -81,6 +80,7 @@ public class Pong extends JPanel implements Receiver  {
                 // allow rackets to move
                 leftController.move();
                 rightController.move();
+//                 if(started && !waiting && ++step <= cfg.ticksperclock){
                 if(started && !waiting){
                     // collision detection
                     if(ball.speed.x < 0){
@@ -92,6 +92,7 @@ public class Pong extends JPanel implements Receiver  {
                             Pong.enqueue(new Event(Event.SCORE, Event.RIGHT, ball.distance(leftController.racket)));
                             waiting = true;
                         }else{
+//                             ball.move(tick+step);
                             ball.move(++tick);
                         }
                     }else{
@@ -103,6 +104,7 @@ public class Pong extends JPanel implements Receiver  {
                             leftController.serve(ball);
                             waiting = true;
                         }else{
+//                             ball.move(tick+step);
                             ball.move(++tick);
                         }
                     }
@@ -110,7 +112,7 @@ public class Pong extends JPanel implements Receiver  {
                 // update screen
                 repaint();
                 try{
-                    sleep(FRAME_DELAY);
+                    sleep(frameDelay);
                 }catch(InterruptedException e){}
             }
         }
@@ -174,19 +176,17 @@ public class Pong extends JPanel implements Receiver  {
     }
 
     public Pong(){
-//         super(new PongConfiguration());
         cfg = new PongConfiguration();
         internalSync = new MidiSync(cfg.bpm);
         internalSync.setReceiver(this);
+
         court = new Court(cfg);
         ball = new Ball(cfg);
-//         ball.distance = court.rightgoal - court.leftgoal;
-//         ball.resolution = clocksperbeat * ticksperclock;
-//         log("ball distance: "+ball.distance);
         rightRacket = new RightRacket(cfg);
         leftRacket = new LeftRacket(cfg);
         leftController = new ComputerController(leftRacket, ball);
-        rightController = new MouseController(rightRacket, this);
+        rightController = new ComputerController(rightRacket, ball);
+//         rightController = new MouseController(rightRacket, this);
 //         rightController = new JInputController(rightRacket);
 //         rightController = new KeyboardController(rightRacket, this, KeyEvent.VK_UP, KeyEvent.VK_DOWN);
 
@@ -285,6 +285,27 @@ public class Pong extends JPanel implements Receiver  {
                     log("modulation "+(cfg.doModulation ? "on" : "off"));
                 }
             });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_Q, 0), "q");
+        getActionMap().put("q", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    cfg.clockoffset = cfg.clocksperbeat / 4;
+                    log("clockoffset "+(cfg.clocksperbeat / cfg.clockoffset));
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_H, 0), "h");
+        getActionMap().put("h", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    cfg.clockoffset = cfg.clocksperbeat / 2;
+                    log("clockoffset "+(cfg.clocksperbeat / cfg.clockoffset));
+                }
+            });
+        getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_T, 0), "t");
+        getActionMap().put("t", new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    cfg.clockoffset = cfg.clocksperbeat / 3;
+                    log("clockoffset "+(cfg.clocksperbeat / cfg.clockoffset));
+                }
+            });
 
 //         addMouseMotionListener(new MouseMotionAdapter(){
         addMouseListener(new MouseAdapter(){
@@ -296,14 +317,33 @@ public class Pong extends JPanel implements Receiver  {
                 }
             });
 
-        setFocusable(true);
-        setBPM(cfg.bpm);
+        addComponentListener(new ComponentAdapter(){
+                public void componentResized(ComponentEvent e){
+                    resize(getSize());
+                    repaint();
+                }
+            });
 
+        setFocusable(true);
+
+        setBPM(cfg.bpm);
         reset();
+
         // start pad moving animator thread
         animator = new Animator();
         animator.start();
         internalSync.start(); // start sending ticks for racket movements
+    }
+
+    public void resize(Dimension dim){
+        log("resize: "+dim);
+        cfg.width = dim.width - 30;
+        cfg.height = dim.height - 35;
+        cfg.leftgoal = cfg.x + (cfg.width / 30);
+        cfg.rightgoal = cfg.x + cfg.width - (cfg.width / 30);
+        ball.update();
+        rightRacket.update();
+        leftRacket.update();
     }
 
     public static void enqueue(Event event){
@@ -361,6 +401,8 @@ public class Pong extends JPanel implements Receiver  {
 
     public synchronized void setClocksPerBeat(int cpb){
         if(cpb >= 12){
+            // scale clock offset
+            cfg.clockoffset = (int)((double)cfg.clockoffset * (double)cpb / (double)cfg.clocksperbeat);
             cfg.clocksperbeat = cpb;
             ball.update();
             log("clocks per beat: "+cfg.clocksperbeat);
@@ -394,11 +436,8 @@ public class Pong extends JPanel implements Receiver  {
         rightController.reset();
 //         leftController.serve(ball);
         leftController.reset();
-//         ball.reset();
         clock = cfg.clockoffset;
-        ball.move(cfg.clockoffset*cfg.ticksperclock);
-        ball.pos.y = cfg.height / 2;
-        ball.speed.y = 2;
+        ball.reset();
     }
 
     public void tick(){
@@ -554,6 +593,8 @@ public class Pong extends JPanel implements Receiver  {
         menu = new JMenu("Right");
         group = new ButtonGroup();
         button = new JRadioButtonMenuItem("keyboard");
+        if(rightController instanceof KeyboardController)
+            button.setSelected(true);
         button.addActionListener(new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     rightController.close();
@@ -563,7 +604,8 @@ public class Pong extends JPanel implements Receiver  {
         group.add(button);
         menu.add(button);
         button = new JRadioButtonMenuItem("mouse");
-        button.setSelected(true);
+        if(rightController instanceof MouseController)
+            button.setSelected(true);
         button.addActionListener(new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     rightController.close();
@@ -573,6 +615,8 @@ public class Pong extends JPanel implements Receiver  {
         group.add(button);
         menu.add(button);
 //         button = new JRadioButtonMenuItem("gamepad");
+//         if(rightController instanceof JInputController)
+//             button.setSelected(true);
 //         button.addActionListener(new AbstractAction(){
 //                 public void actionPerformed(ActionEvent event){
 //                     rightController.close();
@@ -582,6 +626,8 @@ public class Pong extends JPanel implements Receiver  {
 //         group.add(button);
 //         menu.add(button);
         button = new JRadioButtonMenuItem("computer");
+        if(rightController instanceof ComputerController)
+            button.setSelected(true);
         button.addActionListener(new AbstractAction(){
                 public void actionPerformed(ActionEvent event){
                     rightController.close();
@@ -755,6 +801,10 @@ public class Pong extends JPanel implements Receiver  {
                 cfg.doLog = msg.getData2() > 63;
                 log("log output "+(cfg.doLog ? "on" : "off"));
                 break;
+            case 28:
+                if(msg.getData2() > 63)
+                    reset();
+                break;
 
             case 30:
                 cfg.computerRacketSkill = msg.getData2();
@@ -799,7 +849,7 @@ public class Pong extends JPanel implements Receiver  {
         // create frame
         JFrame frame = new JFrame("pong");
         frame.setJMenuBar(pong.getMenuBar(true));
-        frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT + 40);
+        frame.setSize(Pong.SCREEN_WIDTH, Pong.SCREEN_HEIGHT);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setContentPane(pong);
         frame.setVisible(true);
