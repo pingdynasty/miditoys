@@ -74,7 +74,7 @@ public class SchedulingPlayer extends ReceiverPlayer implements Runnable, Compar
             MidiEvent event = new MidiEvent(msg, -1);
             schedule.add(event);
             msg = new ShortMessage();
-            msg.setMessage(ShortMessage.NOTE_OFF,  channel, note, velocity);
+            msg.setMessage(ShortMessage.NOTE_OFF,  channel, note, 0);
             tick = System.currentTimeMillis();
             event = new MidiEvent(msg, tick + duration);
             schedule.add(event);
