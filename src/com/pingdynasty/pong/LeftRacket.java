@@ -21,7 +21,7 @@ class LeftRacket extends Racket {
 
     public boolean check(Ball ball){
         if(ball.pos.x + ball.speed.x <= pos.x + size.width
-//            && ball.pos.x + ball.diameter > pos.x
+           && ball.pos.x + ball.diameter > pos.x
            && ball.pos.y + ball.diameter > pos.y 
            && ball.pos.y < pos.y + size.height){
             int offset = hit(ball);

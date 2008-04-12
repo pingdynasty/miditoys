@@ -80,8 +80,8 @@ public class Pong extends JPanel implements Receiver  {
                 // allow rackets to move
                 leftController.move();
                 rightController.move();
-//                 if(started && !waiting && ++step <= cfg.ticksperclock){
-                if(started && !waiting){
+                if(started && !waiting && (++step <= cfg.ticksperclock)){
+//                 if(started && !waiting){
                     // collision detection
                     if(ball.speed.x < 0){
                         if(!leftRacket.check(ball)){
@@ -92,8 +92,8 @@ public class Pong extends JPanel implements Receiver  {
                             Pong.enqueue(new Event(Event.SCORE, Event.RIGHT, ball.distance(leftController.racket)));
                             waiting = true;
                         }else{
-//                             ball.move(tick+step);
-                            ball.move(++tick);
+                            ball.move(tick+step);
+//                             ball.move(++tick);
                         }
                     }else{
                         if(!rightRacket.check(ball)){
@@ -104,8 +104,8 @@ public class Pong extends JPanel implements Receiver  {
                             leftController.serve(ball);
                             waiting = true;
                         }else{
-//                             ball.move(tick+step);
-                            ball.move(++tick);
+                            ball.move(tick+step);
+//                             ball.move(++tick);
                         }
                     }
                 }

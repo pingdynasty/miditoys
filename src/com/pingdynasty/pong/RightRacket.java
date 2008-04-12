@@ -21,7 +21,7 @@ class RightRacket extends Racket {
 
     public boolean check(Ball ball){
         if(ball.pos.x + ball.diameter + ball.speed.x >= pos.x // racketPoint.x - 6
-//            && ball.pos.x < pos.x + size.width
+           && ball.pos.x < pos.x + size.width
            && ball.pos.y + ball.diameter > pos.y 
            && ball.pos.y < pos.y + size.height){
             int offset = hit(ball);
