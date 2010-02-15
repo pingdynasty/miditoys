@@ -167,7 +167,10 @@ public class Pong extends JPanel implements Receiver  {
         }
         public void actionPerformed(ActionEvent event) {
             try{
-                internalSync.disable();
+                if(externalSync != null)
+                    externalSync.close();
+                else
+                    internalSync.disable();
                 device.open();
                 externalSync = device.getTransmitter();
                 externalSync.setReceiver(getMidiSyncReceiver());
@@ -332,7 +335,7 @@ public class Pong extends JPanel implements Receiver  {
         // start pad moving animator thread
         animator = new Animator();
         animator.start();
-        internalSync.start(); // start sending ticks for racket movements
+        //        internalSync.start(); // start sending ticks for racket movements
     }
 
     public void resize(Dimension dim){
@@ -420,7 +423,8 @@ public class Pong extends JPanel implements Receiver  {
 
     public void start(){
         started = true;
-//         internalSync.start();
+        if(externalSync == null)
+            internalSync.start();
         tick();
     }
 
@@ -645,10 +649,14 @@ public class Pong extends JPanel implements Receiver  {
             MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
             MidiDevice[] devices = new MidiDevice[info.length];
             for(int i=0; i<info.length; ++i){
+                System.out.println("MIDI device: "+info[i].getName());
                 try{
-                    devices[i] = MidiSystem.getMidiDevice(info[i]); 
-                    if(devices[i] instanceof Receiver ||
-                       devices[i] instanceof Synthesizer){
+                    devices[i] = MidiSystem.getMidiDevice(info[i]);
+                    System.out.println("class "+devices[i].getClass().getName());
+                    System.out.println("receivers "+devices[i].getMaxReceivers());
+                    System.out.println("transmitters "+devices[i].getMaxTransmitters());
+                    if(devices[i].getMaxReceivers() != 0){
+                        // max is -1 for unlimited
                         button = new JRadioButtonMenuItem(info[i].getName());
                         if(menu.getItemCount() == 0)
                             button.setSelected(true);
@@ -710,7 +718,9 @@ public class Pong extends JPanel implements Receiver  {
                 public void actionPerformed(ActionEvent event){
                     if(externalSync != null)
                         externalSync.close();
+                    externalSync = null;
                     internalSync.enable();
+                    System.out.println("internal sync");
                 }
             });
         button.setSelected(true);
@@ -721,7 +731,8 @@ public class Pong extends JPanel implements Receiver  {
         for(int i=0; i<info.length; ++i){
             try{
                 devices[i] = MidiSystem.getMidiDevice(info[i]); 
-                if(devices[i] instanceof Transmitter){
+                if(devices[i].getMaxTransmitters() != 0){
+//                 if(devices[i] instanceof Transmitter){
                     button = new JRadioButtonMenuItem(info[i].getName());
                     button.addActionListener(new SyncDeviceActionListener(devices[i]));
                     group.add(button);
