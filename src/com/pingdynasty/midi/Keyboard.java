@@ -134,20 +134,43 @@ public class Keyboard extends JFrame implements KeyListener {
         // add menu bar
         JMenuBar menubar = new JMenuBar();
         JMenu menu = new JMenu("Devices");
-        String[] devicenames = DeviceLocator.getDeviceNames(Receiver.class);
-        for(int i=0; i<devicenames.length; ++i){
-            JMenuItem item = new JMenuItem(devicenames[i]);
-            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
-            item.addActionListener(new DeviceActionListener(device));
-            menu.add(item); 
+        ButtonGroup group = new ButtonGroup();
+        JRadioButtonMenuItem button;
+        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+        MidiDevice[] devices = new MidiDevice[info.length];
+        for(int i=0; i<info.length; ++i){
+            System.out.println("MIDI device: "+info[i].getName());
+            try{
+                devices[i] = MidiSystem.getMidiDevice(info[i]);
+                if(devices[i].getMaxReceivers() != 0){
+                    // max is -1 for unlimited
+                    button = new JRadioButtonMenuItem(info[i].getName());
+                    if(menu.getItemCount() == 0)
+                        button.setSelected(true);
+                    button.addActionListener(new DeviceActionListener(devices[i]));
+                    group.add(button);
+                    menu.add(button); 
+                }
+            }catch(MidiUnavailableException exc){
+                System.err.println(exc.getMessage());
+            }
         }
-        devicenames = DeviceLocator.getDeviceNames(Synthesizer.class);
-        for(int i=0; i<devicenames.length; ++i){
-            JMenuItem item = new JMenuItem(devicenames[i]);
-            MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
-            item.addActionListener(new DeviceActionListener(device));
-            menu.add(item); 
-        }
+// //         String[] devicenames = DeviceLocator.getDeviceNames(Receiver.class);
+//         String[] devicenames = DeviceLocator.getReceiverDeviceNames();
+// //         String[] devicenames = DeviceLocator.getTransmitterDeviceNames();
+//         for(int i=0; i<devicenames.length; ++i){
+//             JMenuItem item = new JMenuItem(devicenames[i]);
+//             MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
+//             item.addActionListener(new DeviceActionListener(device));
+//             menu.add(item); 
+//         }
+// //         devicenames = DeviceLocator.getDeviceNames(Synthesizer.class);
+// //         for(int i=0; i<devicenames.length; ++i){
+// //             JMenuItem item = new JMenuItem(devicenames[i]);
+// //             MidiDevice device = DeviceLocator.getDevice(devicenames[i]);
+// //             item.addActionListener(new DeviceActionListener(device));
+// //             menu.add(item); 
+// //         }
         menubar.add(menu);
         menubar.add(channelpanel.getMenu());
         setJMenuBar(menubar);

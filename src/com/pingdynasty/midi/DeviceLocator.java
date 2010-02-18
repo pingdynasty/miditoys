@@ -90,6 +90,32 @@ public class DeviceLocator {
         return names;
     }
 
+    public static String[] getTransmitterDeviceNames()
+        throws MidiUnavailableException {
+        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+        List list = new ArrayList();
+        for(int i=0; i<info.length; ++i){
+            if(MidiSystem.getMidiDevice(info[i]).getMaxTransmitters() != 0)
+                list.add(info[i].getName());
+        }
+        String[] names = new String[list.size()];
+        list.toArray(names);
+        return names;
+    }
+
+    public static String[] getReceiverDeviceNames()
+        throws MidiUnavailableException {
+        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+        List list = new ArrayList();
+        for(int i=0; i<info.length; ++i){
+            if(MidiSystem.getMidiDevice(info[i]).getMaxReceivers() != 0)
+                list.add(info[i].getName());
+        }
+        String[] names = new String[list.size()];
+        list.toArray(names);
+        return names;
+    }
+
     public static MidiDevice getDevice(String name)
         throws MidiUnavailableException {
         MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();

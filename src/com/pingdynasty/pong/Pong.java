@@ -652,9 +652,6 @@ public class Pong extends JPanel implements Receiver  {
                 System.out.println("MIDI device: "+info[i].getName());
                 try{
                     devices[i] = MidiSystem.getMidiDevice(info[i]);
-                    System.out.println("class "+devices[i].getClass().getName());
-                    System.out.println("receivers "+devices[i].getMaxReceivers());
-                    System.out.println("transmitters "+devices[i].getMaxTransmitters());
                     if(devices[i].getMaxReceivers() != 0){
                         // max is -1 for unlimited
                         button = new JRadioButtonMenuItem(info[i].getName());
