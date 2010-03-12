@@ -106,10 +106,8 @@ public class DevicePanel {
         List list = new ArrayList();
         for(int i=0; i<info.length; ++i){
             MidiDevice device = MidiSystem.getMidiDevice(info[i]);
-//             if((!input && device.getMaxReceivers() != 0) ||
-//                (input  && device.getMaxTransmitters() != 0))
-            if((!input && (device instanceof Receiver || device instanceof Synthesizer)) ||
-               (input  && device instanceof Transmitter))
+            if((!input && device.getMaxReceivers() != 0) ||
+               (input  && device.getMaxTransmitters() != 0))
                 list.add(device);
         }
         MidiDevice[] mididevices = new MidiDevice[list.size()];
