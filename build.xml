@@ -37,6 +37,7 @@
 	   source="${java.source}"
 	   target="${java.target}">
       <classpath refid="lib.path"/>
+      <exclude name="com/pingdynasty/midp/**"/>
     </javac>
   </target>
 
