@@ -154,7 +154,6 @@ public class Pong extends JPanel implements Receiver  {
         }
         public void actionPerformed(ActionEvent event) {
             try{
-                midi.close();
                 initSound(device);
             }catch(Exception exc){exc.printStackTrace();}
         }
@@ -502,14 +501,13 @@ public class Pong extends JPanel implements Receiver  {
 
     public void initSound(){
         try{
-            // choose first available Receiver or Syntheziser
+            // choose first available device with at least one receiver
             MidiDevice device = null;
             MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
             MidiDevice[] devices = new MidiDevice[info.length];
             for(int i=0; i<info.length; ++i){
                 devices[i] = MidiSystem.getMidiDevice(info[i]);
-                if(devices[i] instanceof Receiver ||
-                   devices[i] instanceof Synthesizer){
+                if(devices[i].getMaxReceivers() != 0){
                     device = devices[i];
                     break;
                 }
@@ -522,8 +520,10 @@ public class Pong extends JPanel implements Receiver  {
 
     public void initSound(MidiDevice device)
         throws Exception{
+        if(midi != null)
+            midi.close();
         device.open();
-        midi = new SchedulingPlayer(device.getReceiver());
+        midi = new SchedulingPlayer(device);
         midi.setVelocity(80);
         midi.setDuration(600); // duration in milliseconds
         scales = new ScaleMapper(Locale.getDefault());
@@ -572,15 +572,15 @@ public class Pong extends JPanel implements Receiver  {
             });
         group.add(button);
         menu.add(button);
-//         button = new JRadioButtonMenuItem("gamepad");
-//         button.addActionListener(new AbstractAction(){
-//                 public void actionPerformed(ActionEvent event){
-//                     leftController.close();
-//                     leftController = new JInputController(leftRacket);
-//                 }
-//             });
-//         group.add(button);
-//         menu.add(button);
+        button = new JRadioButtonMenuItem("gamepad");
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    leftController.close();
+                    leftController = new JInputController(leftRacket);
+                }
+            });
+        group.add(button);
+        menu.add(button);
         button = new JRadioButtonMenuItem("computer");
         button.setSelected(true);
         button.addActionListener(new AbstractAction(){
@@ -618,17 +618,17 @@ public class Pong extends JPanel implements Receiver  {
             });
         group.add(button);
         menu.add(button);
-//         button = new JRadioButtonMenuItem("gamepad");
-//         if(rightController instanceof JInputController)
-//             button.setSelected(true);
-//         button.addActionListener(new AbstractAction(){
-//                 public void actionPerformed(ActionEvent event){
-//                     rightController.close();
-//                     rightController = new JInputController(rightRacket);
-//                 }
-//             });
-//         group.add(button);
-//         menu.add(button);
+        button = new JRadioButtonMenuItem("gamepad");
+        if(rightController instanceof JInputController)
+            button.setSelected(true);
+        button.addActionListener(new AbstractAction(){
+                public void actionPerformed(ActionEvent event){
+                    rightController.close();
+                    rightController = new JInputController(rightRacket);
+                }
+            });
+        group.add(button);
+        menu.add(button);
         button = new JRadioButtonMenuItem("computer");
         if(rightController instanceof ComputerController)
             button.setSelected(true);

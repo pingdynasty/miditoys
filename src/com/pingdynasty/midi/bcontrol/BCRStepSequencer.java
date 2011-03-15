@@ -339,16 +339,16 @@ public class BCRStepSequencer extends JPanel implements Receiver {
 
     public BCRStepSequencer(){
         super(new BorderLayout());
-        midiOutput = new SchedulingPlayer(null);
-        presets = new StepSequencer[4];
-        for(int i=0; i<presets.length; ++i)
-            presets[i] = new StepSequencer(midiOutput, width);
-        sequencer = presets[0];
-        eventHandler = new EventHandler();
-        midiInput = new StepSequencerArpeggio(sequencer);
-        midiControl = new ControlSurfaceHandler();
-        midiSync = new MidiSyncDevice(sequencer.getBPM());
         try{
+            midiOutput = new SchedulingPlayer(null);
+            presets = new StepSequencer[4];
+            for(int i=0; i<presets.length; ++i)
+                presets[i] = new StepSequencer(midiOutput, width);
+            sequencer = presets[0];
+            eventHandler = new EventHandler();
+            midiInput = new StepSequencerArpeggio(sequencer);
+            midiControl = new ControlSurfaceHandler();
+            midiSync = new MidiSyncDevice(sequencer.getBPM());
             midiSync.getTransmitter().setReceiver(getMidiSyncReceiver());
 //             midiInput.setMidiSync(midiSync);
         }catch(MidiUnavailableException exc){exc.printStackTrace();}

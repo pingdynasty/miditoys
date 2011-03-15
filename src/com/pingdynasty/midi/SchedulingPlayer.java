@@ -27,8 +27,11 @@ public class SchedulingPlayer extends ReceiverPlayer implements Runnable, Compar
         return 0;
     }
 
-    public SchedulingPlayer(Receiver receiver){
-        super(receiver);
+//     public SchedulingPlayer(Receiver receiver){
+//         super(receiver);
+    public SchedulingPlayer(MidiDevice device)
+        throws MidiUnavailableException {
+        super(device);
         schedule = Collections.synchronizedSortedSet(new TreeSet(this));
         tick = System.currentTimeMillis();
         scheduler = new Thread(this);
@@ -53,11 +56,7 @@ public class SchedulingPlayer extends ReceiverPlayer implements Runnable, Compar
                     // we were sleeping we would now be processing 
                     // a different event from the one we went to sleep for.
                     schedule.remove(event);
-//                     try{
-                        receiver.send(msg, -1);
-//                     }catch(InvalidMidiDataException exc){
-//                         exc.printStackTrace();
-//                     }
+                    sendNow(msg);
                 }
             }
         }

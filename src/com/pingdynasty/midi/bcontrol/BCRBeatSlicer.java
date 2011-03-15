@@ -383,7 +383,7 @@ public class BCRBeatSlicer extends JPanel {
         mainarea.add(waveform);
 
 //         // add grid sequencer display
-        mainarea.add(new GridSequencerPanel(sequencer));
+//         mainarea.add(new GridSequencerPanel(sequencer));
 
         JPanel rows = new JPanel();
         rows.setLayout(new BoxLayout(rows, BoxLayout.X_AXIS));
