@@ -38,6 +38,7 @@
 	   target="${java.target}">
       <classpath refid="lib.path"/>
       <exclude name="com/pingdynasty/midp/**"/>
+      <exclude name="com/pingdynasty/midi/StepSequencerPanel.java"/>
     </javac>
   </target>
 
@@ -83,7 +84,7 @@
     </copy>
   </target>
 
-  <target name="jar" depends="readme">
+  <target name="jar" depends="compile, readme">
     <jar destfile="${build.dir}/${proj}.jar">
       <fileset dir="${build.classes.dir}" includes="**/*.class"/>
       <fileset dir="${src.properties.dir}" includes="**/*.properties"/>
