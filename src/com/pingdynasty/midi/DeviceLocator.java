@@ -116,6 +116,28 @@ public class DeviceLocator {
         return names;
     }
 
+    public static MidiDevice getReceiver(String name)
+        throws MidiUnavailableException {
+        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+        for(int i=0; i<info.length; ++i){
+            if(info[i].getName().equals(name) &&
+	       MidiSystem.getMidiDevice(info[i]).getMaxReceivers() != 0)
+                return MidiSystem.getMidiDevice(info[i]);
+        }
+        return null;
+    }
+
+    public static MidiDevice getTransmitter(String name)
+        throws MidiUnavailableException {
+        MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();
+        for(int i=0; i<info.length; ++i){
+            if(info[i].getName().equals(name) &&
+	       MidiSystem.getMidiDevice(info[i]).getMaxTransmitters() != 0)
+                return MidiSystem.getMidiDevice(info[i]);
+        }
+        return null;
+    }
+
     public static MidiDevice getDevice(String name)
         throws MidiUnavailableException {
         MidiDevice.Info[] info = MidiSystem.getMidiDeviceInfo();

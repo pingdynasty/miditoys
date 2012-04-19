@@ -339,6 +339,7 @@ public class BCRStepSequencer extends JPanel implements Receiver {
 
     public BCRStepSequencer(){
         super(new BorderLayout());
+        cc_controls = new MidiControl[128];
         try{
             midiOutput = new SchedulingPlayer(null);
             presets = new StepSequencer[4];
@@ -484,7 +485,6 @@ public class BCRStepSequencer extends JPanel implements Receiver {
         controls = new MidiControl[list.size()];
         list.toArray(controls);
 
-        cc_controls = new MidiControl[128];
         for(int i=0; i<controls.length; ++i)
             if(controls[i].getCommand() == ShortMessage.CONTROL_CHANGE)
                 cc_controls[controls[i].getData1()] = controls[i];
@@ -623,6 +623,7 @@ public class BCRStepSequencer extends JPanel implements Receiver {
 
     public void sendSysexMessages(Receiver receiver)
         throws InvalidMidiDataException {
+	System.out.println("sending sysex messages");
         List list = new ArrayList();
         BCRSysexMessage.createMessage(list, "$rev R1");
         BCRSysexMessage.createMessage(list, "$preset");

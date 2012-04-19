@@ -19,7 +19,8 @@ public class ReceiverPlayer extends Player {
     public ReceiverPlayer(MidiDevice device)
         throws MidiUnavailableException{
         this.device = device;
-        this.receiver = device.getReceiver();
+	if(device != null)
+	    this.receiver = device.getReceiver();
     }
 
     public ReceiverPlayer(Receiver receiver){
@@ -31,11 +32,11 @@ public class ReceiverPlayer extends Player {
     }
 
     protected void sendNow(MidiMessage msg){
-//         receiver.send(msg, System.currentTimeMillis()*1000);
-        if(device == null)
-            receiver.send(msg, -1);
-        else
-            receiver.send(msg, device.getMicrosecondPosition());
+        receiver.send(msg, System.currentTimeMillis()*1000);
+//         if(device == null)
+//             receiver.send(msg, -1);
+//         else
+//             receiver.send(msg, device.getMicrosecondPosition());
     }
 
     /**
